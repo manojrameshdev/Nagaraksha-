@@ -52,9 +52,18 @@ type RankedHospital = {
 };
 type SosResponse = {
   incident: any;
+  streamUrl: string;
+  auditUrl: string;
   ref: string;
   rankedHospitals: RankedHospital[];
   dispatchedAt: string;
+};
+
+type LaneState = {
+  category: "TRAINED" | "RESCUE" | "AMBULANCE";
+  alerted: DispatchAttempt | null;
+  accepted: DispatchAttempt | null;
+  pending: DispatchAttempt[];
 };
 
 const LANE_META = {
@@ -63,14 +72,99 @@ const LANE_META = {
   AMBULANCE: { label: "Ambulance / Hospital", icon: Truck, tone: "#E5484D" },
 } as const;
 
+type LaneMap = Record<"TRAINED" | "RESCUE" | "AMBULANCE", LaneState>;
+
+function emptyLanes(): LaneMap {
+  return {
+    TRAINED: { category: "TRAINED", alerted: null, accepted: null, pending: [] },
+    RESCUE: { category: "RESCUE", alerted: null, accepted: null, pending: [] },
+    AMBULANCE: { category: "AMBULANCE", alerted: null, accepted: null, pending: [] },
+  };
+}
+
+function buildLanes(attempts: DispatchAttempt[]): LaneMap {
+  const lanes = emptyLanes();
+  for (const a of attempts) {
+    const cat = a.category as "TRAINED" | "RESCUE" | "AMBULANCE";
+    const lane = lanes[cat];
+    if (a.outcome === "ACCEPTED") lane.accepted = a;
+    else if (!lane.alerted) lane.alerted = a;
+    else lane.pending.push(a);
+  }
+  return lanes;
+}
+
+function applyAttempt(prev: LaneMap, p: any): LaneMap {
+  const next = { ...prev };
+  const cat = p.category as "TRAINED" | "RESCUE" | "AMBULANCE";
+  const attempt: DispatchAttempt = {
+    id: p.attemptId,
+    category: cat,
+    candidateName: p.candidateName,
+    candidateRole: p.candidateRole,
+    distanceKm: p.distanceKm,
+    etaMin: p.etaMin,
+    outcome: "PENDING",
+    acceptedAt: null,
+    sequence: p.sequence,
+  };
+  next[cat] = {
+    ...next[cat],
+    alerted: next[cat].alerted ?? attempt,
+    pending: next[cat].alerted ? [...next[cat].pending, attempt] : next[cat].pending,
+  };
+  return next;
+}
+
+function applyAccepted(prev: LaneMap, p: any): LaneMap {
+  const next = { ...prev };
+  const cat = p.category as "TRAINED" | "RESCUE" | "AMBULANCE";
+  const attempt: DispatchAttempt = {
+    id: p.attemptId,
+    category: cat,
+    candidateName: p.candidateName,
+    candidateRole: p.candidateRole,
+    distanceKm: p.distanceKm,
+    etaMin: p.etaMin,
+    outcome: "ACCEPTED",
+    acceptedAt: p.acceptedAt,
+    sequence: p.sequence ?? 1,
+  };
+  next[cat] = { ...next[cat], accepted: attempt };
+  return next;
+}
+
 export function LiveSosDemo() {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<SosResponse | null>(null);
   const [phase, setPhase] = useState<"idle" | "dispatching" | "accepted" | "transporting" | "handedoff">("idle");
+  const [lanes, setLanes] = useState<Record<string, LaneState>>({
+    TRAINED: { category: "TRAINED", alerted: null, accepted: null, pending: [] },
+    RESCUE: { category: "RESCUE", alerted: null, accepted: null, pending: [] },
+    AMBULANCE: { category: "AMBULANCE", alerted: null, accepted: null, pending: [] },
+  });
+  const [streaming, setStreaming] = useState(false);
+  const esRef = useRef<EventSource | null>(null);
+
+  const closeStream = useCallback(() => {
+    if (esRef.current) {
+      esRef.current.close();
+      esRef.current = null;
+    }
+    setStreaming(false);
+  }, []);
+
+  useEffect(() => () => closeStream(), [closeStream]);
 
   const trigger = useCallback(async () => {
     setLoading(true);
+    closeStream();
     setPhase("dispatching");
+    setLanes({
+      TRAINED: { category: "TRAINED", alerted: null, accepted: null, pending: [] },
+      RESCUE: { category: "RESCUE", alerted: null, accepted: null, pending: [] },
+      AMBULANCE: { category: "AMBULANCE", alerted: null, accepted: null, pending: [] },
+    });
     try {
       const res = await fetch("/api/sos", {
         method: "POST",
@@ -80,18 +174,48 @@ export function LiveSosDemo() {
       if (!res.ok) throw new Error("SOS failed");
       const json: SosResponse = await res.json();
       setData(json);
-      toast.success("SOS sent · three responders notified in parallel");
-      // animate state timeline
-      setTimeout(() => setPhase("accepted"), 1400);
-      setTimeout(() => setPhase("transporting"), 3000);
-      setTimeout(() => setPhase("handedoff"), 5200);
+      toast.success("SOS committed · IncidentCreated appended to outbox");
+
+      // Subscribe to the SSE live-state stream (System Design: WebSocket/SSE).
+      const es = new EventSource(json.streamUrl);
+      esRef.current = es;
+      setStreaming(true);
+
+      es.addEventListener("snapshot", (e: MessageEvent) => {
+        const d = JSON.parse(e.data);
+        // seed lane state from the initial snapshot
+        const att: DispatchAttempt[] = d.incident?.dispatchAttempts ?? [];
+        setLanes(buildLanes(att));
+      });
+      es.addEventListener("dispatch_attempted", (e: MessageEvent) => {
+        const p = JSON.parse(e.data);
+        setLanes((prev) => applyAttempt(prev, p));
+      });
+      es.addEventListener("dispatch_accepted", (e: MessageEvent) => {
+        const p = JSON.parse(e.data);
+        setLanes((prev) => applyAccepted(prev, p));
+        toast.success(`${p.candidateName} accepted (${p.category.toLowerCase()})`);
+      });
+      es.addEventListener("incident_state", (e: MessageEvent) => {
+        const p = JSON.parse(e.data);
+        if (p.state === "ACCEPTED") setPhase("accepted");
+        if (p.state === "TRANSPORTING") setPhase("transporting");
+        if (p.state === "HANDED_OFF") {
+          setPhase("handedoff");
+          toast.success("Handed off to hospital · audit trail preserved");
+          setTimeout(() => closeStream(), 1500);
+        }
+      });
+      es.onerror = () => {
+        // graceful — reconnect is handled by EventSource; if terminal, just stop.
+      };
     } catch (e: any) {
       toast.error(e?.message ?? "Failed to dispatch");
       setPhase("idle");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [closeStream]);
 
   const incident = data?.incident;
   const attempts: DispatchAttempt[] = incident?.dispatchAttempts ?? [];
@@ -135,13 +259,38 @@ export function LiveSosDemo() {
 
       {incident && (
         <>
-          {/* Three parallel lanes */}
-          <div className="mt-6 grid gap-3 md:grid-cols-3">
+          {/* live stream indicator */}
+          <div className="mt-4 flex items-center gap-2 text-[11px] text-muted-foreground">
+            <span
+              className={cn(
+                "inline-block h-1.5 w-1.5 rounded-full",
+                streaming ? "animate-pulse bg-[#4FBF9A]" : "bg-muted-foreground/40"
+              )}
+            />
+            {streaming
+              ? "SSE live · event-driven state from the outbox worker"
+              : "Stream closed · open the audit trail for the full history"}
+            {data?.auditUrl && (
+              <a
+                href={data.auditUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="ml-auto text-gold underline-offset-2 hover:underline"
+              >
+                audit trail →
+              </a>
+            )}
+          </div>
+
+          {/* Three parallel lanes — driven by the SSE stream */}
+          <div className="mt-3 grid gap-3 md:grid-cols-3">
             {(["TRAINED", "RESCUE", "AMBULANCE"] as const).map((cat) => {
               const meta = LANE_META[cat];
-              const laneAttempts = attempts.filter((a) => a.category === cat);
-              const accepted = laneAttempts.find((a) => a.outcome === "ACCEPTED");
+              const lane = lanes[cat];
+              const accepted = lane?.accepted ?? null;
+              const alerted = lane?.alerted ?? null;
               const Icon = meta.icon;
+              const idle = !alerted && !accepted;
               return (
                 <div
                   key={cat}
@@ -149,6 +298,8 @@ export function LiveSosDemo() {
                     "relative overflow-hidden rounded-2xl border p-4 transition-all",
                     accepted
                       ? "border-[rgba(43,182,115,0.35)] bg-[rgba(43,182,115,0.06)]"
+                      : alerted
+                      ? "border-[rgba(214,158,46,0.3)] bg-[rgba(214,158,46,0.05)]"
                       : "border-[rgba(234,243,237,0.08)] bg-[rgba(16,42,32,0.5)]"
                   )}
                 >
@@ -161,9 +312,13 @@ export function LiveSosDemo() {
                       <Badge className="bg-[rgba(43,182,115,0.18)] text-[#7fd6ad] hover:bg-[rgba(43,182,115,0.25)]">
                         ACCEPTED
                       </Badge>
+                    ) : alerted ? (
+                      <Badge variant="outline" className="border-[rgba(214,158,46,0.3)] text-gold">
+                        ALERTED
+                      </Badge>
                     ) : (
                       <Badge variant="outline" className="border-[rgba(234,243,237,0.12)] text-muted-foreground">
-                        ALERTED
+                        {idle ? "QUEUED" : "…"}
                       </Badge>
                     )}
                   </div>
@@ -182,14 +337,25 @@ export function LiveSosDemo() {
                         </span>
                       </div>
                     </div>
+                  ) : alerted ? (
+                    <div className="mt-3">
+                      <div className="text-sm font-medium text-mist">{alerted.candidateName}</div>
+                      <div className="text-[11px] text-muted-foreground">{alerted.candidateRole}</div>
+                      <div className="tnum mt-2 flex items-center gap-3 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Navigation className="h-3 w-3" />
+                          {alerted.distanceKm} km
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {alerted.etaMin} min
+                        </span>
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      </div>
+                    </div>
                   ) : (
-                    <div className="mt-3 space-y-2">
-                      {laneAttempts.map((a) => (
-                        <div key={a.id} className="flex items-center justify-between text-[11px] text-muted-foreground">
-                          <span className="truncate">{a.candidateName}</span>
-                          <span className="tnum">{a.distanceKm}km · {a.etaMin}m</span>
-                        </div>
-                      ))}
+                    <div className="mt-3 flex items-center gap-2 text-[11px] text-muted-foreground">
+                      <Loader2 className="h-3 w-3 animate-spin" /> awaiting dispatch worker…
                     </div>
                   )}
                 </div>
@@ -463,8 +629,15 @@ export function SnakeId() {
   );
 }
 
-/* ===================================================== MYTH BUSTER */
-type Msg = { role: "user" | "assistant"; content: string; emergency?: boolean; myth?: boolean };
+/* ===================================================== MYTH BUSTER (RAG) */
+type Msg = {
+  role: "user" | "assistant";
+  content: string;
+  emergency?: boolean;
+  myth?: boolean;
+  sources?: { docId: string; title: string; score: number }[];
+  source?: string;
+};
 export function MythBuster() {
   const [messages, setMessages] = useState<Msg[]>([
     {
@@ -501,6 +674,8 @@ export function MythBuster() {
           content: json.answer ?? "I could not answer that right now.",
           emergency: json.emergency,
           myth: json.mythFlagged,
+          sources: json.sources,
+          source: json.source,
         },
       ]);
     } catch {
@@ -526,7 +701,9 @@ export function MythBuster() {
         <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <ShieldAlert className="h-3.5 w-3.5 text-[#E5484D]" /> NagRaksha Mitra
         </span>
-        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">LLM · guarded</span>
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+          RAG · retrieved + grounded
+        </span>
       </div>
 
       <div
@@ -551,6 +728,22 @@ export function MythBuster() {
               </span>
             )}
             <span className="whitespace-pre-wrap">{m.content}</span>
+            {m.role === "assistant" && m.sources && m.sources.length > 0 && (
+              <span className="mt-2 flex flex-wrap items-center gap-1 border-t border-[rgba(234,243,237,0.08)] pt-2">
+                <span className="text-[9px] uppercase tracking-wider text-muted-foreground">
+                  RAG sources:
+                </span>
+                {m.sources.map((s) => (
+                  <span
+                    key={s.docId}
+                    title={`${s.title} · score ${s.score}`}
+                    className="rounded bg-[rgba(43,182,115,0.12)] px-1.5 py-0.5 text-[9px] text-[#7fd6ad]"
+                  >
+                    {s.docId}
+                  </span>
+                ))}
+              </span>
+            )}
           </div>
         ))}
         {loading && (
@@ -607,11 +800,12 @@ export function StatsStrip() {
   const trend = data.incidentTrend14d ?? [];
   const max = Math.max(1, ...trend.map((d: any) => d.count));
   return (
-    <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-6">
       <StatCard icon={AlertTriangle} tone="#E5484D" value={t?.incidents ?? 0} label="incidents" />
       <StatCard icon={CheckCircle2} tone="#4FBF9A" value={t?.hospitals ?? 0} label="hospitals" />
       <StatCard icon={MapPin} tone="#D69E2E" value={t?.riskAreas ?? 0} label="risk areas" />
       <StatCard icon={TrendingUp} tone="#2BB673" value={t?.mythConversations ?? 0} label="myth chats" />
+      <StatCard icon={ShieldAlert} tone="#7fd6ad" value={t?.knowledgeChunks ?? 0} label="RAG chunks" />
       <div className="col-span-2 rounded-2xl glass p-4 md:col-span-1">
         <div className="flex items-center justify-between">
           <span className="text-[10px] uppercase tracking-wider text-muted-foreground">14-day trend</span>

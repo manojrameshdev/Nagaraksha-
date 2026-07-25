@@ -1,6 +1,8 @@
-// Seed NagRaksha demo data: hospitals + antivenom stock + risk reports.
+// Seed NagRaksha demo data: hospitals + antivenom stock + risk reports +
+// the curated, medically-reviewed RAG knowledge base.
 // Run with: bun run scripts/seed.ts
 import { PrismaClient } from "@prisma/client";
+import { KNOWLEDGE_BASE } from "../src/lib/knowledge-base";
 
 const db = new PrismaClient();
 
@@ -126,6 +128,27 @@ async function main() {
     await db.riskReport.create({ data: r });
   }
   console.log(`Seeded ${hospitals.length} hospitals + ${risks.length} risk reports.`);
+
+  // ---- RAG knowledge base (idempotent upsert by docId) ----
+  let kbCount = 0;
+  for (const chunk of KNOWLEDGE_BASE) {
+    const existing = await db.knowledgeChunk.findFirst({ where: { docId: chunk.docId } });
+    const data = {
+      docId: chunk.docId,
+      title: chunk.title,
+      category: chunk.category,
+      content: chunk.content,
+      tags: chunk.tags,
+      reviewedBy: "NagRaksha medical review",
+    };
+    if (existing) {
+      await db.knowledgeChunk.update({ where: { id: existing.id }, data });
+    } else {
+      await db.knowledgeChunk.create({ data });
+    }
+    kbCount++;
+  }
+  console.log(`Seeded ${kbCount} knowledge-base chunks (RAG corpus).`);
 }
 
 main()

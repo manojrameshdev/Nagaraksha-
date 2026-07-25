@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { genIncidentRef, rankHospitals, simulateDispatch, type ResponderCategory } from "@/lib/nagraksha";
+import { genIncidentRef } from "@/lib/nagraksha";
+import { appendOutbox, audit, getRankedHospitals, getBus } from "@/lib/eventbus";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// POST /api/sos — one tap creates an incident and fans out three responder
-// categories IN PARALLEL (FR-1.2). Returns the incident + dispatch lanes.
+// POST /api/sos — one tap creates an incident, writes an IncidentCreated event
+// to the outbox IN THE SAME TRANSACTION, returns immediately. The outbox
+// worker then fans out three independent dispatch jobs (System Design §3).
+// The victim's UI subscribes to /api/incidents/[id]/stream for live state.
 export async function POST(req: NextRequest) {
   let body: any = {};
   try {
@@ -22,72 +25,43 @@ export async function POST(req: NextRequest) {
   const snakeType = body?.snakeType ?? null;
   const address = body?.address ?? null;
 
-  const incident = await db.incident.create({
-    data: { lat, lng, address, biteTime, bodyPart, snakeType, state: "DISPATCHING" },
-  });
-
-  const sim = simulateDispatch({ lat, lng });
-  const hospitals = await db.hospital.findMany({
-    where: { active: true },
-    include: { antivenomStock: true },
-  });
-  const ranked = rankHospitals(
-    { lat, lng },
-    hospitals.map((h) => ({
-      id: h.id,
-      name: h.name,
-      lat: h.lat,
-      lng: h.lng,
-      address: h.address,
-      contact: h.contact,
-      stock: {
-        product: h.antivenomStock[0]?.product ?? "Polyvalent ASV",
-        status: (h.antivenomStock[0]?.status as any) ?? "UNKNOWN",
-        quantityBand: h.antivenomStock[0]?.quantityBand ?? null,
-        verifiedAt: h.antivenomStock[0]?.verifiedAt ?? new Date(0).toISOString(),
-        verifiedBy: h.antivenomStock[0]?.verifiedBy ?? null,
+  // Transactional incident write + outbox append (System Design step 3+4).
+  const incident = await db.$transaction(async (tx) => {
+    const inc = await tx.incident.create({
+      data: { lat, lng, address, biteTime, bodyPart, snakeType, state: "DISPATCHING" },
+    });
+    await tx.outboxEvent.create({
+      data: {
+        type: "IncidentCreated",
+        aggregateId: inc.id,
+        payload: JSON.stringify({ lat: inc.lat, lng: inc.lng, incidentId: inc.id }),
+        state: "PENDING",
       },
-    }))
-  );
-
-  const lanes: { category: ResponderCategory; attempts: any[] }[] = [
-    { category: "TRAINED", attempts: sim.trained },
-    { category: "RESCUE", attempts: sim.rescue },
-    { category: "AMBULANCE", attempts: sim.ambulance },
-  ];
-
-  for (const lane of lanes) {
-    for (let i = 0; i < lane.attempts.length; i++) {
-      const a = lane.attempts[i];
-      await db.dispatchAttempt.create({
-        data: {
-          incidentId: incident.id,
-          category: lane.category,
-          candidateName: a.name,
-          candidateRole: a.role,
-          distanceKm: a.distanceKm,
-          etaMin: a.etaMin,
-          sequence: i + 1,
-          acceptedAt: i === 0 && a.accept ? new Date(a.acceptAt) : null,
-          outcome: i === 0 && a.accept ? "ACCEPTED" : "PENDING",
-        },
-      });
-    }
-  }
-
-  const full = await db.incident.findUnique({
-    where: { id: incident.id },
-    include: {
-      dispatchAttempts: { orderBy: { category: "asc" } },
-      symptomObservations: { orderBy: { observedAt: "asc" } },
-      snakeObservations: { orderBy: { createdAt: "asc" } },
-    },
+    });
+    return inc;
   });
+
+  // Ensure the bus + outbox worker are running so the IncidentCreated event
+  // gets drained and fans out the three dispatch lanes.
+  getBus();
+
+  await audit({
+    incidentId: incident.id,
+    actor: "victim",
+    action: "SOS_TRIGGERED",
+    entity: "Incident",
+    metadata: { lat, lng, address },
+  });
+
+  const rankedHospitals = await getRankedHospitals(lat, lng);
 
   return NextResponse.json({
-    incident: full,
+    incident,
+    streamUrl: `/api/incidents/${incident.id}/stream`,
+    auditUrl: `/api/incidents/${incident.id}/audit`,
     ref: genIncidentRef(),
-    rankedHospitals: ranked,
+    rankedHospitals,
     dispatchedAt: new Date().toISOString(),
+    note: "Incident committed + IncidentCreated event appended to outbox. The dispatch worker is fanning out three lanes in parallel; subscribe to streamUrl for live state.",
   });
 }

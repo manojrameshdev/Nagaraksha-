@@ -127,5 +127,52 @@ model MythThread {
   question  String
   answer    String
   mythFlagged Boolean @default(false)
+  sources   String?  // JSON array of cited KnowledgeChunk ids
   createdAt DateTime @default(now())
+}
+
+// ---- RAG knowledge base (SRS FR-5.1 "curated, medically reviewed") ----
+model KnowledgeChunk {
+  id          String   @id @default(cuid())
+  docId       String   // stable slug, e.g. "first-aid-immobilisation"
+  title       String
+  category    String   // FIRST_AID | MYTH | SPECIES | RISK | ANTIVENOM | PROTOCOL
+  content     String   // the chunk text (medically reviewed)
+  tags        String?  // comma-separated keywords for retrieval boosting
+  reviewedBy  String   @default("NagRaksha medical review")
+  reviewedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@index([category])
+}
+
+// ---- Event-driven outbox (System Design §3 "Outbox/event emits IncidentCreated") ----
+model OutboxEvent {
+  id          String   @id @default(cuid())
+  type        String   // IncidentCreated | DispatchAttempted | DispatchAccepted | IncidentStateChanged
+  aggregateId String   // usually the incident id
+  payload     String   // JSON
+  state       String   @default("PENDING") // PENDING | PROCESSED | FAILED
+  attempts    Int      @default(0)
+  createdAt   DateTime @default(now())
+  processedAt DateTime?
+
+  @@index([state])
+  @@index([aggregateId])
+  @@index([type])
+}
+
+// ---- Audit trail (System Design §4 AuditEvent, SRS NFR-8) ----
+model AuditEvent {
+  id         String   @id @default(cuid())
+  incidentId String?
+  actor      String   // system | trained | rescue | ambulance | hospital | admin
+  action     String   // SOS_TRIGGERED | DISPATCH_FANOUT | RESPONDER_ACCEPTED | STATE_CHANGE | STOCK_UPDATED | RAG_QUERY | ...
+  entity     String?  // entity reference
+  metadata   String?  // JSON
+  timestamp  DateTime @default(now())
+
+  @@index([incidentId])
+  @@index([action])
+  @@index([timestamp])
 }
