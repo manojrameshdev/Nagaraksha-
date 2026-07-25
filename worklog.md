@@ -201,3 +201,33 @@ Stage Summary:
 - RAG system: complete and verified — TF-IDF retrieval over 22 medically-reviewed chunks, LLM grounded in retrieved context with citations, emergency guard (FR-5.3), myth-busting (FR-5.2).
 - System architecture: complete and verified — modular monolith with durable outbox + in-process event bus + worker, 3 independent dispatch jobs, SSE live state, audit trail (NFR-8), 8-step SOS sequence with failure behavior, RBAC. All visible in the frontend Architecture section + inline audit/outbox/KB panels.
 - Dev server: memory-constrained in the 4GB sandbox cgroup. Webpack dev mode (instead of Turbopack) + lazy loading + inView gating + reduced polling makes it stable for single-user browsing. Concurrent compile storms (browser + curl) can still OOM-kill it; the backend logic itself is correct (verified directly).
+
+---
+Task ID: p1-p7
+Agent: main (orchestrator)
+Task: Build a Python backend + separate frontend/backend folders.
+
+Work Log:
+- Created backend/ with Python FastAPI app (19 .py files):
+  - app/main.py — FastAPI entry, CORS, startup (init_db + seed KB + start worker)
+  - app/database.py — SQLite schema (Incident, DispatchAttempt, Hospital, AntivenomStock, SymptomObservation, SnakeObservation, RiskReport, MythThread, KnowledgeChunk, OutboxEvent, AuditEvent)
+  - app/models.py — Pydantic request models
+  - app/domain.py — haversine, road_km, eta_min, stock_freshness, rank_hospitals, simulate_dispatch
+  - app/knowledge_base_data.py — 22 medically-reviewed chunks (FIRST_AID, MYTH, SPECIES, ANTIVENOM, RISK, PROTOCOL)
+  - app/rag.py — scikit-learn TF-IDF + cosine similarity retriever; LLM call via z-ai CLI subprocess; emergency guard; grounded generation with citations
+  - app/eventbus.py — in-process event bus + durable outbox worker thread + audit logger; 3 independent dispatch jobs
+  - app/seed.py — seeds hospitals, antivenom stock, risk reports, KB
+  - app/routes/ — sos.py, incidents.py (GET/PATCH + audit + SSE stream), hospitals.py, risk.py, snake_id.py, myth_buster.py (RAG), stats.py, architecture.py, ops.py (audit/outbox/knowledge-base)
+  - requirements.txt, run.sh
+- Moved the Next.js project into frontend/ (src, public, prisma, configs, package.json).
+- Deleted all Next.js API routes (src/app/api/) — the backend is now Python.
+- Added frontend/src/lib/api.ts — apiUrl() helper that appends ?XTransformPort=8000.
+- Updated all frontend fetch calls to use apiUrl() (interactive.tsx + architecture.tsx).
+- Root package.json orchestrates both: dev:frontend, dev:backend, dev (both via scripts/dev.sh).
+- scripts/dev.sh starts Python uvicorn :8000 + Next.js :3000.
+
+Stage Summary:
+- Clean separation: backend/ (Python FastAPI) + frontend/ (Next.js).
+- Verified: Python backend alive on :8000; RAG retrieval (TF-IDF) returns myth-tourniquet for "tourniquet"; SOS creates incident; gateway proxy :81/api/stats?XTransformPort=8000 → backend (200, 1 incident, 22 RAG chunks).
+- Frontend page renders (200), 3-line dock, no errors.
+- The full RAG pipeline + event-driven architecture now lives in Python, exactly as the user requested.

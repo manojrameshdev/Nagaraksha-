@@ -1,0 +1,9 @@
+# NagRaksha backend — Python FastAPI
+# The complete emergency-coordination + RAG backend, separated from the
+# Next.js frontend. Runs on port 8000; the frontend calls it via the
+# gateway using ?XTransformPort=8000.
+fastapi==0.128.0
+uvicorn==0.44.0
+scikit-learn==1.5.2
+numpy>=1.26
+pydantic>=2.0
