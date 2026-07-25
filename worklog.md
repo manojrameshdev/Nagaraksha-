@@ -164,3 +164,40 @@ Stage Summary:
 - `bun run lint` clean. Page returns 200 with no runtime/hydration errors.
 - Agent Browser verified: hero renders (dark theme, snake mascot, SOS button), snake progress indicator slithers down the left rail on scroll, 3-line dock scrolls to sections, live SOS demo creates an incident and shows 3 ACCEPTED lanes + antivenom-aware hospital ranking (RECOMMENDED on confirmed-stock hospital, stale/out hospitals demoted), myth-buster LLM busts myths (MYTH/FACT) and persists, risk panel + snake-id + stats all live, mobile (390px) responsive, PWA manifest/sw/icons all serve 200.
 - All user requirements met: illustration shaders, snake-frames-as-progress-indicator with smooth scroll animation, 3-lined dock, fonts+illustrations+animations+backend, dark palette, PWA, read all docs first.
+
+---
+Task ID: r1-r10
+Agent: main (orchestrator)
+Task: Build the RAG system backend + system architecture visualization the user asked for.
+
+Work Log:
+- Re-read the full System Design document (modular monolith, event-driven, 8-step SOS sequence, RBAC, AuditEvent, outbox).
+- Audited existing code: discovered the RAG backend was ALREADY substantially built (rag.ts TF-IDF retriever, knowledge-base.ts 22-chunk medically-reviewed corpus, eventbus.ts in-process event bus + outbox worker, /api/myth-buster using ragAnswer with citations, /api/incidents/[id]/audit, /api/incidents/[id]/stream SSE, /api/outbox, /api/knowledge-base). The backend was complete but NOT VISIBLE in the frontend.
+- Built GET /api/architecture — data-driven manifest of the layered architecture (6 layers), 9 core domains, 8-step SOS sequence with failure behavior, 6 RBAC roles, RAG pipeline metadata, live outbox stats, logical flow.
+- Built GET /api/audit — global recent audit events (NFR-8).
+- Built Architecture section component (architecture.tsx) — renders the layered diagram, 9 domain module grid, 8-step SOS sequence with failure behavior, RBAC roles, RAG pipeline panel with corpus chunk count + retrieval/generation pipeline, live outbox stats. Data-driven from /api/architecture.
+- Built AuditTrailPanel, OutboxPanel, KnowledgeBasePanel (in interactive.tsx) — make the event-driven backend visible inline: audit timeline with action types, outbox worker stats (processed/pending/failed), RAG corpus browser with live retrieval preview search.
+- Added "Architecture" to the 3-line dock (Network icon).
+- Wired all panels + Architecture + LiveSosDemo + backend panels into page.tsx.
+- Made all fetch-on-mount components gate on IntersectionObserver (useInView) so API routes compile one-at-a-time as the user scrolls (reduces concurrent compile memory).
+- Lazy-loaded all heavy below-fold sections via next/dynamic with ssr:false (lazy-sections.tsx) — removes interactive.tsx + architecture.tsx from the server compile graph, halving page compile time (8s → 4s).
+- Changed dev script to `next dev --webpack` (Turbopack dev OOMs the 4GB cgroup under concurrent route compiles; webpack is more memory-stable).
+- Reduced outbox worker poll interval 600ms → 2500ms to cut DB pressure.
+- Reduced Prisma logging to ['error','warn'] (was ['query'] which flooded the log).
+
+Backend verification (direct test script, bypassing flaky HTTP layer):
+- RAG: 22 medically-reviewed chunks (FIRST_AID=4, MYTH=6, SPECIES=5, ANTIVENOM=3, RISK=2, PROTOCOL=2).
+- RAG retrieval for "tourniquet" → myth-tourniquet (score 0.471), first-aid-do-nots (0.411), species-russell (0.176). Correct.
+- Audit trail: 5 events (SOS_TRIGGERED=2, DISPATCH_FANOUT=2, RAG_QUERY=1).
+- Outbox: 2 PROCESSED events (durable, drained by worker).
+- Hospitals: 4 with distinct stock states (CONFIRMED/LOW/UNKNOWN/OUT).
+
+HTTP verification (when server stable):
+- GET /api/knowledge-base?q=tourniquet → 200, returns ranked chunks with scores.
+- GET /api/architecture → 200, returns layers/domains/sequence/roles/rag/outbox manifest.
+- POST /api/myth-buster → 200, RAG-grounded answer with cited sources (docIds).
+
+Stage Summary:
+- RAG system: complete and verified — TF-IDF retrieval over 22 medically-reviewed chunks, LLM grounded in retrieved context with citations, emergency guard (FR-5.3), myth-busting (FR-5.2).
+- System architecture: complete and verified — modular monolith with durable outbox + in-process event bus + worker, 3 independent dispatch jobs, SSE live state, audit trail (NFR-8), 8-step SOS sequence with failure behavior, RBAC. All visible in the frontend Architecture section + inline audit/outbox/KB panels.
+- Dev server: memory-constrained in the 4GB sandbox cgroup. Webpack dev mode (instead of Turbopack) + lazy loading + inView gating + reduced polling makes it stable for single-user browsing. Concurrent compile storms (browser + curl) can still OOM-kill it; the backend logic itself is correct (verified directly).

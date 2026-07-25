@@ -12,6 +12,7 @@ import {
   PlayCircle,
   Map,
   Home,
+  Network,
 } from "lucide-react";
 import { useActiveSection } from "@/hooks/use-scroll";
 import { cn } from "@/lib/utils";
@@ -24,6 +25,7 @@ export const DOCK_SECTIONS = [
   { id: "roles", label: "Roles", icon: Users },
   { id: "prevention", label: "Prevention", icon: BrainCircuit },
   { id: "routing", label: "Routing", icon: Route },
+  { id: "architecture", label: "Architecture", icon: Network },
   { id: "demo", label: "Live SOS", icon: PlayCircle },
   { id: "roadmap", label: "Roadmap", icon: Map },
 ] as const;

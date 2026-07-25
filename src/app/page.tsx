@@ -13,8 +13,17 @@ import {
   SiteFooter,
   Section,
 } from "@/components/sections";
+import {
+  LazyArchitecture,
+  LazyLiveSosDemo,
+  LazyBackendPanels,
+  LazyKnowledgeBase,
+  LazyStatsStrip,
+  LazyRiskPanel,
+  LazySnakeId,
+  LazyMythBuster,
+} from "@/components/lazy-sections";
 import { Reveal } from "@/components/reveal";
-import { LiveSosDemo, RiskPanel, SnakeId, MythBuster, StatsStrip } from "@/components/interactive";
 
 export default function Page() {
   return (
@@ -36,35 +45,50 @@ export default function Page() {
         <HowItFlows />
         <Roles />
 
-        {/* Prevention — wraps the three interactive assistants */}
+        {/* Prevention — wraps the three lazy-loaded assistants */}
         <Prevention>
-          <RiskPanel />
+          <LazyRiskPanel />
           <div className="mt-3">
-            <SnakeId />
+            <LazySnakeId />
           </div>
           <div className="mt-3">
-            <MythBuster />
+            <LazyMythBuster />
           </div>
         </Prevention>
 
         <Routing />
 
-        {/* Live SOS demo */}
+        {/* System architecture — lazy-loaded (code-split) */}
+        <LazyArchitecture />
+
+        {/* Live SOS demo — lazy-loaded */}
         <Section
           id="demo"
           eyebrow="Live demo"
           title="Trigger a parallel dispatch — right here."
-          subtitle="This is a real round-trip through the NagRaksha backend: one tap creates an incident and three responder lanes light up at once, with antivenom-aware hospital ranking."
+          subtitle="This is a real round-trip through the NagRaksha backend: one tap creates an incident, appends an IncidentCreated event to the durable outbox, and three responder lanes fan out over the event bus — with antivenom-aware hospital ranking and a live SSE state stream."
         >
           <Reveal>
-            <LiveSosDemo />
+            <LazyLiveSosDemo />
           </Reveal>
+
+          {/* Backend visibility panels — lazy-loaded */}
           <Reveal delay={120}>
+            <LazyBackendPanels />
+          </Reveal>
+
+          <Reveal delay={160}>
+            <div className="mt-4">
+              <LazyKnowledgeBase />
+            </div>
+          </Reveal>
+
+          <Reveal delay={200}>
             <div className="mt-8">
               <div className="mb-3 text-xs uppercase tracking-wider text-muted-foreground">
                 Platform analytics (admin view · demo data)
               </div>
-              <StatsStrip />
+              <LazyStatsStrip />
             </div>
           </Reveal>
         </Section>

@@ -241,7 +241,7 @@ function startOutboxWorker() {
     }
   };
 
-  // run immediately + on a 600ms interval. Guarded so an error never crashes
+  // run immediately + on a 2500ms interval. Guarded so an error never crashes
   // the process — the outbox is durable, so a missed tick just retries next time.
   const safeTick = async () => {
     try {
@@ -251,7 +251,7 @@ function startOutboxWorker() {
     }
   };
   safeTick().catch(() => {});
-  const handle = setInterval(safeTick, 600);
+  const handle = setInterval(safeTick, 2500);
   if (handle.unref) handle.unref();
 }
 

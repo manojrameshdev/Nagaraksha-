@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { toast } from "sonner";
+import { useInView } from "@/hooks/use-scroll";
 import {
   Truck,
   Stethoscope,
@@ -18,6 +19,13 @@ import {
   CheckCircle2,
   Clock,
   Navigation,
+  ScrollText,
+  Boxes,
+  BookOpen,
+  Search,
+  Activity,
+  Cpu,
+  Database,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -437,6 +445,7 @@ function StatePill({ phase }: { phase: string }) {
 export function RiskPanel() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const { ref, inView } = useInView<HTMLDivElement>();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -452,8 +461,9 @@ export function RiskPanel() {
   }, []);
 
   useEffect(() => {
+    if (!inView) return; // gate on scroll-into-view to avoid concurrent compiles
     load();
-  }, [load]);
+  }, [inView, load]);
 
   const level = data?.level ?? "UNKNOWN";
   const score = data?.score ?? 0;
@@ -461,7 +471,7 @@ export function RiskPanel() {
     level === "SEVERE" ? "#E5484D" : level === "HIGH" ? "#E0B443" : level === "MODERATE" ? "#D69E2E" : "#2BB673";
 
   return (
-    <div className="mt-4 rounded-xl border border-[rgba(234,243,237,0.08)] bg-[rgba(8,20,15,0.5)] p-4">
+    <div ref={ref} className="mt-4 rounded-xl border border-[rgba(234,243,237,0.08)] bg-[rgba(8,20,15,0.5)] p-4">
       <div className="flex items-center justify-between">
         <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <MapPin className="h-3.5 w-3.5 text-gold" /> Risk near you
@@ -789,18 +799,20 @@ export function MythBuster() {
 /* ===================================================== STATS STRIP */
 export function StatsStrip() {
   const [data, setData] = useState<any>(null);
+  const { ref, inView } = useInView<HTMLDivElement>();
   useEffect(() => {
+    if (!inView) return; // gate on scroll-into-view
     fetch("/api/stats")
       .then((r) => r.json())
       .then(setData)
       .catch(() => {});
-  }, []);
-  if (!data) return null;
+  }, [inView]);
+  if (!data) return <div ref={ref} />;
   const t = data.totals;
   const trend = data.incidentTrend14d ?? [];
   const max = Math.max(1, ...trend.map((d: any) => d.count));
   return (
-    <div className="grid grid-cols-2 gap-3 md:grid-cols-6">
+    <div ref={ref} className="grid grid-cols-2 gap-3 md:grid-cols-6">
       <StatCard icon={AlertTriangle} tone="#E5484D" value={t?.incidents ?? 0} label="incidents" />
       <StatCard icon={CheckCircle2} tone="#4FBF9A" value={t?.hospitals ?? 0} label="hospitals" />
       <StatCard icon={MapPin} tone="#D69E2E" value={t?.riskAreas ?? 0} label="risk areas" />
@@ -834,4 +846,380 @@ function StatCard({ icon: Icon, tone, value, label }: { icon: any; tone: string;
       <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</div>
     </div>
   );
+}
+
+/* ===================================================== AUDIT TRAIL PANEL */
+const ACTION_META: Record<string, { tone: string; label: string }> = {
+  SOS_TRIGGERED: { tone: "#E5484D", label: "SOS triggered" },
+  DISPATCH_FANOUT: { tone: "#D69E2E", label: "Dispatch fan-out" },
+  RESPONDER_ACCEPTED: { tone: "#2BB673", label: "Responder accepted" },
+  STATE_CHANGE: { tone: "#4FBF9A", label: "State change" },
+  HANDOFF: { tone: "#E0B443", label: "Hospital handoff" },
+  STOCK_UPDATED: { tone: "#7fd6ad", label: "Stock updated" },
+  RAG_QUERY: { tone: "#8FA39B", label: "RAG query" },
+};
+
+export function AuditTrailPanel() {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const { ref, inView } = useInView<HTMLDivElement>();
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/audit");
+      const json = await res.json();
+      setData(json);
+    } catch {
+      toast.error("Could not load audit trail");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!inView) return; // only fetch when scrolled into view — avoids compile storm
+    load();
+    const id = setInterval(load, 8000);
+    return () => clearInterval(id);
+  }, [inView, load]);
+
+  const events: any[] = data?.events ?? [];
+
+  return (
+    <div ref={ref} className="flex h-full flex-col rounded-2xl border border-[rgba(234,243,237,0.08)] bg-[rgba(8,20,15,0.5)] p-4">
+      <div className="flex items-center justify-between">
+        <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <ScrollText className="h-3.5 w-3.5 text-[#4FBF9A]" /> Audit trail · NFR-8
+        </span>
+        <button onClick={load} className="text-muted-foreground hover:text-mist" aria-label="Refresh audit">
+          <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
+        </button>
+      </div>
+
+      {loading && !data ? (
+        <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading audit events…
+        </div>
+      ) : events.length === 0 ? (
+        <div className="mt-3 text-xs text-muted-foreground">
+          No audit events yet. Trigger an SOS or ask the myth-buster to populate this trail.
+        </div>
+      ) : (
+        <div className="mt-3 max-h-[280px] space-y-1.5 overflow-y-auto pr-1">
+          {events.map((e) => {
+            const meta = ACTION_META[e.action] ?? { tone: "#8FA39B", label: e.action };
+            return (
+              <div key={e.id} className="flex items-start gap-2 rounded-lg border border-[rgba(234,243,237,0.05)] bg-[rgba(16,42,32,0.4)] p-2">
+                <span
+                  className="mt-1 h-1.5 w-1.5 flex-shrink-0 rounded-full"
+                  style={{ background: meta.tone }}
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="truncate text-xs font-medium text-mist">{meta.label}</span>
+                    <span className="tnum flex-shrink-0 text-[10px] text-muted-foreground">
+                      {timeAgo(e.timestamp)}
+                    </span>
+                  </div>
+                  <div className="mt-0.5 flex items-center gap-2 text-[10px] text-muted-foreground">
+                    <span className="rounded bg-[rgba(234,243,237,0.05)] px-1.5 py-0.5">{e.actor}</span>
+                    {e.incidentId && (
+                      <span className="truncate font-mono">#{e.incidentId.slice(-6)}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {data?.byAction && Object.keys(data.byAction).length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-1.5 border-t border-[rgba(234,243,237,0.06)] pt-3">
+          {Object.entries(data.byAction).map(([action, count]) => {
+            const meta = ACTION_META[action] ?? { tone: "#8FA39B", label: action };
+            return (
+              <span
+                key={action}
+                className="tnum rounded-full px-2 py-0.5 text-[10px]"
+                style={{ background: `${meta.tone}1a`, color: meta.tone }}
+              >
+                {meta.label} · {count as number}
+              </span>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ===================================================== OUTBOX PANEL */
+export function OutboxPanel() {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const { ref, inView } = useInView<HTMLDivElement>();
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/outbox");
+      const json = await res.json();
+      setData(json);
+    } catch {
+      toast.error("Could not load outbox");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!inView) return; // only fetch when scrolled into view
+    load();
+    const id = setInterval(load, 6000);
+    return () => clearInterval(id);
+  }, [inView, load]);
+
+  const s = data?.summary ?? { pending: 0, processed: 0, failed: 0, total: 0 };
+  const recent: any[] = data?.recent ?? [];
+
+  return (
+    <div ref={ref} className="flex h-full flex-col rounded-2xl border border-[rgba(234,243,237,0.08)] bg-[rgba(8,20,15,0.5)] p-4">
+      <div className="flex items-center justify-between">
+        <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Boxes className="h-3.5 w-3.5 text-[#E5484D]" /> Outbox · event-driven worker
+        </span>
+        <span className="flex items-center gap-1 text-[10px] text-[#4FBF9A]">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#4FBF9A]" /> draining
+        </span>
+      </div>
+
+      <div className="mt-3 grid grid-cols-3 gap-2">
+        <OutboxStat label="processed" value={s.processed} tone="#4FBF9A" icon={CheckCircle2} />
+        <OutboxStat label="pending" value={s.pending} tone="#D69E2E" icon={Clock} />
+        <OutboxStat label="failed" value={s.failed} tone="#E5484D" icon={AlertTriangle} />
+      </div>
+
+      <div className="mt-3 flex-1">
+        <div className="mb-2 text-[10px] uppercase tracking-wider text-muted-foreground">
+          Recent events
+        </div>
+        {loading && !data ? (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading…
+          </div>
+        ) : recent.length === 0 ? (
+          <div className="text-xs text-muted-foreground">
+            Outbox empty. Trigger an SOS to append an IncidentCreated event.
+          </div>
+        ) : (
+          <div className="max-h-[200px] space-y-1.5 overflow-y-auto pr-1">
+            {recent.map((e) => (
+              <div
+                key={e.id}
+                className="flex items-center gap-2 rounded-lg border border-[rgba(234,243,237,0.05)] bg-[rgba(16,42,32,0.4)] p-2"
+              >
+                <span
+                  className="rounded px-1.5 py-0.5 font-mono text-[9px] font-medium"
+                  style={{
+                    background:
+                      e.state === "PROCESSED"
+                        ? "rgba(79,191,154,0.15)"
+                        : e.state === "FAILED"
+                        ? "rgba(229,72,77,0.15)"
+                        : "rgba(214,158,46,0.15)",
+                    color:
+                      e.state === "PROCESSED" ? "#4FBF9A" : e.state === "FAILED" ? "#E5484D" : "#D69E2E",
+                  }}
+                >
+                  {e.type}
+                </span>
+                <span className="font-mono text-[10px] text-muted-foreground">#{e.aggregateId.slice(-6)}</span>
+                <span className="ml-auto tnum text-[10px] text-muted-foreground">
+                  {e.state.toLowerCase()} · {e.attempts}x
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function OutboxStat({ label, value, tone, icon: Icon }: { label: string; value: number; tone: string; icon: any }) {
+  return (
+    <div className="rounded-lg bg-[rgba(234,243,237,0.03)] p-2 text-center">
+      <Icon className="mx-auto h-3 w-3" style={{ color: tone }} />
+      <div className="tnum mt-1 text-lg font-semibold" style={{ color: tone }}>{value}</div>
+      <div className="text-[9px] uppercase tracking-wider text-muted-foreground">{label}</div>
+    </div>
+  );
+}
+
+/* ===================================================== KNOWLEDGE BASE PANEL */
+export function KnowledgeBasePanel() {
+  const [chunks, setChunks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<any[] | null>(null);
+  const [searching, setSearching] = useState(false);
+  const { ref, inView } = useInView<HTMLDivElement>();
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/knowledge-base?limit=50");
+      const json = await res.json();
+      setChunks(json.chunks ?? []);
+    } catch {
+      toast.error("Could not load knowledge base");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!inView) return; // only fetch when scrolled into view
+    load();
+  }, [inView, load]);
+
+  const search = useCallback(async () => {
+    if (!query.trim()) return;
+    setSearching(true);
+    try {
+      const res = await fetch(`/api/knowledge-base?q=${encodeURIComponent(query)}&k=4`);
+      const json = await res.json();
+      setResults(json.results ?? []);
+    } catch {
+      toast.error("Retrieval failed");
+    } finally {
+      setSearching(false);
+    }
+  }, [query]);
+
+  const CATEGORY_TONE: Record<string, string> = {
+    FIRST_AID: "#2BB673",
+    MYTH: "#E5484D",
+    SPECIES: "#D69E2E",
+    RISK: "#E0B443",
+    ANTIVENOM: "#4FBF9A",
+    PROTOCOL: "#7fd6ad",
+  };
+
+  return (
+    <div ref={ref} className="rounded-2xl border border-[rgba(214,158,46,0.18)] bg-[rgba(214,158,46,0.04)] p-4">
+      <div className="flex items-center justify-between">
+        <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <BookOpen className="h-3.5 w-3.5 text-gold" /> RAG knowledge base · medically reviewed
+        </span>
+        <span className="tnum text-[10px] text-muted-foreground">
+          {chunks.length} chunks · TF-IDF indexed
+        </span>
+      </div>
+
+      {/* Retrieval preview */}
+      <div className="mt-3 flex items-center gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && search()}
+            placeholder="Try: tourniquet, krait bite, cobra first aid…"
+            className="h-9 border-[rgba(234,243,237,0.1)] bg-[rgba(8,20,15,0.4)] pl-8 text-sm text-mist"
+          />
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-9 gap-2 border-[rgba(214,158,46,0.3)] text-gold hover:bg-[rgba(214,158,46,0.1)]"
+          onClick={search}
+          disabled={searching || !query.trim()}
+        >
+          {searching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Cpu className="h-3.5 w-3.5" />}
+          Retrieve
+        </Button>
+      </div>
+
+      {results && (
+        <div className="mt-3">
+          <div className="mb-1.5 flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+            <Activity className="h-3 w-3 text-[#4FBF9A]" /> Top-k retrieved chunks
+          </div>
+          <div className="space-y-1.5">
+            {results.length === 0 ? (
+              <div className="text-xs text-muted-foreground">No chunks matched.</div>
+            ) : (
+              results.map((r, i) => {
+                const tone = CATEGORY_TONE[r.category] ?? "#8FA39B";
+                return (
+                  <div
+                    key={r.id}
+                    className="flex items-center gap-2 rounded-lg border border-[rgba(234,243,237,0.07)] bg-[rgba(16,42,32,0.4)] p-2"
+                  >
+                    <span className="tnum text-[10px] font-bold text-muted-foreground">#{i + 1}</span>
+                    <span
+                      className="rounded px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider"
+                      style={{ background: `${tone}1a`, color: tone }}
+                    >
+                      {r.category}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-xs text-mist">{r.title}</span>
+                    <span className="tnum text-[10px] text-muted-foreground">score {r.score}</span>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Corpus browser */}
+      <div className="mt-4">
+        <div className="mb-1.5 flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-muted-foreground">
+          <Database className="h-3 w-3 text-[#4FBF9A]" /> Corpus
+        </div>
+        {loading ? (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading corpus…
+          </div>
+        ) : (
+          <div className="max-h-[200px] space-y-1 overflow-y-auto pr-1">
+            {chunks.map((c) => {
+              const tone = CATEGORY_TONE[c.category] ?? "#8FA39B";
+              return (
+                <div
+                  key={c.id}
+                  className="flex items-center gap-2 rounded-md border border-[rgba(234,243,237,0.04)] bg-[rgba(8,20,15,0.4)] px-2 py-1.5"
+                >
+                  <span
+                    className="rounded px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider"
+                    style={{ background: `${tone}1a`, color: tone }}
+                  >
+                    {c.category}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-[11px] text-[#bcd2c6]">{c.title}</span>
+                  <span className="font-mono text-[9px] text-muted-foreground">{c.docId}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ===================================================== HELPERS */
+function timeAgo(iso: string) {
+  const ms = Date.now() - new Date(iso).getTime();
+  const s = Math.floor(ms / 1000);
+  if (s < 60) return `${s}s ago`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
 }
