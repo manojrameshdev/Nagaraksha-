@@ -25,7 +25,12 @@ NagRaksha is a brownfield hackathon project with fully functional frontend and b
   3. Developer sees warnings/errors for unused variables, missing `const` declarations, and `console.log` statements when running ESLint
   4. Developer sees security warnings from `eslint-plugin-security` for dangerous patterns (eval, ReDoS, object injection)
   5. Developer can run `bandit -r backend/` and see Python security scan results with zero high-severity issues
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — Prettier code formatting with config, ignore patterns, and npm scripts (FORMAT-01, FORMAT-02)
+- [ ] 01-02-PLAN.md — ESLint baseline rules (prefer-const, no-unused-vars, no-console) + eslint-plugin-security (LINT-01, STATIC-01)
+- [ ] 01-03-PLAN.md — Bandit Python security scanner setup and high-severity fixup (STATIC-02)
 
 ### Phase 2: Type Safety
 **Goal**: TypeScript catches type errors at build time, eliminating implicit any and null-check blind spots.
@@ -86,7 +91,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 0/0 | Not started | - |
+| 1. Foundation | 0/3 | Planning | - |
 | 2. Type Safety | 0/0 | Not started | - |
 | 3. Test Infrastructure | 0/0 | Not started | - |
 | 4. ESLint Hardening | 0/0 | Not started | - |
