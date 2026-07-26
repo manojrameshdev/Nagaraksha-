@@ -1,21 +1,19 @@
 """NagRaksha RAG layer (Python).
 
 Retrieval: scikit-learn TF-IDF + cosine similarity over the curated
-KnowledgeChunk corpus. Generation: the z-ai CLI (chat completion) is called
-via subprocess, with the retrieved chunks injected into the system prompt as
-authoritative, cited context.
+KnowledgeChunk corpus. Generation: local GGUF model from model/ folder
+(via llama-cpp-python), with retrieval-only fallback if no model present.
 """
 from __future__ import annotations
 
-import json
-import subprocess
+import re
 import threading
-import time
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
 
 from . import database as db
+from .llm import generate, is_available
 from .knowledge_base_data import CHUNKS as KB_SEED
 
 # ---- index (built once, rebuilt on corpus change) ----
@@ -85,29 +83,11 @@ def retrieve(query: str, k: int = 4):
     return results
 
 
-# ---- LLM call via the z-ai CLI ----
-def _call_llm(system_prompt: str, user_msg: str, timeout: int = 30) -> str | None:
-    try:
-        proc = subprocess.run(
-            ["z-ai", "chat", "-p", user_msg, "-s", system_prompt, "-o", "/tmp/nagraksha-llm.json"],
-            capture_output=True, text=True, timeout=timeout,
-        )
-        try:
-            with open("/tmp/nagraksha-llm.json") as f:
-                data = json.load(f)
-            # the CLI returns choices[].message.content
-            content = (
-                data.get("choices", [{}])[0].get("message", {}).get("content")
-                or data.get("choices", [{}])[0].get("delta", {}).get("content")
-            )
-            if content:
-                return str(content)
-        except Exception:
-            pass
-        out = proc.stdout.strip()
-        return out if out else None
-    except Exception:
-        return None
+EMERGENCY_RE = re.compile(
+    r"bitten|bit me|bite (now|just)|snake just|symptom|swelling|bleeding|can't breathe|"
+    r"cannot breathe|unconscious|dying|now help|help now|emergency",
+    re.IGNORECASE,
+)
 
 
 SYSTEM_PROMPT = """You are NagRaksha Mitra, a calm, clinically careful assistant answering questions about snakes and snakebites in India.
@@ -133,17 +113,8 @@ RETRIEVED KNOWLEDGE BASE:
 {context}"""
 
 
-import re
-
-EMERGENCY_RE = re.compile(
-    r"bitten|bit me|bite (now|just)|snake just|symptom|swelling|bleeding|can't breathe|"
-    r"cannot breathe|unconscious|dying|now help|help now|emergency",
-    re.IGNORECASE,
-)
-
-
 def rag_answer(question: str):
-    """RAG pipeline: retrieve → ground the LLM → return answer + cited sources."""
+    """RAG pipeline: retrieve → generate with local LLM → fallback chain."""
     retrieved = retrieve(question, 4)
 
     if EMERGENCY_RE.search(question):
@@ -153,18 +124,19 @@ def rag_answer(question: str):
             "source": "guard",
         }
 
-    context_block = "\n\n".join(
-        f"[{i+1}] ({r['category']}) {r['title']}\n    {r['content']}\n    — source: {r['docId']}"
-        for i, r in enumerate(retrieved)
-    ) or "(no relevant chunks retrieved)"
+    if is_available():
+        context_block = "\n\n".join(
+            f"[{i+1}] ({r['category']}) {r['title']}\n    {r['content']}\n    — source: {r['docId']}"
+            for i, r in enumerate(retrieved)
+        ) or "(no relevant chunks retrieved)"
 
-    prompt = SYSTEM_PROMPT.format(context=context_block)
-    llm = _call_llm(prompt, question)
+        system_prompt = SYSTEM_PROMPT.format(context=context_block)
+        llm = generate(question, max_tokens=512, system_prompt=system_prompt)
 
-    if llm and llm.strip():
-        return {"answer": llm.strip(), "sources": retrieved, "source": "rag-llm"}
+        if llm:
+            return {"answer": llm, "sources": retrieved, "source": "rag-llm"}
 
-    # fallback: return top retrieved chunk verbatim (still grounded)
+    # fallback: return top retrieved chunk verbatim
     if retrieved:
         top = retrieved[0]
         return {

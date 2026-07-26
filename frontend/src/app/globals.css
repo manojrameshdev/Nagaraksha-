@@ -42,6 +42,15 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --color-forest: #184D36;
+  --color-forest-deep: #102A20;
+  --color-gold: #D69E2E;
+  --color-gold-bright: #E0B443;
+  --color-red: #B42318;
+  --color-red-bright: #E5484D;
+  --color-mist: #EAF3ED;
+  --color-paper: #F7F9F8;
+  --color-slate: #52605A;
 }
 
 /* NagRaksha dark palette — forced dark, brand-adapted */
@@ -176,13 +185,6 @@
   animation: sos-pulse 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-/* Soft float */
-@keyframes float-soft {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
-}
-.float-soft { animation: float-soft 6s ease-in-out infinite; }
-
 /* Glow utility */
 .glow-gold { box-shadow: 0 0 40px -8px rgba(214, 158, 46, 0.45); }
 .glow-forest { box-shadow: 0 0 40px -8px rgba(43, 182, 115, 0.45); }
@@ -215,13 +217,6 @@
   background: linear-gradient(180deg, rgba(43, 182, 115, 0.8), rgba(214, 158, 46, 0.7));
 }
 
-/* Marquee */
-@keyframes marquee {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
-.marquee-track { animation: marquee 32s linear infinite; }
-
 /* Subtle grid bg */
 .bg-grid {
   background-image:
@@ -232,7 +227,7 @@
 
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  .sos-pulse, .float-soft, .marquee-track { animation: none !important; }
+  .sos-pulse { animation: none !important; }
   .reveal { transition: none; opacity: 1; transform: none; }
   html { scroll-behavior: auto; }
 }

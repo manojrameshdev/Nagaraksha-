@@ -59,14 +59,14 @@ export const metadata: Metadata = {
       "One SOS, three responders in parallel. Antivenom-aware routing for snakebites in India.",
     url: "https://nagraksha.app",
     siteName: "NagRaksha",
-    images: [{ url: "/snake/hero-snake.png", width: 1024, height: 1024, alt: "NagRaksha protective serpent" }],
+    images: [{ url: "/logo.svg", width: 30, height: 30, alt: "NagRaksha" }],
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
     title: "NagRaksha — Snakebite Emergency Response",
     description: "One SOS, three responders in parallel. Antivenom-aware routing for snakebites in India.",
-    images: ["/snake/hero-snake.png"],
+    images: ["/logo.svg"],
   },
 };
 

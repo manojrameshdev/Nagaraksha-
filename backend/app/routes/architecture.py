@@ -34,7 +34,7 @@ def architecture():
                 "Fan-out, retries, escalation", "Notification delivery"]},
             {"name": "External", "tone": "#8FA39B", "components": [
                 "Maps/routing provider", "Weather API", "Web Push / browser push",
-                "z-ai CLI (LLM + VLM)", "Object storage (snake photos)"]},
+                "LLM (local model)", "Object storage (snake photos)"]},
         ],
         "domains": [
             {"id": "incident", "name": "Incident", "desc": "Creates + owns the SOS lifecycle and state machine.", "icon": "ShieldAlert"},
@@ -70,7 +70,7 @@ def architecture():
             "reviewedBy": "NagRaksha medical review (demo corpus)",
             "sources": "WHO SEARO snakebite guidelines · NCBI envenoming reviews · India NAPSE",
             "retrieval": "scikit-learn TF-IDF + cosine similarity (Python)",
-            "generation": "z-ai CLI chat completion, grounded in retrieved chunks with citations",
+            "generation": "local GGUF model via llama-cpp-python (model/ folder)",
             "categories": ["FIRST_AID", "MYTH", "SPECIES", "RISK", "ANTIVENOM", "PROTOCOL"],
         },
         "outbox": outbox,

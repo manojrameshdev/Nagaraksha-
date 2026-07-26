@@ -229,7 +229,7 @@ export function Architecture() {
 
               <div className="mt-4 space-y-2 text-xs">
                 <PipeRow icon={<ChevronRight className="h-3 w-3" />} label="Retrieval" value={data?.rag?.retrieval ?? "TF-IDF"} />
-                <PipeRow icon={<Cpu className="h-3 w-3" />} label="Generation" value="LLM grounded in retrieved chunks" />
+                <PipeRow icon={<Cpu className="h-3 w-3" />} label="Generation" value="local GGUF via llama-cpp-python" />
                 <PipeRow icon={<ShieldAlert className="h-3 w-3" />} label="Guard" value="emergency redirect to SOS" />
               </div>
 

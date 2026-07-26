@@ -103,24 +103,7 @@ export function Hero() {
           </Reveal>
         </div>
 
-        {/* Hero mascot */}
-        <Reveal delay={200} className="relative">
-          <div className="float-soft relative mx-auto aspect-square w-full max-w-[460px]">
-            <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_50%_45%,rgba(43,182,115,0.32),transparent_62%)] blur-2xl" />
-            <Image
-              src="/snake/hero-snake.png"
-              alt="NagRaksha protective serpent — a glowing shield-formed snake emblem"
-              fill
-              priority
-              sizes="(max-width: 1024px) 90vw, 460px"
-              className="relative object-contain drop-shadow-[0_25px_60px_rgba(214,158,46,0.25)]"
-            />
-          </div>
-          <div className="pointer-events-none absolute -bottom-2 left-1/2 hidden -translate-x-1/2 items-center gap-2 rounded-full glass px-3 py-1.5 text-[11px] text-muted-foreground sm:flex">
-            <ArrowDown className="h-3.5 w-3.5 animate-bounce text-gold" />
-            Scroll — the serpent tracks your progress
-          </div>
-        </Reveal>
+        <div className="hidden lg:block" />
       </div>
     </section>
   );

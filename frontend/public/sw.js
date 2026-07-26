@@ -16,8 +16,6 @@ const SHELL_ASSETS = [
   "/icons/icon-512.png",
   "/icons/maskable-512.png",
   "/icons/apple-touch-icon.png",
-  "/snake/hero-snake.png",
-  "/snake/scale-pattern.png",
   "/offline.html",
 ];
 

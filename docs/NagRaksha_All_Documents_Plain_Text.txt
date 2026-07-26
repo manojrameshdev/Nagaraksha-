@@ -1,0 +1,500 @@
+========================================================================
+NagRaksha_User_Journey_Wireframes(1).docx
+========================================================================
+NAGRAKSHA
+User Journey & Wireframes
+Emergency-first interaction model
+1. Victim / Bystander Journey
+2. Low-fidelity Mobile Wireframes
+HOME
+SOS STATUS
+RESPONDER
+AMBULANCE / HOSPITAL
+3. UX Rules
+No carousel, onboarding tour or login wall before the emergency action.
+Use status words plus icons; never rely on color alone.
+Ask permissions in context, not all at first launch.
+Separate 'reported antivenom stock' from any claim of guaranteed availability.
+Photo identification stays below the emergency path and never becomes a required step.
+Installed PWA uses standalone display; browser users get the same functional emergency flow.
+Stage | User sees | System does
+Open | Language + giant SOS action; secondary prevention content | Loads emergency shell first
+SOS | Location permission explanation; SOS remains primary | Creates incident immediately after action
+Dispatching | Three parallel lanes: Community Responder, Rescue, Ambulance/Hospital | Fans out independently
+Accepted | Responder status + ETA + safe instructions | Streams canonical incident state
+Transport | Recommended hospital + stock verification status | Re-ranks if stock becomes invalid
+Handoff | Case received / transported | Preserves audit timeline
+NagRaksha
+[ भाषा / Language ]
+
+[       SOS — SNAKEBITE       ]
+One tap sends your location
+
+Risk near you: Moderate
+Learn first aid   Identify snake
+Help request sent
+Incident #NR-1042
+
+Community responder   ACCEPTED  7 min
+Rescue team            ALERTED
+Ambulance              ACCEPTED  11 min
+
+[ Safe first-aid instructions ]
+[ Add bite details ]
+NEW SNAKEBITE SOS
+2.4 km away · 4 min
+
+[ ACCEPT ]   [ DECLINE ]
+
+After accept:
+[ Navigate ]
+[ First-aid checklist ]
+[ Log symptoms ]
+Recommended facility
+District Hospital A
+Antivenom: CONFIRMED
+Verified 8 min ago · ETA 18 min
+
+Hospital B · ETA 9 min
+Stock: UNKNOWN / STALE
+
+[ NAVIGATE TO A ]
+
+========================================================================
+NagRaksha_SRS(1).docx
+========================================================================
+NagRaksha
+A Parallel-Dispatch Emergency Response & Prevention Platform for Snakebites
+Software Requirements Specification (SRS)
+Version 1.0
+Prepared for Nagathon
+July 2026
+Table of Contents
+1. Introduction
+1.1 Purpose
+This document specifies the software requirements for NagRaksha, a cloud-based emergency response and prevention platform for snakebite incidents in India. It is intended for the Nagathon evaluation panel and for the development team as the single reference for scope, features, and constraints. All requirements in this document describe a software system only — no custom hardware, sensors, or physical devices are designed, procured, or built as part of this system. Any physical infrastructure referenced (ambulances, hospitals, antivenom stock) is treated as an existing real-world resource that the software coordinates, not equipment the project manufactures.
+1.2 Scope
+NagRaksha addresses two connected problems in India's ~58,000 annual snakebite-related deaths: (a) the delay between a bite and qualified treatment, often worsened by a first visit to a traditional healer instead of a hospital, and (b) the lack of a single system that predicts risk, dispatches help in parallel, and coordinates antivenom availability. The system is delivered as a mobile-first application with four distinct interfaces (Public/Victim, Trained Individual, Rescue Team, Ambulance/Hospital) sharing one backend, plus an administrative/analytics layer.
+In scope:
+SOS-triggered parallel dispatch to trained individuals, snake rescue teams, and ambulance/hospital simultaneously
+Role-specific interfaces for the public, trained village-level individuals, rescue teams, ambulance drivers, and hospitals
+AI-assisted snake image classification and a conversational myth-busting assistant, both using the user's existing smartphone camera and no added hardware
+Weather- and location-based snake-encounter risk scoring using public weather/climate data
+Antivenom inventory visibility across hospitals (a software registry, not a physical bank)
+Shortest-path routing to the nearest hospital with confirmed antivenom stock
+Out of scope (explicitly excluded to keep the system software-only):
+Custom motion-sensor or thermal camera hardware for snake detection in the field
+A physical venom/non-venom diagnostic test kit
+Manufacturing or procurement of ambulances/motorbikes
+Manufacturing of antivenom
+1.3 Definitions, Acronyms, and Abbreviations
+1.4 References
+SARPA (Snake Awareness, Rescue and Protection App), Kerala Forest Department
+SERPENT / Indiansnakes.org — digital field guide and emergency locator
+Snakepedia — Kerala snake identification and education app
+The Snakebite Assistant, Snakebite Healing and Education Society (SHE-INDIA)
+1.5 Overview
+Section 2 gives an overall description of the product and its users. Section 3 lists detailed functional requirements grouped by module. Section 4 covers external interfaces. Section 5 defines non-functional requirements. Section 6 documents assumptions, constraints, and the competitive positioning against existing apps.
+2. Overall Description
+2.1 Product Perspective
+NagRaksha is a new, standalone cloud-hosted system. It is not a modification of SARPA, SERPENT, Snakepedia, or The Snakebite Assistant, though it is designed to be aware of the gaps those systems leave open (see Section 6.3). It consumes third-party map/routing and weather APIs and does not require any purpose-built hardware; it runs entirely on the smartphones and computers already owned by its users.
+2.2 Product Functions (Summary)
+F1 — One-tap SOS that fans out to three responder categories in parallel
+F2 — Live location sharing and shortest-path guidance to the incident site
+F3 — First-aid capture and symptom logging by the trained individual, shared with the treating doctor
+F4 — Rescue-team workflow for safe capture and release
+F5 — Ambulance/hospital workflow with antivenom-aware hospital selection
+F6 — AI myth-buster chatbot for snake and snakebite questions
+F7 — CV-based snake photo identification (using the phone's existing camera)
+F8 — Weather- and season-based encounter risk advisory
+F9 — Antivenom stock registry and cross-hospital visibility
+F10 — Admin/analytics dashboard for coverage planning and funding reporting
+2.3 User Classes and Characteristics
+2.4 Operating Environment
+Client: Android/iOS smartphone application, standard GPS and camera only (no external sensors)
+Backend: Cloud-hosted (24/7 availability target, see NFR-1)
+Network: Designed to degrade gracefully on 2G/3G rural connectivity; core SOS flow must work on low bandwidth
+2.5 Design and Implementation Constraints
+No custom hardware of any kind may be introduced; all sensing (location, camera) uses capabilities already built into commodity smartphones
+Must integrate with existing government/NGO rescuer directories rather than building a duplicate one from scratch
+Must support at least English, Hindi, and one regional language at launch
+2.6 Assumptions and Dependencies
+Trained individuals and rescue teams are recruited and certified through an external programme (govt/private); the system assumes their existence and provides the software layer to coordinate them
+Hospitals voluntarily report antivenom stock levels through the hospital interface or a periodic sync; the system does not independently verify physical stock
+Weather/climate data is sourced from a third-party API (e.g., IMD or an equivalent public weather service)
+3. Specific Requirements — Functional Requirements
+3.1 Module: SOS Trigger & Parallel Dispatch
+3.2 Module: Trained Individual Interface
+3.3 Module: Rescue Team Interface
+3.4 Module: Ambulance / Hospital Interface
+3.5 Module: AI Myth Buster & Awareness
+3.6 Module: Snake Image Classification (CV)
+3.7 Module: Weather-Based Risk Advisory
+3.8 Module: Antivenom Registry
+3.9 Module: Admin & Analytics
+4. External Interface Requirements
+4.1 User Interfaces
+Public app: single prominent SOS button, minimal-literacy iconography, and multilingual support
+Trained Individual / Rescue Team / Ambulance apps: role-specific dashboards with accept/decline, navigation, and structured logging forms
+Hospital web/app console: incoming-case queue, antivenom stock editor, dosage decision support view
+4.2 Hardware Interfaces
+None beyond the standard components already present in a commodity smartphone (GPS radio and camera). No project-specific or external hardware is designed, sourced, or required.
+4.3 Software Interfaces
+Maps/routing API for geolocation, turn-by-turn navigation, and shortest-path (Dijkstra-based) ETA computation
+Public weather/climate API for the risk-advisory module
+Push notification service for SOS fan-out and hospital pre-alerts
+Cloud object storage for snake photos submitted for CV classification
+4.4 Communication Interfaces
+HTTPS/REST between clients and backend; push notifications for real-time alerts; SMS fallback for the SOS trigger is recommended for low-connectivity areas but is a Should-priority enhancement, not a Day-1 requirement.
+5. Non-Functional Requirements
+5.1 Permissions
+Location — required for SOS accuracy and routing
+Contacts — optional, used only if the user opts into an emergency-contact notification feature
+Camera — required for snake photo capture (CV classification), user-invoked only, never continuous/background capture
+Personal information (name, age, gender) — required only for the responder/hospital handoff, minimized and access-scoped to the active case
+6. Appendix
+6.1 System Architecture Flow (Reference)
+Snake Bite Triggered → SOS sent in parallel to (a) nearby trained individual, (b) nearby rescue team, (c) ambulance/hospital notification → responders reach the affected location → trained individual administers first aid and logs symptoms while the rescue team safely captures/relocates the snake → the ambulance transports the victim to the nearest hospital with confirmed antivenom stock → the symptom log and any identified species are handed to the treating doctor to inform antivenom dosage.
+6.2 Village Coverage Model
+Trained individuals are intended to cover a configurable radius (default 10 km) across multiple villages, to control programme cost while retaining fast response — this is an operating/business-model assumption the software's routing and coverage-analytics modules are designed to support, not a component the software itself builds.
+6.3 Positioning Against Existing Systems
+The features below already exist in one or more current apps and are treated as baseline expectations, not differentiators, in this SRS:
+Snake species reference guide / photo library (SERPENT, Snakepedia)
+Nearest-hospital or nearest-rescuer lookup (SARPA, SERPENT, Snakepedia)
+Snake myth/education content (Snakepedia)
+Tiered clinical guidance for responders (The Snakebite Assistant)
+NagRaksha's distinguishing requirements, reflected above, are:
+Simultaneous three-way dispatch (FR-1.2) rather than routing to a single responder type
+Antivenom-aware hospital ranking and routing, not just distance (FR-4.2, FR-4.3)
+A live, hospital-updatable antivenom registry feeding routing decisions in real time (Module 3.8)
+Structured symptom hand-off from first responder to treating doctor (FR-2.3, FR-2.4)
+Weather/season-based predictive risk advisory (Module 3.7)
+A defined, cost-bounded coverage model for trained individuals across multiple villages (Section 6.2)
+Term | Definition
+SOS | Emergency trigger raised by or on behalf of a snakebite victim
+Trained Individual | A village-level first responder trained to replace/support traditional healers with practical first aid and symptom logging
+Rescue Team | Personnel who capture and relocate the snake safely, distinct from medical responders
+SRS | Software Requirements Specification
+CV | Computer Vision (used here for smartphone-camera-based snake image classification)
+ETA | Estimated Time of Arrival
+FR | Functional Requirement
+NFR | Non-Functional Requirement
+User Class | Description | Technical Proficiency
+Public / Victim / Bystander | Anyone who raises or reports an SOS | Low — must work with one tap, minimal literacy assumed
+Trained Individual (Healer replacement) | Village-level first responder covering up to a ~10 km radius | Low–Medium
+Rescue Team | Personnel who capture/relocate the snake | Medium
+Ambulance Driver | Transports the victim, needs routing and hospital antivenom status | Low–Medium
+Hospital / Doctor | Receives case details and dosage-relevant history | Medium–High
+Admin / NGO / Government | Coverage planning, funding reports, analytics | High
+ID | Requirement | Priority
+FR-1.1 | The system shall allow a victim or bystander to raise an SOS with a single tap from the home screen. | Must
+FR-1.2 | On SOS trigger, the system shall simultaneously notify: (a) the nearest available trained individual, (b) the nearest available rescue team, and (c) the nearest ambulance/hospital — with no sequential dependency between the three. | Must
+FR-1.3 | The system shall capture GPS coordinates automatically at the moment of trigger and attach them to all three notifications. | Must
+FR-1.4 | The system shall allow the victim/bystander to add optional details (photo of the snake, approximate time of bite, body part affected) without blocking the SOS from being sent. | Should
+FR-1.5 | The system shall confirm receipt to the victim/bystander once at least one responder has accepted, showing live ETA. | Must
+FR-1.6 | If no responder in a category accepts within a configurable timeout, the system shall automatically escalate to the next-nearest responder in that category. | Must
+ID | Requirement | Priority
+FR-2.1 | The system shall alert the trained individual with victim location, precision radius, and navigation on acceptance. | Must
+FR-2.2 | The system shall provide a structured first-aid checklist (do's and don'ts) specific to suspected snake type where known. | Must
+FR-2.3 | The system shall let the trained individual log observed symptoms and side effects in a structured form (not free text only) for handoff to the treating doctor. | Must
+FR-2.4 | The system shall transmit the symptom log to the receiving hospital/doctor before or on arrival of the victim. | Must
+FR-2.5 | The system shall support one trained individual covering multiple villages within a configurable radius (default 10 km), and route SOS alerts to whichever covering individual is currently nearest. | Should
+ID | Requirement | Priority
+FR-3.1 | The system shall alert the rescue team in parallel with the other two responder categories, with the same location data. | Must
+FR-3.2 | The system shall let the rescue team log the captured snake's species (manually or via the CV identification feature) and release location. | Should
+FR-3.3 | The system shall route the species information to the treating hospital if capture happens before the victim reaches care. | Should
+ID | Requirement | Priority
+FR-4.1 | The system shall alert the ambulance driver with victim location and turn-by-turn shortest-path routing. | Must
+FR-4.2 | The system shall rank candidate hospitals by (a) confirmed antivenom availability and (b) travel time, and recommend the best match — not travel time alone. | Must
+FR-4.3 | The system shall use a shortest-path routing algorithm (e.g., Dijkstra over the road network graph) to compute ETA to each candidate hospital. | Must
+FR-4.4 | The system shall notify the selected hospital in advance with victim details, suspected snake type, and symptom log so the doctor can prepare and decide antivenom dosage before arrival. | Must
+FR-4.5 | The system shall let hospital staff update local antivenom stock levels, which immediately affects future routing decisions. | Must
+ID | Requirement | Priority
+FR-5.1 | The system shall provide a conversational assistant that answers snake- and snakebite-related questions using a curated, medically reviewed knowledge base. | Must
+FR-5.2 | The system shall proactively surface common myths (e.g., folk remedies, cutting/sucking the wound) with corrected guidance. | Should
+FR-5.3 | The assistant shall clearly flag when a question requires real-time professional medical advice and redirect to the SOS flow instead of answering informally. | Must
+ID | Requirement | Priority
+FR-6.1 | The system shall allow any user to photograph a snake using the device's built-in camera and receive a probable species classification. | Must
+FR-6.2 | The system shall present a confidence level and, for low-confidence results, explicitly state that the identification is not certain and should not delay medical care. | Must
+FR-6.3 | The system shall map identified/suspected species to first-aid guidance and likely venom type where the species is known with reasonable confidence. | Should
+ID | Requirement | Priority
+FR-7.1 | The system shall combine location, season, and current weather data (via a third-party weather API) to produce a snake-encounter risk level for a given area. | Must
+FR-7.2 | The system shall push a risk advisory to users who are about to go into or are currently in a field/outdoor location, when risk is elevated. | Should
+FR-7.3 | The system shall show likely snake types associated with the current risk profile for that area and season. | Could
+ID | Requirement | Priority
+FR-8.1 | The system shall maintain a per-hospital antivenom stock record, updatable by authorized hospital staff. | Must
+FR-8.2 | The system shall expose current stock status to the ambulance/routing module in real time. | Must
+FR-8.3 | The system shall alert an administrator when a hospital's antivenom stock falls below a configurable threshold. | Should
+ID | Requirement | Priority
+FR-9.1 | The system shall provide a dashboard of bite incidents by location and time, to support coverage planning for trained individuals. | Should
+FR-9.2 | The system shall generate aggregated, anonymized statistics suitable for funding/awareness reporting to government or NGO stakeholders. | Could
+ID | Category | Requirement
+NFR-1 | Availability | The core SOS and dispatch path shall be available 24/7 with a target uptime of 99.5%.
+NFR-2 | Performance | SOS fan-out to all three responder categories shall complete within 5 seconds of trigger under normal network conditions.
+NFR-3 | Scalability | The backend shall support horizontal scaling to add districts/states without redesign.
+NFR-4 | Usability | The victim-facing SOS flow shall require no more than one tap and no mandatory text entry.
+NFR-5 | Privacy & Security | Personal information (name, age, gender, medical data) shall be encrypted at rest and in transit and shared only with responders actively assigned to that case.
+NFR-6 | Reliability | The system shall degrade gracefully on low-bandwidth rural networks, prioritizing location and the SOS payload over media.
+NFR-7 | Localization | The interface shall support English, Hindi, and at least one regional language at launch, with a roadmap to add more.
+NFR-8 | Auditability | Every SOS case shall have a full timestamped trail (trigger, acceptance, arrival, handoff) for post-incident review.
+
+========================================================================
+NagRaksha_Pitch(1).pptx
+========================================================================
+SLIDE 1
+NAGATHON · 2026
+NagRaksha
+Parallel-dispatch emergency response — and prevention — for snakebites in India
+A software-only system: one SOS, three responders dispatched at once, and a smarter route to the nearest hospital that actually has antivenom.
+Team Nagathon  •  Bengaluru
+SLIDE 2
+The problem isn't awareness. It's the first hour.
+2
+58,000+
+deaths from snakebite in India every year — among the highest in the world
+1st stop
+for many victims is still a traditional healer, not a hospital
+1 of 4
+responder types (healer, rescuer, ambulance) is contacted at a time today — never all three at once
+Why existing snakebite apps don't close this gap
+SARPA, SERPENT, Snakepedia and The Snakebite Assistant each solve one piece — a hospital locator, a species guide, a myth-buster, or clinical protocol tiers — but route to one responder type at a time, and none of them make hospital routing depend on whether antivenom is actually in stock.
+SLIDE 3
+One SOS. Three responders. Zero hardware.
+3
+1
+Predict
+Weather- and season-based risk advisories tell people when encounter risk is elevated in their area, using public climate data — no sensors, just software.
+2
+Respond
+A single SOS trigger fans out in parallel to a trained village-level individual, a rescue team, and an ambulance/hospital — simultaneously, not one after another.
+3
+Treat
+Routing favours the nearest hospital with confirmed antivenom stock, with the victim's symptom log delivered to the doctor before arrival.
+SLIDE 4
+How an SOS actually moves through the system
+4
+Snakebite SOS Triggered
+Trained Individual
+Nearest village-level first responder — first aid + symptom log
+Rescue Team
+Captures and safely relocates the snake
+Ambulance / Hospital
+Routed to nearest hospital with confirmed antivenom
+all three notified at the same instant — no queueing, no single point of failure
+Converge at affected location
+Symptom log + suspected species → handed to treating doctor for antivenom dosage decision
+SLIDE 5
+Every responder gets exactly the view they need
+5
+Public / Victim
+One-tap SOS button
+Optional photo of the snake
+Live ETA of nearest responder
+Trained Individual
+Location + navigation on accept
+Species-specific first-aid checklist
+Structured symptom logging
+Rescue Team
+Parallel alert, same location data
+Log captured species
+Safe release tracking
+Ambulance / Hospital
+Turn-by-turn shortest path
+Antivenom-aware hospital ranking
+Pre-arrival case + symptom handoff
+SLIDE 6
+Prevention layer — fully software, no added hardware
+6
+AI Myth Buster
+Conversational assistant answers snake and snakebite questions, corrects common folk-remedy myths, and redirects urgent questions straight to the SOS flow.
+Snake ID by Photo
+Uses the phone's existing camera — no external sensor — to classify a photographed snake and flag identification confidence honestly.
+Weather-Based Risk
+Combines location, season and public weather-API data into an encounter-risk advisory for people heading into the field.
+Deliberately excluded from this build: custom motion/thermal-camera sensors and a physical venom test kit. Both were considered, but the system is scoped as software running on devices people already own.
+SLIDE 7
+Routing that knows where the antivenom actually is
+7
+Distance alone can send a victim to the wrong hospital. NagRaksha maintains a live, hospital-updatable antivenom registry and folds it directly into route selection.
+1
+Hospitals update
+antivenom stock levels in their console, in real time
+2
+System ranks hospitals
+by confirmed stock first, travel time second
+3
+Dijkstra routing
+computes shortest path & ETA to the top-ranked hospital
+4
+Pre-arrival handoff
+doctor receives symptom log & suspected species before the victim arrives
+SLIDE 8
+What's already solved — and what NagRaksha adds
+8
+Capability
+Existing apps
+NagRaksha
+SLIDE 9
+Coverage model & how it sustains itself
+9
+Coverage model
+One trained individual replaces the traditional-healer-first reflex for multiple villages within a ~10 km radius, keeping programme cost bounded while cutting response time.
+Recruited & certified via govt/private training centres
+Rescue teams operate independently, dispatched in parallel
+Admin dashboard plans coverage gaps from incident analytics
+Bio/paramedic students can rotate through village postings
+Funding approach
+Publish state-wise and national bite-case data to make the human and economic cost visible
+Use that evidence to build the case for government and NGO co-funding
+Antivenom registry doubles as a blood-bank-style supply network across hospitals
+Platform stays free for victims and responders at point of use
+SLIDE 10
+Roadmap
+10
+Phase 1
+SOS trigger, parallel dispatch, trained-individual & ambulance apps, basic hospital routing
+Phase 2
+Antivenom registry, Dijkstra-based hospital ranking, symptom hand-off
+Phase 3
+AI myth-buster, snake photo ID, weather-based risk advisory
+Phase 4
+Multi-district rollout, admin analytics, funding-report automation
+NagRaksha turns a single SOS into three simultaneous rescues — and gets each victim to a hospital that can actually treat them.
+
+========================================================================
+NagRaksha_System_Design(1).docx
+========================================================================
+NAGRAKSHA
+System Design Document
+PWA + event-driven emergency coordination architecture
+1. Architecture
+Use a modular monolith for the hackathon, with clear domain modules and an internal event bus. This is faster and safer to demo than premature microservices while preserving boundaries that can later be split.
+2. Logical Flow
+PWA → API Gateway/Auth → Incident Service → transactional incident write → Dispatch Orchestrator → three independent dispatch jobs. Each job queries eligible nearby responders/facilities, attempts delivery, records outcome, and schedules escalation. Client state updates through WebSocket/SSE. Hospital routing queries fresh inventory state before ETA ranking.
+3. Critical Sequence: SOS
+4. Data Model
+5. Hospital Ranking
+Do not implement raw Dijkstra over the entire road graph inside the hackathon backend unless you already own road-graph data. Use a routing API for travel-time matrices, then implement NagRaksha's decision logic: filter/penalize hospitals by stock freshness and availability, then rank eligible hospitals by ETA. Dijkstra can remain an algorithmic explanation for shortest-path routing, but the product differentiator is the stock-aware decision layer.
+6. Offline/PWA Strategy
+Cache app shell, translations and medically reviewed static emergency guidance.
+Never cache active incident medical data in a shared Cache Storage response.
+Queue only safe, explicitly designed mutations; an SOS itself must show Pending until the server acknowledges it.
+Lazy-load maps, analytics and AI modules so the emergency shell starts first.
+Web Push is an enhancement, not the only dispatch transport. iOS/iPadOS Web Push requires a Home Screen web app on supported versions.
+7. Security and Abuse Controls
+RBAC: victim, responder, rescue, ambulance, hospital, admin.
+Hospital inventory updates require authenticated hospital role and audit trail.
+Rate-limit SOS creation per device/account while preserving an emergency override path.
+Signed object URLs for photos; strip metadata where practical.
+Do not expose responder personal details broadly; share only what an active incident needs.
+Use synthetic demo data during judging.
+8. Deployment
+Hackathon: one frontend deployment + one API deployment + managed PostgreSQL. Add Redis/worker only if parallel jobs or presence require it. Production evolution: multi-AZ database, durable queue, independent dispatch workers, monitoring, backup/restore, regional failover, directory integrations and formal clinical/content governance.
+Layer | Components
+Client | React/TypeScript PWA; role-based routes; service worker; IndexedDB for non-sensitive queued UI state; responsive hospital/admin console.
+API | REST endpoints plus WebSocket/SSE for live incident state. Authentication and role authorization at API boundary.
+Core domains | Incident, Dispatch, Responder, Hospital/Inventory, Routing, Clinical Handoff, Notification, Content/AI, Analytics.
+Data | PostgreSQL + PostGIS for incidents, users, facilities and geospatial queries; Redis optional for presence, locks, rate limits and short-lived dispatch state.
+Async | Job queue/event worker for fan-out, retries, escalation and notification delivery.
+External | Maps/routing provider, weather API, Web Push provider/browser push services, optional SMS gateway, object storage for snake photos.
+Step | Action | Failure behavior
+1 | Client obtains best available foreground location. | If denied, allow manual location/pin; do not block UI indefinitely.
+2 | POST /incidents with idempotency key. | Retry safely; same key returns same incident.
+3 | Database commits incident. | Only after commit return accepted incident ID.
+4 | Outbox/event emits IncidentCreated. | Worker retries until processed.
+5 | Dispatch jobs start independently for trained responder, rescue team and ambulance/hospital. | One branch failure cannot block others.
+6 | Delivery attempts are recorded. | Timeout expands search radius / next candidate.
+7 | Acceptance uses atomic compare-and-set. | Prevents two responders claiming one exclusive slot.
+8 | State event reaches victim UI. | Reconnect fetches canonical server state.
+Entity | Key fields
+User | id, role, phone/auth identity, language, status
+ResponderProfile | user_id, responder_type, certification_ref, availability, last_location, coverage_radius
+Incident | id, reporter_id/token, lat/lng, created_at, bite_time?, body_part?, state
+DispatchAttempt | incident_id, category, candidate_id, sent_at, accepted_at, outcome, sequence
+Hospital | id, name, lat/lng, contact, active
+AntivenomStock | hospital_id, product/type, status, quantity_band, verified_at, verified_by
+SymptomObservation | incident_id, code, severity/value, observed_at, author_id
+SnakeObservation | incident_id, image_ref?, predicted_class?, confidence?, rescuer_species?
+AuditEvent | actor, action, entity, timestamp, metadata_minimized
+
+========================================================================
+NagRaksha_PRD(1).docx
+========================================================================
+NAGRAKSHA
+Product Requirements Document
+Hackathon MVP — PWA-first emergency coordination
+1. Product Goal
+Reduce coordination delay after a suspected snakebite by turning one victim action into parallel responder dispatch and antivenom-aware treatment routing.
+2. Product Principles
+Emergency path before AI features.
+One incident, one shared source of truth.
+No installation required; installation improves app-like experience.
+Never claim a responder, hospital stock state or notification succeeded until the backend confirms it.
+Medical safety outranks feature richness.
+3. MVP
+4. Core User Stories
+5. Success Criteria
+End-to-end demo completes without manual database edits.
+Parallel dispatch is visually obvious within seconds of SOS.
+A stock change causes a deterministic, explainable routing change.
+No emergency workflow depends on snake-photo classification.
+Offline mode never produces a false-success state.
+6. Non-goals
+Diagnosing envenoming.
+Recommending antivenom dose.
+Replacing emergency medical services or doctors.
+Guaranteeing physical antivenom stock.
+Building custom field hardware.
+Capturing snakes by untrained users.
+7. MVP Demo Script
+Victim opens QR link → taps SOS → backend creates incident → three responder cards fan out simultaneously → trained responder accepts → symptom log begins → ambulance view ranks two hospitals → nearest hospital is rejected because stock is stale/unavailable → farther confirmed-stock hospital becomes recommendation → hospital receives pre-arrival case → victim sees help en route.
+P0 — demo must work | P1 — strengthens demo | P2 — later
+One-tap SOS + GPS | Snake photo upload + confidence | Predictive risk model
+Three-way parallel dispatch simulation/live responders | Web Push notifications | Advanced analytics
+Responder accept + ETA/status | Offline emergency shell | Government directory integrations
+Hospital stock console + freshness timestamp | Multilingual UI | Automated funding reports
+Antivenom-aware hospital ranking | Structured symptom timeline | Large-scale inventory synchronization
+Actor | Story | Done when
+Bystander | I can request help without filling a form. | SOS is created after one primary action and location is attached if permission succeeds.
+Responder | I can accept the nearest case and navigate. | Acceptance is atomic and victim sees updated state.
+Hospital | I can publish stock status. | Routing consumes the new status and shows verification time.
+Ambulance | I can see the recommended facility. | Recommendation explains stock status and ETA.
+Doctor | I can see a concise pre-arrival timeline. | Symptoms and timestamps are readable before handoff.
+Judge | I can try it from a QR code. | Demo opens in browser and supports optional installation.
+
+========================================================================
+NagRaksha_Brand_Style_Guide(1).docx
+========================================================================
+NAGRAKSHA
+Brand Style Guide
+Calm urgency. Clinical clarity. Rural accessibility.
+1. Brand Position
+NagRaksha should look like emergency infrastructure, not a wildlife app. The visual system must communicate urgency without panic and medical credibility without looking bureaucratic.
+2. Visual Identity
+3. Typography
+4. Logo Direction
+Wordmark: “NagRaksha”. Symbol direction: a minimal protective shield/path motif with a subtle snake curve. Avoid aggressive cobra-head mascots, medical crosses used as decoration, and detailed wildlife illustration. The product is about protection and routing.
+5. Component Rules
+SOS button: Emergency Red, largest control on victim home, text label always present.
+Success/accepted: Forest; pending: neutral; warning/stale stock: Gold; failure/unavailable: Red with explicit text.
+Cards use generous spacing and one dominant fact: responder ETA, stock state or next action.
+Minimum touch target: 44×44 CSS px; primary emergency controls larger.
+Motion: short status transitions only. No decorative parallax, bouncing or celebratory animation.
+6. Voice
+Token | Value | Use
+Forest | #184D36 | Primary brand, headers, trusted actions
+Deep Forest | #102A20 | Body text, dark surfaces
+Emergency Red | #B42318 | SOS and destructive/emergency-only actions
+Antivenom Gold | #D69E2E | Stock/risk emphasis; never primary SOS
+Mist | #EAF3ED | Cards, calm background panels
+Paper | #F7F9F8 | Main background
+Slate | #52605A | Secondary text
+Role | Typeface | Rule
+Display | Aptos Display / Inter fallback | Semibold; short headlines only
+UI/body | Aptos / Inter / system sans | Readable at small sizes; avoid condensed fonts
+Numbers/ETA | Same sans, tabular numerals if available | Large and scannable
+Use | Avoid
+“SOS sent. Looking for responders.” | “Everything will be okay.”
+“Antivenom stock reported available · verified 8 min ago.” | “Antivenom guaranteed.”
+“Snake identification uncertain. Do not delay medical care.” | “This is definitely a cobra.”
+“Keep the person still and get medical care quickly.” | Folk remedies, dramatic language, blame or panic.
