@@ -1,10 +1,11 @@
-"use client";
+'use client';
 
-import Image from "next/image";
+import { type ComponentType, type ReactNode } from 'react';
+
 import {
   AlertOctagon,
   Split,
-  Workflow,
+  Workflow as _Workflow,
   Users,
   BrainCircuit,
   Route as RouteIcon,
@@ -21,14 +22,14 @@ import {
   WifiOff,
   BadgeCheck,
   AlertTriangle,
-  ArrowDown,
+  ArrowDown as _ArrowDown,
   HeartPulse,
-} from "lucide-react";
-import { Reveal } from "@/components/reveal";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { SlitherSprite } from "@/components/slither-sprite";
-import { cn } from "@/lib/utils";
+} from 'lucide-react';
+import { Reveal } from '@/components/reveal';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { SlitherSprite } from '@/components/slither-sprite';
+import { cn } from '@/lib/utils';
 
 /* ------------------------------------------------------------------ HERO */
 export function Hero() {
@@ -53,19 +54,17 @@ export function Hero() {
               <span className="text-forest-gradient">Nag</span>
               <span className="text-gold-gradient">Raksha</span>
               <span className="mt-2 block text-[clamp(1.05rem,2.2vw,1.5rem)] font-normal tracking-normal text-muted-foreground">
-                Parallel-dispatch emergency response — and prevention — for
-                snakebites in India.
+                Parallel-dispatch emergency response — and prevention — for snakebites in India.
               </span>
             </h1>
           </Reveal>
 
           <Reveal delay={160}>
             <p className="mt-6 max-w-xl text-[15px] leading-relaxed text-[#bcd2c6]">
-              One tap. Three responders dispatched{" "}
-              <span className="font-medium text-mist">at the same instant</span>{" "}
-              — a trained village first responder, a rescue team, and an
-              ambulance routed to the nearest hospital that actually has
-              antivenom. Software only. No new hardware.
+              One tap. Three responders dispatched{' '}
+              <span className="font-medium text-mist">at the same instant</span> — a trained village
+              first responder, a rescue team, and an ambulance routed to the nearest hospital that
+              actually has antivenom. Software only. No new hardware.
             </p>
           </Reveal>
 
@@ -116,19 +115,19 @@ function HeroStat({
 }: {
   value: string;
   label: string;
-  tone: "red" | "green" | "gold" | "muted";
+  tone: 'red' | 'green' | 'gold' | 'muted';
 }) {
   const color =
-    tone === "red"
-      ? "text-[#E5484D]"
-      : tone === "green"
-      ? "text-[#4FBF9A]"
-      : tone === "gold"
-      ? "text-gold"
-      : "text-muted-foreground";
+    tone === 'red'
+      ? 'text-[#E5484D]'
+      : tone === 'green'
+        ? 'text-[#4FBF9A]'
+        : tone === 'gold'
+          ? 'text-gold'
+          : 'text-muted-foreground';
   return (
     <div className="flex flex-col">
-      <span className={cn("tnum text-2xl font-semibold leading-none md:text-3xl", color)}>
+      <span className={cn('tnum text-2xl font-semibold leading-none md:text-3xl', color)}>
         {value}
       </span>
       <span className="mt-1.5 max-w-[140px] text-[11px] uppercase tracking-wide text-muted-foreground">
@@ -143,24 +142,24 @@ export function Problem() {
   const items = [
     {
       icon: AlertOctagon,
-      tone: "#E5484D",
-      stat: "58,000+",
-      label: "deaths from snakebite in India every year",
-      note: "among the highest snakebite mortality in the world.",
+      tone: '#E5484D',
+      stat: '58,000+',
+      label: 'deaths from snakebite in India every year',
+      note: 'among the highest snakebite mortality in the world.',
     },
     {
       icon: HeartPulse,
-      tone: "#D69E2E",
-      stat: "1st stop",
-      label: "for many victims is still a traditional healer, not a hospital",
-      note: "the lost first hour is the deadliest.",
+      tone: '#D69E2E',
+      stat: '1st stop',
+      label: 'for many victims is still a traditional healer, not a hospital',
+      note: 'the lost first hour is the deadliest.',
     },
     {
       icon: Split,
-      tone: "#4FBF9A",
-      stat: "1 of 4",
-      label: "responder types is contacted at a time today — never all three",
-      note: "no single existing app dispatches in parallel.",
+      tone: '#4FBF9A',
+      stat: '1 of 4',
+      label: 'responder types is contacted at a time today — never all three',
+      note: 'no single existing app dispatches in parallel.',
     },
   ];
   return (
@@ -186,12 +185,11 @@ export function Problem() {
 
       <Reveal delay={120}>
         <p className="mt-8 max-w-3xl text-[15px] leading-relaxed text-muted-foreground">
-          Existing apps —{" "}
-          <span className="text-mist">SARPA, SERPENT, Snakepedia, The Snakebite Assistant</span>{" "}
-          — each solve one piece: a hospital locator, a species guide, a
-          myth-buster, or clinical tiers. None route to three responders at
-          once, and none make hospital routing depend on whether antivenom is
-          actually in stock.
+          Existing apps —{' '}
+          <span className="text-mist">SARPA, SERPENT, Snakepedia, The Snakebite Assistant</span> —
+          each solve one piece: a hospital locator, a species guide, a myth-buster, or clinical
+          tiers. None route to three responders at once, and none make hospital routing depend on
+          whether antivenom is actually in stock.
         </p>
       </Reveal>
     </Section>
@@ -202,28 +200,28 @@ export function Problem() {
 export function ParallelDispatch() {
   const lanes = [
     {
-      tag: "Trained Individual",
-      role: "Village-level first responder",
+      tag: 'Trained Individual',
+      role: 'Village-level first responder',
       icon: Stethoscope,
-      tone: "#2BB673",
-      action: "First aid + structured symptom log",
-      delay: "accepts ≈ 6s",
+      tone: '#2BB673',
+      action: 'First aid + structured symptom log',
+      delay: 'accepts ≈ 6s',
     },
     {
-      tag: "Rescue Team",
-      role: "Certified snake capture & release",
+      tag: 'Rescue Team',
+      role: 'Certified snake capture & release',
       icon: Bug,
-      tone: "#D69E2E",
-      action: "Safe capture, species logged, released",
-      delay: "accepts ≈ 12s",
+      tone: '#D69E2E',
+      action: 'Safe capture, species logged, released',
+      delay: 'accepts ≈ 12s',
     },
     {
-      tag: "Ambulance / Hospital",
-      role: "Transport + antivenom-aware routing",
+      tag: 'Ambulance / Hospital',
+      role: 'Transport + antivenom-aware routing',
       icon: Truck,
-      tone: "#E5484D",
-      action: "Routed to confirmed-stock hospital",
-      delay: "accepts ≈ 8s",
+      tone: '#E5484D',
+      action: 'Routed to confirmed-stock hospital',
+      delay: 'accepts ≈ 8s',
     },
   ];
   return (
@@ -237,8 +235,7 @@ export function ParallelDispatch() {
         <div className="mb-8 flex flex-col items-center gap-3">
           <SlitherSprite size={260} className="drop-shadow-[0_10px_30px_rgba(214,158,46,0.25)]" />
           <p className="text-center text-xs text-muted-foreground">
-            6 slither frames · cycled from a generated sprite · the serpent
-            quickens as you scroll
+            6 slither frames · cycled from a generated sprite · the serpent quickens as you scroll
           </p>
         </div>
       </Reveal>
@@ -246,10 +243,7 @@ export function ParallelDispatch() {
         {lanes.map((l, i) => (
           <Reveal key={l.tag} delay={i * 110}>
             <div className="relative h-full overflow-hidden rounded-2xl border border-[rgba(234,243,237,0.08)] bg-[rgba(16,42,32,0.6)] p-6">
-              <div
-                className="absolute left-0 top-0 h-1 w-full"
-                style={{ background: l.tone }}
-              />
+              <div className="absolute left-0 top-0 h-1 w-full" style={{ background: l.tone }} />
               <div className="flex items-center justify-between">
                 <l.icon className="h-7 w-7" style={{ color: l.tone }} />
                 <Badge
@@ -274,9 +268,8 @@ export function ParallelDispatch() {
       </div>
       <Reveal delay={120}>
         <p className="mt-6 text-center text-sm text-muted-foreground">
-          <span className="text-gold">Three lines.</span> Three lanes. The dock's
-          active marker is built from three stacked strokes — one for each
-          responder dispatched at once.
+          <span className="text-gold">Three lines.</span> Three lanes. The dock&apos;s active marker is
+          built from three stacked strokes — one for each responder dispatched at once.
         </p>
       </Reveal>
     </Section>
@@ -286,12 +279,42 @@ export function ParallelDispatch() {
 /* -------------------------------------------------------------- HOW IT FLOWS */
 export function HowItFlows() {
   const steps = [
-    { t: "SOS triggered", d: "Victim taps once. GPS attached. No mandatory text.", icon: ShieldCheck, tone: "#E5484D" },
-    { t: "Incident created", d: "Backend commits, then returns an incident id (atomic).", icon: Activity, tone: "#2BB673" },
-    { t: "Three jobs fan out", d: "Independent dispatch workers — one branch cannot block another.", icon: Split, tone: "#D69E2E" },
-    { t: "Responders accept", d: "Compare-and-set acceptance prevents double-claims.", icon: Users, tone: "#4FBF9A" },
-    { t: "Hospital pre-alert", d: "Symptom log + suspected species delivered before arrival.", icon: Stethoscope, tone: "#7fd6ad" },
-    { t: "Handoff", d: "Full timestamped audit trail preserved (NFR-8).", icon: BadgeCheck, tone: "#E0B443" },
+    {
+      t: 'SOS triggered',
+      d: 'Victim taps once. GPS attached. No mandatory text.',
+      icon: ShieldCheck,
+      tone: '#E5484D',
+    },
+    {
+      t: 'Incident created',
+      d: 'Backend commits, then returns an incident id (atomic).',
+      icon: Activity,
+      tone: '#2BB673',
+    },
+    {
+      t: 'Three jobs fan out',
+      d: 'Independent dispatch workers — one branch cannot block another.',
+      icon: Split,
+      tone: '#D69E2E',
+    },
+    {
+      t: 'Responders accept',
+      d: 'Compare-and-set acceptance prevents double-claims.',
+      icon: Users,
+      tone: '#4FBF9A',
+    },
+    {
+      t: 'Hospital pre-alert',
+      d: 'Symptom log + suspected species delivered before arrival.',
+      icon: Stethoscope,
+      tone: '#7fd6ad',
+    },
+    {
+      t: 'Handoff',
+      d: 'Full timestamped audit trail preserved (NFR-8).',
+      icon: BadgeCheck,
+      tone: '#E0B443',
+    },
   ];
   return (
     <Section
@@ -316,7 +339,9 @@ export function HowItFlows() {
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="tnum text-xs text-muted-foreground">{String(i + 1).padStart(2, "0")}</span>
+                  <span className="tnum text-xs text-muted-foreground">
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
                   <h3 className="text-sm font-semibold text-mist">{s.t}</h3>
                 </div>
                 <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{s.d}</p>
@@ -333,28 +358,36 @@ export function HowItFlows() {
 export function Roles() {
   const roles = [
     {
-      title: "Public / Victim",
+      title: 'Public / Victim',
       icon: Smartphone,
-      tone: "#E5484D",
-      bullets: ["One-tap SOS button", "Optional snake photo", "Live ETA of nearest responder"],
+      tone: '#E5484D',
+      bullets: ['One-tap SOS button', 'Optional snake photo', 'Live ETA of nearest responder'],
     },
     {
-      title: "Trained Individual",
+      title: 'Trained Individual',
       icon: Stethoscope,
-      tone: "#2BB673",
-      bullets: ["Location + navigation on accept", "Species-specific first-aid checklist", "Structured symptom logging"],
+      tone: '#2BB673',
+      bullets: [
+        'Location + navigation on accept',
+        'Species-specific first-aid checklist',
+        'Structured symptom logging',
+      ],
     },
     {
-      title: "Rescue Team",
+      title: 'Rescue Team',
       icon: Bug,
-      tone: "#D69E2E",
-      bullets: ["Parallel alert, same location", "Log captured species", "Safe release tracking"],
+      tone: '#D69E2E',
+      bullets: ['Parallel alert, same location', 'Log captured species', 'Safe release tracking'],
     },
     {
-      title: "Ambulance / Hospital",
+      title: 'Ambulance / Hospital',
       icon: Truck,
-      tone: "#4FBF9A",
-      bullets: ["Turn-by-turn shortest path", "Antivenom-aware hospital ranking", "Pre-arrival case + symptom handoff"],
+      tone: '#4FBF9A',
+      bullets: [
+        'Turn-by-turn shortest path',
+        'Antivenom-aware hospital ranking',
+        'Pre-arrival case + symptom handoff',
+      ],
     },
   ];
   return (
@@ -390,11 +423,7 @@ export function Roles() {
 }
 
 /* ------------------------------------------------------------- PREVENTION (wrap) */
-export function Prevention({
-  children,
-}: {
-  children?: React.ReactNode;
-}) {
+export function Prevention({ children }: { children?: ReactNode }) {
   return (
     <Section
       id="prevention"
@@ -408,8 +437,8 @@ export function Prevention({
             <CloudSun className="h-6 w-6 text-gold" />
             <h3 className="mt-3 text-base font-semibold text-mist">Weather-Based Risk</h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              Combines location, season and public weather-API data into an
-              encounter-risk advisory for people heading into the field.
+              Combines location, season and public weather-API data into an encounter-risk advisory
+              for people heading into the field.
             </p>
             <div className="mt-4">{children}</div>
           </div>
@@ -419,8 +448,8 @@ export function Prevention({
             <Bug className="h-6 w-6 text-[#4FBF9A]" />
             <h3 className="mt-3 text-base font-semibold text-mist">Snake ID by Photo</h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              Uses the phone's existing camera — no external sensor — to classify
-              a photographed snake and flag identification confidence honestly.
+              Uses the phone&apos;s existing camera — no external sensor — to classify a photographed
+              snake and flag identification confidence honestly.
             </p>
           </div>
         </Reveal>
@@ -429,9 +458,8 @@ export function Prevention({
             <BrainCircuit className="h-6 w-6 text-[#E5484D]" />
             <h3 className="mt-3 text-base font-semibold text-mist">AI Myth Buster</h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              Conversational assistant answers snake and snakebite questions,
-              corrects folk-remedy myths, and redirects urgent questions straight
-              to the SOS flow.
+              Conversational assistant answers snake and snakebite questions, corrects folk-remedy
+              myths, and redirects urgent questions straight to the SOS flow.
             </p>
           </div>
         </Reveal>
@@ -440,9 +468,8 @@ export function Prevention({
       <Reveal delay={120}>
         <p className="mt-6 flex items-start gap-2 text-xs text-muted-foreground">
           <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0 text-gold" />
-          Deliberately excluded from this build: custom motion/thermal-camera
-          sensors and a physical venom test kit. The system is scoped as
-          software running on devices people already own.
+          Deliberately excluded from this build: custom motion/thermal-camera sensors and a physical
+          venom test kit. The system is scoped as software running on devices people already own.
         </p>
       </Reveal>
     </Section>
@@ -452,10 +479,30 @@ export function Prevention({
 /* --------------------------------------------------------- ANTIVENOM ROUTING */
 export function Routing() {
   const steps = [
-    { n: "1", t: "Hospitals update", d: "Antivenom stock levels updated in their console, in real time.", icon: Droplet },
-    { n: "2", t: "System ranks", d: "Hospitals ranked by confirmed stock first, travel time second.", icon: BadgeCheck },
-    { n: "3", t: "Dijkstra routing", d: "Shortest path & ETA computed to the top-ranked hospital.", icon: RouteIcon },
-    { n: "4", t: "Pre-arrival handoff", d: "Doctor receives symptom log & suspected species before the victim arrives.", icon: Stethoscope },
+    {
+      n: '1',
+      t: 'Hospitals update',
+      d: 'Antivenom stock levels updated in their console, in real time.',
+      icon: Droplet,
+    },
+    {
+      n: '2',
+      t: 'System ranks',
+      d: 'Hospitals ranked by confirmed stock first, travel time second.',
+      icon: BadgeCheck,
+    },
+    {
+      n: '3',
+      t: 'Dijkstra routing',
+      d: 'Shortest path & ETA computed to the top-ranked hospital.',
+      icon: RouteIcon,
+    },
+    {
+      n: '4',
+      t: 'Pre-arrival handoff',
+      d: 'Doctor receives symptom log & suspected species before the victim arrives.',
+      icon: Stethoscope,
+    },
   ];
   return (
     <Section
@@ -486,24 +533,24 @@ export function Routing() {
 export function Roadmap() {
   const phases = [
     {
-      p: "Phase 1",
-      d: "SOS trigger, parallel dispatch, trained-individual & ambulance apps, basic hospital routing.",
+      p: 'Phase 1',
+      d: 'SOS trigger, parallel dispatch, trained-individual & ambulance apps, basic hospital routing.',
       done: true,
     },
     {
-      p: "Phase 2",
-      d: "Antivenom registry, Dijkstra-based hospital ranking, symptom hand-off.",
+      p: 'Phase 2',
+      d: 'Antivenom registry, Dijkstra-based hospital ranking, symptom hand-off.',
       done: true,
     },
     {
-      p: "Phase 3",
-      d: "AI myth-buster, snake photo ID, weather-based risk advisory.",
+      p: 'Phase 3',
+      d: 'AI myth-buster, snake photo ID, weather-based risk advisory.',
       done: false,
       current: true,
     },
     {
-      p: "Phase 4",
-      d: "Multi-district rollout, admin analytics, funding-report automation.",
+      p: 'Phase 4',
+      d: 'Multi-district rollout, admin analytics, funding-report automation.',
       done: false,
     },
   ];
@@ -514,12 +561,12 @@ export function Roadmap() {
           <Reveal key={ph.p} delay={i * 80}>
             <div
               className={cn(
-                "h-full rounded-2xl border p-5",
+                'h-full rounded-2xl border p-5',
                 ph.current
-                  ? "border-[rgba(214,158,46,0.4)] bg-[rgba(214,158,46,0.08)]"
+                  ? 'border-[rgba(214,158,46,0.4)] bg-[rgba(214,158,46,0.08)]'
                   : ph.done
-                  ? "border-[rgba(43,182,115,0.25)] bg-[rgba(43,182,115,0.06)]"
-                  : "border-[rgba(234,243,237,0.08)] bg-[rgba(16,42,32,0.4)]"
+                    ? 'border-[rgba(43,182,115,0.25)] bg-[rgba(43,182,115,0.06)]'
+                    : 'border-[rgba(234,243,237,0.08)] bg-[rgba(16,42,32,0.4)]',
               )}
             >
               <div className="flex items-center justify-between">
@@ -541,16 +588,28 @@ export function Roadmap() {
 
       <Reveal delay={120}>
         <div className="mt-8 grid gap-3 sm:grid-cols-3">
-          <PwaCard icon={Smartphone} title="Installable PWA" body="Add to home screen for an app-like, standalone experience — no app store." />
-          <PwaCard icon={WifiOff} title="Offline shell" body="The emergency shell loads first and never produces a false-success state." />
-          <PwaCard icon={MapPin} title="Coverage model" body="One trained individual covers multiple villages within a ~10 km radius." />
+          <PwaCard
+            icon={Smartphone}
+            title="Installable PWA"
+            body="Add to home screen for an app-like, standalone experience — no app store."
+          />
+          <PwaCard
+            icon={WifiOff}
+            title="Offline shell"
+            body="The emergency shell loads first and never produces a false-success state."
+          />
+          <PwaCard
+            icon={MapPin}
+            title="Coverage model"
+            body="One trained individual covers multiple villages within a ~10 km radius."
+          />
         </div>
       </Reveal>
     </Section>
   );
 }
 
-function PwaCard({ icon: Icon, title, body }: { icon: any; title: string; body: string }) {
+function PwaCard({ icon: Icon, title, body }: { icon: ComponentType<{ className?: string }>; title: string; body: string }) {
   return (
     <div className="rounded-2xl glass p-5">
       <Icon className="h-5 w-5 text-[#4FBF9A]" />
@@ -577,20 +636,26 @@ export function SiteFooter() {
               </span>
             </div>
             <p className="mt-2 max-w-md text-xs text-muted-foreground">
-              A software-only emergency coordination platform for snakebites in
-              India. Calm urgency, clinical clarity, rural accessibility.
+              A software-only emergency coordination platform for snakebites in India. Calm urgency,
+              clinical clarity, rural accessibility.
             </p>
           </div>
           <div className="flex flex-wrap gap-x-6 gap-y-2 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5 text-[#4FBF9A]" /> Demo data only</span>
-            <span className="flex items-center gap-1.5"><Activity className="h-3.5 w-3.5 text-gold" /> Team Nagathon · Bengaluru</span>
-            <span className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5 text-[#E5484D]" /> Nagathon 2026</span>
+            <span className="flex items-center gap-1.5">
+              <ShieldCheck className="h-3.5 w-3.5 text-[#4FBF9A]" /> Demo data only
+            </span>
+            <span className="flex items-center gap-1.5">
+              <Activity className="h-3.5 w-3.5 text-gold" /> Team Nagathon · Bengaluru
+            </span>
+            <span className="flex items-center gap-1.5">
+              <MapPin className="h-3.5 w-3.5 text-[#E5484D]" /> Nagathon 2026
+            </span>
           </div>
         </div>
         <div className="mt-8 border-t border-[rgba(234,243,237,0.06)] pt-6 text-[11px] text-muted-foreground">
-          Never rely on a single app during a medical emergency. In a real
-          snakebite, contact your local emergency number and get to a hospital
-          immediately. NagRaksha is a demonstration prototype.
+          Never rely on a single app during a medical emergency. In a real snakebite, contact your
+          local emergency number and get to a hospital immediately. NagRaksha is a demonstration
+          prototype.
         </div>
       </div>
     </footer>
@@ -609,7 +674,7 @@ export function Section({
   eyebrow: string;
   title: string;
   subtitle?: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <section id={id} className="mx-auto max-w-7xl scroll-mt-6 px-5 py-20 md:px-8 md:py-28">

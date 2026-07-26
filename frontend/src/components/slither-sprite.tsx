@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import Image from "next/image";
+import { useEffect, useState } from 'react';
+import Image from 'next/image';
 
 /**
  * SlitherSprite — cycles through the 6 generated snake slither frames to
@@ -14,15 +14,9 @@ import Image from "next/image";
  */
 const FRAMES = [1, 2, 3, 4, 5, 6];
 
-export function SlitherSprite({
-  className,
-  size = 220,
-}: {
-  className?: string;
-  size?: number;
-}) {
+export function SlitherSprite({ className, size = 220 }: { className?: string; size?: number }) {
   const [frame, setFrame] = useState(0);
-  const [speed, setSpeed] = useState(1);
+  const [_speed, setSpeed] = useState(1);
 
   useEffect(() => {
     let raf = 0;

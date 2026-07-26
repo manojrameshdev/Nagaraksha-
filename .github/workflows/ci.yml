@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  frontend:
+    name: Frontend (Lint + TypeScript + Tests)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: 'frontend/package-lock.json'
+      - run: npm ci
+      - run: npx eslint . --max-warnings 0
+      - run: npx tsc --noEmit
+      - run: npx vitest run
+
+  backend:
+    name: Backend (Bandit + Pytest)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - run: pip install -r requirements.txt
+      - run: pip install bandit pytest httpx pytest-asyncio
+      - run: bandit -r . -c ../.bandit.yaml
+      - run: python -m pytest tests/ -v
+
+  gatekeeper:
+    name: Gatekeeper
+    needs: [frontend, backend]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - run: |
+          echo "Frontend status: ${{ needs.frontend.result }}"
+          echo "Backend status: ${{ needs.backend.result }}"
+          if [ "${{ needs.frontend.result }}" != "success" ] || [ "${{ needs.backend.result }}" != "success" ]; then
+            echo "One or more checks failed"
+            exit 1
+          fi

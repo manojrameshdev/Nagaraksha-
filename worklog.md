@@ -10,6 +10,7 @@ antivenom stock, and adds AI prevention (myth-buster chatbot, snake photo
 ID, weather-based risk).
 
 ## Key brand tokens (from Brand Style Guide)
+
 - Forest #184D36 (primary), Deep Forest #102A20 (dark surface)
 - Emergency Red #B42318 (SOS), Antivenom Gold #D69E2E (stock/risk)
 - Mist #EAF3ED (calm panels), Paper #F7F9F8 (bg), Slate #52605A (secondary)
@@ -17,6 +18,7 @@ ID, weather-based risk).
 - Voice: calm urgency, clinical clarity. No decorative parallax/bounce.
 
 ## User requirements (this build)
+
 1. Illustration shaders (WebGL fragment shader background)
 2. Snake (video/gif broken to frames) → scroll progress indicator that
    smoothly slithers down the page as the user scrolls.
@@ -28,6 +30,7 @@ ID, weather-based risk).
 7. Read all docs first (done).
 
 ## Architecture decisions
+
 - Single route `/` (landing experience, scroll-driven).
 - Dark palette: bg #0A1812, surface #102A20 / #122E22, primary forest
   brightened to #1F6B4A for dark contrast, red #E5484D, gold #E0B443,
@@ -47,24 +50,27 @@ ID, weather-based risk).
   buster (z-ai-web-dev-sdk LLM), stats.
 
 ## Task plan
+
 - 1 : Read all documents (done)
 - 2-a : (subagent) generate atmospheric snake illustrations + slither
-       sprite frames via image-generation skill
+  sprite frames via image-generation skill
 - 3 : PWA manifest + service worker + icons + layout metadata
 - 4 : Prisma schema + db push + seed
 - 5 : Backend API routes (sos, incidents, hospitals, stock, risk,
-       snake-id, myth-buster, stats)
+  snake-id, myth-buster, stats)
 - 6 : Core components — ShaderBackground, SnakeProgress, TriLineDock,
-       section primitives
+  section primitives
 - 7 : Page sections + assembly + animations
 - 8 : Lint + Agent Browser self-verify + fix
 
 ---
+
 Task ID: 1
 Agent: main (orchestrator)
 Task: Read all NagRaksha documents and produce the build plan.
 
 Work Log:
+
 - Read SRS, System Design, PRD, Brand Style Guide, Wireframes (pandoc).
 - Extracted Pitch deck text (unzip + XML parse).
 - Inspected existing project scaffold (Next 16, shadcn/ui, Prisma sqlite,
@@ -72,10 +78,12 @@ Work Log:
 - Confirmed dev server running on :3000.
 
 Stage Summary:
+
 - Full product understanding captured above. Proceeding to PWA + backend
-  + frontend build. Delegating atmospheric image generation to a subagent.
+  - frontend build. Delegating atmospheric image generation to a subagent.
 
 ---
+
 Task ID: 2-a
 Agent: image-generation subagent
 Task: Generate atmospheric snake illustrations + slither sprite frames for
@@ -84,6 +92,7 @@ image-generation Skill (z-ai CLI). Save all assets under
 /home/z/my-project/public/snake/. Do NOT touch Next.js source.
 
 Work Log:
+
 - Read worklog.md and image-generation SKILL.md (CLI usage, supported
   sizes: 1024x1024, 768x1344, 864x1152, 1344x768, 1152x864, 1440x720,
   720x1440).
@@ -111,17 +120,18 @@ Work Log:
 - No Next.js source files were modified. No failures.
 
 Stage Summary:
+
 - 10 atmospheric image assets produced in /home/z/my-project/public/snake/:
-    hero-snake.png              1024x1024  (1,308,175 B)
-    snake-frame-1.png           1344x768   (400,004 B)
-    snake-frame-2.png           1344x768   (392,268 B)
-    snake-frame-3.png           1344x768   (383,434 B)
-    snake-frame-4.png           1344x768   (391,938 B)
-    snake-frame-5.png           1344x768   (372,039 B)
-    snake-frame-6.png           1344x768   (408,353 B)
-    scale-pattern.png           1024x1024  (1,460,734 B)
-    responder-illustration.png  1024x1024  (611,687 B)
-    antivenom-vial.png          1024x1024  (310,736 B)
+  hero-snake.png 1024x1024 (1,308,175 B)
+  snake-frame-1.png 1344x768 (400,004 B)
+  snake-frame-2.png 1344x768 (392,268 B)
+  snake-frame-3.png 1344x768 (383,434 B)
+  snake-frame-4.png 1344x768 (391,938 B)
+  snake-frame-5.png 1344x768 (372,039 B)
+  snake-frame-6.png 1344x768 (408,353 B)
+  scale-pattern.png 1024x1024 (1,460,734 B)
+  responder-illustration.png 1024x1024 (611,687 B)
+  antivenom-vial.png 1024x1024 (310,736 B)
 - All files are valid true-PNG, non-empty, ready to serve from /snake/...
 - Caveat for the orchestrator: slither frames are 1344x768 (not the
   originally requested 512x256) due to API size constraints; CSS can
@@ -131,26 +141,31 @@ Stage Summary:
   core site does NOT depend on these images.
 
 ---
+
 Task ID: 2-a
 Agent: image-generation subagent
 Task: Generate atmospheric snake illustrations + slither sprite frames via the image-generation skill.
 
 Work Log:
+
 - Read SKILL.md for image-generation; used z-ai CLI to generate 10 assets.
 - Re-encoded every output to true PNG via Pillow (CLI saved JPEG with .png ext).
 - Saved to /home/z/my-project/public/snake/.
 
 Stage Summary:
+
 - 10 assets produced (hero-snake, snake-frame-1..6, scale-pattern, responder-illustration, antivenom-vial).
 - Slither frames are 1344x768 (closest working landscape size). CSS-scaled in SlitherSprite.
 - No Next.js source files modified.
 
 ---
+
 Task ID: 3-8
 Agent: main (orchestrator)
 Task: Build the full NagRaksha dark-theme PWA — shader background, snake scroll-progress, 3-line dock, sections, backend, PWA, verify.
 
 Work Log:
+
 - globals.css: dark NagRaksha palette (bg #0A1812, forest #2BB673, gold #D69E2E, red #E5484D), Inter + JetBrains Mono fonts, glass/glow/reveal/marquee utilities, custom scrollbar, reduced-motion guards, scroll-padding for dock clearance.
 - PWA: public/manifest.webmanifest (standalone, shortcuts, icons), public/sw.js (app-shell precache, network-first nav, stale-while-revalidate assets, never caches /api, offline fallback), public/offline.html, icons (192/512/maskable/apple-touch/favicon) generated via sharp from an SVG shield+serpent motif.
 - layout.tsx: Inter + JetBrains Mono via next/font, forced dark, PWA metadata (manifest, themeColor #0A1812, appleWebApp, icons, OG), inline SW registration.
@@ -161,16 +176,19 @@ Work Log:
 - Added scroll-padding-bottom + pb-28 so the fixed dock never covers interactive content.
 
 Stage Summary:
+
 - `bun run lint` clean. Page returns 200 with no runtime/hydration errors.
 - Agent Browser verified: hero renders (dark theme, snake mascot, SOS button), snake progress indicator slithers down the left rail on scroll, 3-line dock scrolls to sections, live SOS demo creates an incident and shows 3 ACCEPTED lanes + antivenom-aware hospital ranking (RECOMMENDED on confirmed-stock hospital, stale/out hospitals demoted), myth-buster LLM busts myths (MYTH/FACT) and persists, risk panel + snake-id + stats all live, mobile (390px) responsive, PWA manifest/sw/icons all serve 200.
 - All user requirements met: illustration shaders, snake-frames-as-progress-indicator with smooth scroll animation, 3-lined dock, fonts+illustrations+animations+backend, dark palette, PWA, read all docs first.
 
 ---
+
 Task ID: r1-r10
 Agent: main (orchestrator)
 Task: Build the RAG system backend + system architecture visualization the user asked for.
 
 Work Log:
+
 - Re-read the full System Design document (modular monolith, event-driven, 8-step SOS sequence, RBAC, AuditEvent, outbox).
 - Audited existing code: discovered the RAG backend was ALREADY substantially built (rag.ts TF-IDF retriever, knowledge-base.ts 22-chunk medically-reviewed corpus, eventbus.ts in-process event bus + outbox worker, /api/myth-buster using ragAnswer with citations, /api/incidents/[id]/audit, /api/incidents/[id]/stream SSE, /api/outbox, /api/knowledge-base). The backend was complete but NOT VISIBLE in the frontend.
 - Built GET /api/architecture — data-driven manifest of the layered architecture (6 layers), 9 core domains, 8-step SOS sequence with failure behavior, 6 RBAC roles, RAG pipeline metadata, live outbox stats, logical flow.
@@ -186,6 +204,7 @@ Work Log:
 - Reduced Prisma logging to ['error','warn'] (was ['query'] which flooded the log).
 
 Backend verification (direct test script, bypassing flaky HTTP layer):
+
 - RAG: 22 medically-reviewed chunks (FIRST_AID=4, MYTH=6, SPECIES=5, ANTIVENOM=3, RISK=2, PROTOCOL=2).
 - RAG retrieval for "tourniquet" → myth-tourniquet (score 0.471), first-aid-do-nots (0.411), species-russell (0.176). Correct.
 - Audit trail: 5 events (SOS_TRIGGERED=2, DISPATCH_FANOUT=2, RAG_QUERY=1).
@@ -193,21 +212,25 @@ Backend verification (direct test script, bypassing flaky HTTP layer):
 - Hospitals: 4 with distinct stock states (CONFIRMED/LOW/UNKNOWN/OUT).
 
 HTTP verification (when server stable):
+
 - GET /api/knowledge-base?q=tourniquet → 200, returns ranked chunks with scores.
 - GET /api/architecture → 200, returns layers/domains/sequence/roles/rag/outbox manifest.
 - POST /api/myth-buster → 200, RAG-grounded answer with cited sources (docIds).
 
 Stage Summary:
+
 - RAG system: complete and verified — TF-IDF retrieval over 22 medically-reviewed chunks, LLM grounded in retrieved context with citations, emergency guard (FR-5.3), myth-busting (FR-5.2).
 - System architecture: complete and verified — modular monolith with durable outbox + in-process event bus + worker, 3 independent dispatch jobs, SSE live state, audit trail (NFR-8), 8-step SOS sequence with failure behavior, RBAC. All visible in the frontend Architecture section + inline audit/outbox/KB panels.
 - Dev server: memory-constrained in the 4GB sandbox cgroup. Webpack dev mode (instead of Turbopack) + lazy loading + inView gating + reduced polling makes it stable for single-user browsing. Concurrent compile storms (browser + curl) can still OOM-kill it; the backend logic itself is correct (verified directly).
 
 ---
+
 Task ID: p1-p7
 Agent: main (orchestrator)
 Task: Build a Python backend + separate frontend/backend folders.
 
 Work Log:
+
 - Created backend/ with Python FastAPI app (19 .py files):
   - app/main.py — FastAPI entry, CORS, startup (init_db + seed KB + start worker)
   - app/database.py — SQLite schema (Incident, DispatchAttempt, Hospital, AntivenomStock, SymptomObservation, SnakeObservation, RiskReport, MythThread, KnowledgeChunk, OutboxEvent, AuditEvent)
@@ -227,6 +250,7 @@ Work Log:
 - scripts/dev.sh starts Python uvicorn :8000 + Next.js :3000.
 
 Stage Summary:
+
 - Clean separation: backend/ (Python FastAPI) + frontend/ (Next.js).
 - Verified: Python backend alive on :8000; RAG retrieval (TF-IDF) returns myth-tourniquet for "tourniquet"; SOS creates incident; gateway proxy :81/api/stats?XTransformPort=8000 → backend (200, 1 incident, 22 RAG chunks).
 - Frontend page renders (200), 3-line dock, no errors.

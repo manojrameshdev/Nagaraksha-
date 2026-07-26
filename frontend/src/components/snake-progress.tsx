@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef } from 'react';
 
 /**
  * SnakeProgress — the snake IS the scroll-progress bar.
@@ -35,32 +35,32 @@ export function SnakeProgress() {
     if (!svg || !path || !body || !head || !tongue || !track) return;
 
     let H = window.innerHeight;
-    let W = RAIL_W;
+    const W = RAIL_W;
     const cx = W / 2;
 
     const resize = () => {
       H = window.innerHeight;
-      svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
-      svg.setAttribute("width", String(W));
-      svg.setAttribute("height", String(H));
+      svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+      svg.setAttribute('width', String(W));
+      svg.setAttribute('height', String(H));
       // track (full height faint line)
-      track.setAttribute("d", `M ${cx} 8 L ${cx} ${H - 8}`);
+      track.setAttribute('d', `M ${cx} 8 L ${cx} ${H - 8}`);
     };
     resize();
 
     let target = 0;
     let eased = 0;
-    let lastY = window.scrollY;
+    let _lastY = window.scrollY;
 
     const onScroll = () => {
       const h = document.documentElement;
       const max = h.scrollHeight - h.clientHeight;
       target = max > 0 ? h.scrollTop / max : 0;
-      lastY = h.scrollTop;
+      _lastY = h.scrollTop;
     };
     onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", resize);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', resize);
 
     const SAMPLES = 46;
     const start = performance.now();
@@ -83,28 +83,26 @@ export function SnakeProgress() {
         const y = topY + f * span;
         // taper amplitude near head & tail; wave travels down with time + progress
         const taper = Math.sin(f * Math.PI);
-        const wave =
-          Math.sin(f * 7.5 - t * 3.2 + eased * 6.0) * 7.0 * taper;
+        const wave = Math.sin(f * 7.5 - t * 3.2 + eased * 6.0) * 7.0 * taper;
         const x = cx + wave;
-        pts.push(`${i === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`);
+        pts.push(`${i === 0 ? 'M' : 'L'} ${x.toFixed(2)} ${y.toFixed(2)}`);
         // a slightly thicker inner body for depth (offset opposite)
         const x2 = cx - wave * 0.35;
-        bodyPts.push(`${i === 0 ? "M" : "L"} ${x2.toFixed(2)} ${y.toFixed(2)}`);
+        bodyPts.push(`${i === 0 ? 'M' : 'L'} ${x2.toFixed(2)} ${y.toFixed(2)}`);
       }
-      const d = pts.join(" ");
-      path.setAttribute("d", d);
-      if (body) body.setAttribute("d", d);
+      const d = pts.join(' ');
+      path.setAttribute('d', d);
+      if (body) body.setAttribute('d', d);
 
       // head at the tip, rotated to face along the last segment direction
-      const lastWave =
-        Math.sin(1 * 7.5 - t * 3.2 + eased * 6.0) * 7.0 * Math.sin(Math.PI);
+      const lastWave = Math.sin(1 * 7.5 - t * 3.2 + eased * 6.0) * 7.0 * Math.sin(Math.PI);
       const headX = cx + lastWave;
-      head.setAttribute("transform", `translate(${headX.toFixed(2)} ${headY.toFixed(2)})`);
+      head.setAttribute('transform', `translate(${headX.toFixed(2)} ${headY.toFixed(2)})`);
 
       // tongue flick
       const flick = (Math.sin(t * 6.0) + 1) / 2;
-      tongue.setAttribute("opacity", String(0.35 + 0.65 * flick));
-      tongue.setAttribute("transform", `scale(${0.7 + 0.6 * flick})`);
+      tongue.setAttribute('opacity', String(0.35 + 0.65 * flick));
+      tongue.setAttribute('transform', `scale(${0.7 + 0.6 * flick})`);
 
       raf = requestAnimationFrame(loop);
     };
@@ -112,8 +110,8 @@ export function SnakeProgress() {
 
     return () => {
       cancelAnimationFrame(raf);
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", resize);
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', resize);
     };
   }, []);
 

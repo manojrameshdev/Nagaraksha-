@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from 'react';
 
 /** Smoothed scroll progress 0..1 for the whole document. */
 export function useScrollProgress() {
@@ -23,11 +23,11 @@ export function useScrollProgress() {
     };
     const onScroll = () => compute();
     compute();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
     return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
     };
   }, []);
 
@@ -46,6 +46,7 @@ export function useScrollProgress() {
 }
 
 /** Track when an element enters the viewport (one-shot). */
+// eslint-disable-next-line no-undef
 export function useInView<T extends HTMLElement>(options?: IntersectionObserverInit) {
   const ref = useRef<T | null>(null);
   const [inView, setInView] = useState(false);
@@ -61,21 +62,22 @@ export function useInView<T extends HTMLElement>(options?: IntersectionObserverI
           }
         }
       },
-      { threshold: 0.18, rootMargin: "0px 0px -8% 0px", ...options }
+      { threshold: 0.18, rootMargin: '0px 0px -8% 0px', ...options },
     );
     ob.observe(el);
     return () => ob.disconnect();
-  }, []);
+  }, [options]);
   return { ref, inView };
 }
 
 /** Active section id based on scroll position (for the dock). */
 export function useActiveSection(ids: string[]) {
-  const [active, setActive] = useState(ids[0] ?? "");
+  const [active, setActive] = useState(ids[0] ?? '');
+  const idsKey = ids.join(',');
   useEffect(() => {
     const onScroll = () => {
       const center = window.scrollY + window.innerHeight * 0.35;
-      let current = ids[0] ?? "";
+      let current = ids[0] ?? '';
       for (const id of ids) {
         const el = document.getElementById(id);
         if (el && el.offsetTop <= center) current = id;
@@ -83,12 +85,13 @@ export function useActiveSection(ids: string[]) {
       setActive(current);
     };
     onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
     return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
     };
-  }, [ids.join(",")]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idsKey]);
   return active;
 }

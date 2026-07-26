@@ -1,0 +1,13 @@
+node_modules
+.next
+out
+build
+next-env.d.ts
+.gitignore
+.env*
+*.log
+backend/db/*.db
+backend/db/*.db-journal
+.planning
+docs
+model

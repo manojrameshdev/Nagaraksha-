@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import dynamic from "next/dynamic";
-import { Suspense } from "react";
-import { Loader2 } from "lucide-react";
+import dynamic from 'next/dynamic';
+import { Suspense } from 'react';
+import { Loader2 } from 'lucide-react';
 
 /**
  * LazySections — code-splits the heavy below-fold sections into separate
@@ -11,41 +11,35 @@ import { Loader2 } from "lucide-react";
  * sandbox. The heavy sections compile lazily on the client after hydration.
  */
 const Architecture = dynamic(
-  () => import("@/components/architecture").then((m) => m.Architecture),
-  { ssr: false }
+  () => import('@/components/architecture').then((m) => m.Architecture),
+  { ssr: false },
 );
-const LiveSosDemo = dynamic(
-  () => import("@/components/interactive").then((m) => m.LiveSosDemo),
-  { ssr: false }
-);
+const LiveSosDemo = dynamic(() => import('@/components/interactive').then((m) => m.LiveSosDemo), {
+  ssr: false,
+});
 const AuditTrailPanel = dynamic(
-  () => import("@/components/interactive").then((m) => m.AuditTrailPanel),
-  { ssr: false }
+  () => import('@/components/interactive').then((m) => m.AuditTrailPanel),
+  { ssr: false },
 );
-const OutboxPanel = dynamic(
-  () => import("@/components/interactive").then((m) => m.OutboxPanel),
-  { ssr: false }
-);
+const OutboxPanel = dynamic(() => import('@/components/interactive').then((m) => m.OutboxPanel), {
+  ssr: false,
+});
 const KnowledgeBasePanel = dynamic(
-  () => import("@/components/interactive").then((m) => m.KnowledgeBasePanel),
-  { ssr: false }
+  () => import('@/components/interactive').then((m) => m.KnowledgeBasePanel),
+  { ssr: false },
 );
-const StatsStrip = dynamic(
-  () => import("@/components/interactive").then((m) => m.StatsStrip),
-  { ssr: false }
-);
-const RiskPanel = dynamic(
-  () => import("@/components/interactive").then((m) => m.RiskPanel),
-  { ssr: false }
-);
-const SnakeId = dynamic(
-  () => import("@/components/interactive").then((m) => m.SnakeId),
-  { ssr: false }
-);
-const MythBuster = dynamic(
-  () => import("@/components/interactive").then((m) => m.MythBuster),
-  { ssr: false }
-);
+const StatsStrip = dynamic(() => import('@/components/interactive').then((m) => m.StatsStrip), {
+  ssr: false,
+});
+const RiskPanel = dynamic(() => import('@/components/interactive').then((m) => m.RiskPanel), {
+  ssr: false,
+});
+const SnakeId = dynamic(() => import('@/components/interactive').then((m) => m.SnakeId), {
+  ssr: false,
+});
+const MythBuster = dynamic(() => import('@/components/interactive').then((m) => m.MythBuster), {
+  ssr: false,
+});
 
 function Fallback({ label }: { label: string }) {
   return (

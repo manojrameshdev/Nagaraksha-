@@ -1,3 +1,4 @@
+/* global require, __dirname, Buffer, console, process */
 /* eslint-disable @typescript-eslint/no-require-imports */
 // Generate NagRaksha PWA icons (192, 512, maskable 512, apple-touch) from SVG.
 const sharp = require("sharp");
@@ -61,5 +62,10 @@ function iconSvg() {
   await sharp(svgBuf).resize(180, 180).png().toFile(path.join(OUT, "apple-touch-icon.png"));
   await sharp(svgBuf).resize(32, 32).png().toFile(path.join(OUT, "favicon-32.png"));
   fs.copyFileSync(path.join(OUT, "favicon-32.png"), path.join(__dirname, "..", "public", "favicon.ico"));
+  // eslint-disable-next-line no-console
   console.log("icons generated:", fs.readdirSync(OUT));
-})().catch((e) => { console.error(e); process.exit(1); });
+})().catch((e) => {
+  // eslint-disable-next-line no-console
+  console.error(e);
+  process.exit(1);
+});

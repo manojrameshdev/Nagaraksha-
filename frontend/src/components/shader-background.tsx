@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef } from 'react';
 
 /**
  * ShaderBackground — full-viewport WebGL fragment shader.
@@ -106,8 +106,8 @@ export function ShaderBackground() {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const gl =
-      (canvas.getContext("webgl") as WebGLRenderingContext | null) ||
-      (canvas.getContext("experimental-webgl") as WebGLRenderingContext | null);
+      (canvas.getContext('webgl') as WebGLRenderingContext | null) ||
+      (canvas.getContext('experimental-webgl') as WebGLRenderingContext | null);
     if (!gl) return;
 
     const compile = (type: number, src: string) => {
@@ -124,19 +124,15 @@ export function ShaderBackground() {
 
     const buf = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-    gl.bufferData(
-      gl.ARRAY_BUFFER,
-      new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]),
-      gl.STATIC_DRAW
-    );
-    const loc = gl.getAttribLocation(prog, "a_pos");
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+    const loc = gl.getAttribLocation(prog, 'a_pos');
     gl.enableVertexAttribArray(loc);
     gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
 
-    const uRes = gl.getUniformLocation(prog, "u_res");
-    const uTime = gl.getUniformLocation(prog, "u_time");
-    const uScroll = gl.getUniformLocation(prog, "u_scroll");
-    const uVel = gl.getUniformLocation(prog, "u_vel");
+    const uRes = gl.getUniformLocation(prog, 'u_res');
+    const uTime = gl.getUniformLocation(prog, 'u_time');
+    const uScroll = gl.getUniformLocation(prog, 'u_scroll');
+    const uVel = gl.getUniformLocation(prog, 'u_vel');
 
     const resize = () => {
       const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
@@ -155,8 +151,8 @@ export function ShaderBackground() {
       vel.current = v;
     };
     onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", resize);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', resize);
 
     let raf = 0;
     const start = performance.now();
@@ -174,8 +170,8 @@ export function ShaderBackground() {
 
     return () => {
       cancelAnimationFrame(raf);
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", resize);
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', resize);
     };
   }, []);
 
@@ -184,7 +180,7 @@ export function ShaderBackground() {
       ref={canvasRef}
       aria-hidden
       className="pointer-events-none fixed inset-0 -z-10 h-full w-full"
-      style={{ width: "100vw", height: "100vh" }}
+      style={{ width: '100vw', height: '100vh' }}
     />
   );
 }

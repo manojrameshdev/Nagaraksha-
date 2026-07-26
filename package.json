@@ -6,9 +6,29 @@
     "dev:frontend": "cd frontend && next dev -p 3000 --webpack 2>&1 | tee ../dev.log",
     "dev:backend": "cd backend && python3 -m uvicorn app.main:app --host 127.0.0.1 --port 8000 2>&1 | tee ../backend.log",
     "dev": "bash scripts/dev.sh",
+    "format:write": "prettier --write \"**/*.{ts,tsx,js,jsx,json,css,md,mjs}\" --ignore-path .prettierignore",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,css,md,mjs}\" --ignore-path .prettierignore",
     "lint": "cd frontend && eslint .",
     "db:push": "cd frontend && prisma db push --accept-data-loss",
     "db:generate": "cd frontend && prisma generate",
-    "backend:seed": "cd backend && PYTHONPATH=. python3 -c 'from app.seed import run; run()'"
+    "backend:seed": "cd backend && PYTHONPATH=. python3 -c 'from app.seed import run; run()'",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx,mjs}": [
+      "prettier --write",
+      "eslint --fix --max-warnings 0 --config frontend/eslint.config.mjs"
+    ],
+    "*.{json,css,md}": [
+      "prettier --write"
+    ]
+  },
+  "devDependencies": {
+    "eslint-config-next": "^16.2.12",
+    "eslint-plugin-security": "^4.0.1",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
+    "prettier": "^3.9.6",
+    "typescript-eslint": "^8.65.0"
   }
 }

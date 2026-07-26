@@ -1,5 +1,5 @@
-@import "tailwindcss";
-@import "tw-animate-css";
+@import 'tailwindcss';
+@import 'tw-animate-css';
 
 @custom-variant dark (&:is(.dark *));
 
@@ -42,15 +42,15 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --color-forest: #184D36;
-  --color-forest-deep: #102A20;
-  --color-gold: #D69E2E;
-  --color-gold-bright: #E0B443;
-  --color-red: #B42318;
-  --color-red-bright: #E5484D;
-  --color-mist: #EAF3ED;
-  --color-paper: #F7F9F8;
-  --color-slate: #52605A;
+  --color-forest: #184d36;
+  --color-forest-deep: #102a20;
+  --color-gold: #d69e2e;
+  --color-gold-bright: #e0b443;
+  --color-red: #b42318;
+  --color-red-bright: #e5484d;
+  --color-mist: #eaf3ed;
+  --color-paper: #f7f9f8;
+  --color-slate: #52605a;
 }
 
 /* NagRaksha dark palette — forced dark, brand-adapted */
@@ -58,58 +58,58 @@
   --radius: 0.875rem;
 
   /* Surfaces */
-  --background: #0A1812;
-  --foreground: #EAF3ED;
-  --card: #102A20;
-  --card-foreground: #EAF3ED;
-  --popover: #0C2017;
-  --popover-foreground: #EAF3ED;
+  --background: #0a1812;
+  --foreground: #eaf3ed;
+  --card: #102a20;
+  --card-foreground: #eaf3ed;
+  --popover: #0c2017;
+  --popover-foreground: #eaf3ed;
 
   /* Forest primary (brightened for dark contrast) */
-  --primary: #2BB673;
-  --primary-foreground: #06120C;
+  --primary: #2bb673;
+  --primary-foreground: #06120c;
 
-  --secondary: #122E22;
-  --secondary-foreground: #EAF3ED;
-  --muted: #122E22;
-  --muted-foreground: #8FA39B;
+  --secondary: #122e22;
+  --secondary-foreground: #eaf3ed;
+  --muted: #122e22;
+  --muted-foreground: #8fa39b;
 
   /* Antivenom gold accent */
-  --accent: #D69E2E;
-  --accent-foreground: #0A1812;
+  --accent: #d69e2e;
+  --accent-foreground: #0a1812;
 
   /* Emergency red */
-  --destructive: #E5484D;
-  --destructive-foreground: #EAF3ED;
+  --destructive: #e5484d;
+  --destructive-foreground: #eaf3ed;
 
-  --border: rgba(234, 243, 237, 0.10);
+  --border: rgba(234, 243, 237, 0.1);
   --input: rgba(234, 243, 237, 0.12);
-  --ring: #2BB673;
+  --ring: #2bb673;
 
-  --chart-1: #2BB673;
-  --chart-2: #D69E2E;
-  --chart-3: #E5484D;
-  --chart-4: #4FBF9A;
-  --chart-5: #8FA39B;
+  --chart-1: #2bb673;
+  --chart-2: #d69e2e;
+  --chart-3: #e5484d;
+  --chart-4: #4fbf9a;
+  --chart-5: #8fa39b;
 
-  --sidebar: #0C2017;
-  --sidebar-foreground: #EAF3ED;
-  --sidebar-primary: #2BB673;
-  --sidebar-primary-foreground: #06120C;
-  --sidebar-accent: #122E22;
-  --sidebar-accent-foreground: #EAF3ED;
-  --sidebar-border: rgba(234, 243, 237, 0.10);
-  --sidebar-ring: #2BB673;
+  --sidebar: #0c2017;
+  --sidebar-foreground: #eaf3ed;
+  --sidebar-primary: #2bb673;
+  --sidebar-primary-foreground: #06120c;
+  --sidebar-accent: #122e22;
+  --sidebar-accent-foreground: #eaf3ed;
+  --sidebar-border: rgba(234, 243, 237, 0.1);
+  --sidebar-ring: #2bb673;
 
   /* Brand tokens exposed as CSS vars */
-  --forest: #184D36;
-  --forest-deep: #102A20;
-  --gold: #D69E2E;
-  --gold-bright: #E0B443;
-  --red: #B42318;
-  --red-bright: #E5484D;
-  --mist: #EAF3ED;
-  --slate: #52605A;
+  --forest: #184d36;
+  --forest-deep: #102a20;
+  --gold: #d69e2e;
+  --gold-bright: #e0b443;
+  --red: #b42318;
+  --red-bright: #e5484d;
+  --mist: #eaf3ed;
+  --slate: #52605a;
 
   color-scheme: dark;
 }
@@ -130,14 +130,14 @@
   }
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: "ss01", "cv01", "tnum";
+    font-feature-settings: 'ss01', 'cv01', 'tnum';
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
   /* Tabular numerals for ETA / numbers */
   .tnum {
     font-variant-numeric: tabular-nums;
-    font-feature-settings: "tnum";
+    font-feature-settings: 'tnum';
   }
 }
 
@@ -148,7 +148,7 @@
   background: linear-gradient(180deg, rgba(234, 243, 237, 0.06), rgba(234, 243, 237, 0.02));
   backdrop-filter: blur(16px) saturate(140%);
   -webkit-backdrop-filter: blur(16px) saturate(140%);
-  border: 1px solid rgba(234, 243, 237, 0.10);
+  border: 1px solid rgba(234, 243, 237, 0.1);
 }
 
 .glass-strong {
@@ -160,7 +160,7 @@
 
 /* Gold gradient text */
 .text-gold-gradient {
-  background: linear-gradient(120deg, #E0B443 0%, #D69E2E 40%, #B98326 100%);
+  background: linear-gradient(120deg, #e0b443 0%, #d69e2e 40%, #b98326 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -168,7 +168,7 @@
 }
 
 .text-forest-gradient {
-  background: linear-gradient(120deg, #4FBF9A 0%, #2BB673 50%, #1F8F5C 100%);
+  background: linear-gradient(120deg, #4fbf9a 0%, #2bb673 50%, #1f8f5c 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -177,24 +177,44 @@
 
 /* SOS pulse ring */
 @keyframes sos-pulse {
-  0% { box-shadow: 0 0 0 0 rgba(229, 72, 77, 0.55), 0 0 0 0 rgba(229, 72, 77, 0.35); }
-  70% { box-shadow: 0 0 0 22px rgba(229, 72, 77, 0), 0 0 0 44px rgba(229, 72, 77, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(229, 72, 77, 0), 0 0 0 0 rgba(229, 72, 77, 0); }
+  0% {
+    box-shadow:
+      0 0 0 0 rgba(229, 72, 77, 0.55),
+      0 0 0 0 rgba(229, 72, 77, 0.35);
+  }
+  70% {
+    box-shadow:
+      0 0 0 22px rgba(229, 72, 77, 0),
+      0 0 0 44px rgba(229, 72, 77, 0);
+  }
+  100% {
+    box-shadow:
+      0 0 0 0 rgba(229, 72, 77, 0),
+      0 0 0 0 rgba(229, 72, 77, 0);
+  }
 }
 .sos-pulse {
   animation: sos-pulse 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 /* Glow utility */
-.glow-gold { box-shadow: 0 0 40px -8px rgba(214, 158, 46, 0.45); }
-.glow-forest { box-shadow: 0 0 40px -8px rgba(43, 182, 115, 0.45); }
-.glow-red { box-shadow: 0 0 50px -6px rgba(229, 72, 77, 0.55); }
+.glow-gold {
+  box-shadow: 0 0 40px -8px rgba(214, 158, 46, 0.45);
+}
+.glow-forest {
+  box-shadow: 0 0 40px -8px rgba(43, 182, 115, 0.45);
+}
+.glow-red {
+  box-shadow: 0 0 50px -6px rgba(229, 72, 77, 0.55);
+}
 
 /* Section reveal */
 .reveal {
   opacity: 0;
   transform: translateY(28px);
-  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
   will-change: opacity, transform;
 }
 .reveal.in-view {
@@ -207,8 +227,13 @@
   scrollbar-width: thin;
   scrollbar-color: rgba(43, 182, 115, 0.4) transparent;
 }
-*::-webkit-scrollbar { width: 9px; height: 9px; }
-*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
 *::-webkit-scrollbar-thumb {
   background: linear-gradient(180deg, rgba(43, 182, 115, 0.5), rgba(214, 158, 46, 0.4));
   border-radius: 999px;
@@ -227,12 +252,23 @@
 
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  .sos-pulse { animation: none !important; }
-  .reveal { transition: none; opacity: 1; transform: none; }
-  html { scroll-behavior: auto; }
+  .sos-pulse {
+    animation: none !important;
+  }
+  .reveal {
+    transition: none;
+    opacity: 1;
+    transform: none;
+  }
+  html {
+    scroll-behavior: auto;
+  }
 }
 
 /* Standalone PWA: hide scrollbars subtly but keep functional */
 @media all and (display-mode: standalone) {
-  body { user-select: none; -webkit-user-select: none; }
+  body {
+    user-select: none;
+    -webkit-user-select: none;
+  }
 }

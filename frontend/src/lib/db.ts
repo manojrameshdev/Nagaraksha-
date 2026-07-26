@@ -1,8 +1,8 @@
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient } from '@prisma/client';
 
 const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined
-}
+  prisma: PrismaClient | undefined;
+};
 
 export const db =
   globalForPrisma.prisma ??
@@ -10,6 +10,6 @@ export const db =
     // Keep logging quiet — the outbox worker polls every 600ms and would
     // otherwise flood dev.log with thousands of prisma:query lines.
     log: ['error', 'warn'],
-  })
+  });
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db;

@@ -1,6 +1,6 @@
-import { ShaderBackground } from "@/components/shader-background";
-import { SnakeProgress } from "@/components/snake-progress";
-import { TriLineDock, DockActiveLabel } from "@/components/tri-line-dock";
+import { ShaderBackground } from '@/components/shader-background';
+import { SnakeProgress } from '@/components/snake-progress';
+import { TriLineDock, DockActiveLabel } from '@/components/tri-line-dock';
 import {
   Hero,
   Problem,
@@ -12,7 +12,7 @@ import {
   Roadmap,
   SiteFooter,
   Section,
-} from "@/components/sections";
+} from '@/components/sections';
 import {
   LazyArchitecture,
   LazyLiveSosDemo,
@@ -22,8 +22,8 @@ import {
   LazyRiskPanel,
   LazySnakeId,
   LazyMythBuster,
-} from "@/components/lazy-sections";
-import { Reveal } from "@/components/reveal";
+} from '@/components/lazy-sections';
+import { Reveal } from '@/components/reveal';
 
 export default function Page() {
   return (

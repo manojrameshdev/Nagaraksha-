@@ -18,6 +18,7 @@ cd nagraksha
 ```
 
 **Backend:**
+
 ```bash
 cd backend
 pip install -r requirements.txt
@@ -25,6 +26,7 @@ cd ..
 ```
 
 **Frontend:**
+
 ```bash
 cd frontend
 npm install
@@ -43,15 +45,15 @@ Or just export variables directly — the backend auto-reads them.
 
 #### Required (for full LLM support)
 
-| Variable | Where to get it |
-|---|---|
-| `GROK_API_KEY` | [console.x.ai](https://console.x.ai) — Grok (xAI) API key |
+| Variable         | Where to get it                                                                              |
+| ---------------- | -------------------------------------------------------------------------------------------- |
+| `GROK_API_KEY`   | [console.x.ai](https://console.x.ai) — Grok (xAI) API key                                    |
 | `GEMINI_API_KEY` | [aistudio.google.com/apikey](https://aistudio.google.com/app/apikey) — Google Gemini API key |
 
 **Note:** You do **not** need API keys if you place a GGUF model file in `model/`. The backend will use the local model instead. See [Local LLM](#local-llm) below.
 
-| Variable | Purpose | Default |
-|---|---|---|
+| Variable       | Purpose              | Default                   |
+| -------------- | -------------------- | ------------------------- |
 | `NAGRAKSHA_DB` | SQLite database path | `backend/db/nagraksha.db` |
 
 ### 3. Run
@@ -61,10 +63,12 @@ python start.py
 ```
 
 This starts:
+
 - **Backend** → `http://127.0.0.1:8000` (FastAPI)
 - **Frontend** → `http://localhost:3000` (Next.js)
 
 **Stop:**
+
 ```bash
 python start.py --stop
 ```
@@ -79,11 +83,11 @@ Visit **http://localhost:3000** in your browser.
 
 The chatbot uses a **fallback chain** — it tries each provider in order:
 
-| Priority | Provider | Config |
-|---|---|---|
-| 1 | Local GGUF model | Place `.gguf` in `model/` |
-| 2 | Grok (xAI) | Set `GROK_API_KEY` in `.env` |
-| 3 | Gemini (Google) | Set `GEMINI_API_KEY` in `.env` |
+| Priority | Provider         | Config                         |
+| -------- | ---------------- | ------------------------------ |
+| 1        | Local GGUF model | Place `.gguf` in `model/`      |
+| 2        | Grok (xAI)       | Set `GROK_API_KEY` in `.env`   |
+| 3        | Gemini (Google)  | Set `GEMINI_API_KEY` in `.env` |
 
 If none are available, the bot falls back to retrieval-only mode (returns the top matching knowledge chunk verbatim).
 
@@ -94,6 +98,7 @@ If none are available, the bot falls back to retrieval-only mode (returns the to
 3. Restart the backend — it auto-detects the model
 
 Recommended models (tested):
+
 - `llama-3.2-1b-instruct-q4_k_m.gguf` — small, fast, decent quality
 - `gemma-2-2b-it-Q4_K_M.gguf` — good for medical Q&A
 - `qwen2.5-1.5b-instruct-q4_k_m.gguf` — strong instruct following
@@ -113,18 +118,18 @@ model/       Place GGUF models here (gitignored)
 
 ## API Endpoints
 
-| Endpoint | Method | Purpose |
-|---|---|---|
-| `/api/health` | GET | Health check |
-| `/api/myth-buster` | POST | RAG chatbot query |
-| `/api/sos` | POST | Trigger SOS dispatch |
-| `/api/incidents` | GET/POST | Snakebite incidents CRUD |
-| `/api/hospitals` | GET/POST | Hospital registry |
-| `/api/risk` | GET/POST | Area risk reports |
-| `/api/snake-id` | POST | Snake identification |
-| `/api/stats` | GET | Dashboard statistics |
-| `/api/architecture` | GET | System manifest |
-| `/api/ops` | GET | Operational endpoints |
+| Endpoint            | Method   | Purpose                  |
+| ------------------- | -------- | ------------------------ |
+| `/api/health`       | GET      | Health check             |
+| `/api/myth-buster`  | POST     | RAG chatbot query        |
+| `/api/sos`          | POST     | Trigger SOS dispatch     |
+| `/api/incidents`    | GET/POST | Snakebite incidents CRUD |
+| `/api/hospitals`    | GET/POST | Hospital registry        |
+| `/api/risk`         | GET/POST | Area risk reports        |
+| `/api/snake-id`     | POST     | Snake identification     |
+| `/api/stats`        | GET      | Dashboard statistics     |
+| `/api/architecture` | GET      | System manifest          |
+| `/api/ops`          | GET      | Operational endpoints    |
 
 ## Project Status
 

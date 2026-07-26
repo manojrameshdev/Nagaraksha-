@@ -4,10 +4,10 @@
  * All API calls use relative paths + the XTransformPort query (never an
  * absolute http://localhost:8000 URL, per the gateway rules).
  */
-export const API_PORT = "8000";
+export const API_PORT = '8000';
 
 /** Append ?XTransformPort=8000 to a relative API path. */
 export function apiUrl(path: string): string {
-  const sep = path.includes("?") ? "&" : "?";
+  const sep = path.includes('?') ? '&' : '?';
   return `${path}${sep}XTransformPort=${API_PORT}`;
 }

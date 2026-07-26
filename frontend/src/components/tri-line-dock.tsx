@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useState } from "react";
+import { useState } from 'react';
 import {
-  ShieldAlert,
+  ShieldAlert as _ShieldAlert,
   AlertOctagon,
   Split,
   Workflow,
@@ -13,26 +13,26 @@ import {
   Map,
   Home,
   Network,
-} from "lucide-react";
-import { useActiveSection } from "@/hooks/use-scroll";
-import { cn } from "@/lib/utils";
+} from 'lucide-react';
+import { useActiveSection } from '@/hooks/use-scroll';
+import { cn } from '@/lib/utils';
 
 export const DOCK_SECTIONS = [
-  { id: "hero", label: "Home", icon: Home },
-  { id: "problem", label: "Problem", icon: AlertOctagon },
-  { id: "parallel", label: "Parallel", icon: Split },
-  { id: "flow", label: "Flow", icon: Workflow },
-  { id: "roles", label: "Roles", icon: Users },
-  { id: "prevention", label: "Prevention", icon: BrainCircuit },
-  { id: "routing", label: "Routing", icon: Route },
-  { id: "architecture", label: "Architecture", icon: Network },
-  { id: "demo", label: "Live SOS", icon: PlayCircle },
-  { id: "roadmap", label: "Roadmap", icon: Map },
+  { id: 'hero', label: 'Home', icon: Home },
+  { id: 'problem', label: 'Problem', icon: AlertOctagon },
+  { id: 'parallel', label: 'Parallel', icon: Split },
+  { id: 'flow', label: 'Flow', icon: Workflow },
+  { id: 'roles', label: 'Roles', icon: Users },
+  { id: 'prevention', label: 'Prevention', icon: BrainCircuit },
+  { id: 'routing', label: 'Routing', icon: Route },
+  { id: 'architecture', label: 'Architecture', icon: Network },
+  { id: 'demo', label: 'Live SOS', icon: PlayCircle },
+  { id: 'roadmap', label: 'Roadmap', icon: Map },
 ] as const;
 
 function scrollTo(id: string) {
   const el = document.getElementById(id);
-  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 /** The three stacked lines = the 3 parallel responder lanes. */
@@ -44,20 +44,20 @@ function TriLines({ active }: { active: boolean }) {
     >
       <span
         className={cn(
-          "h-[2px] rounded-full bg-gold transition-all duration-300",
-          active ? "w-[18px] opacity-100" : "w-0 opacity-0"
+          'h-[2px] rounded-full bg-gold transition-all duration-300',
+          active ? 'w-[18px] opacity-100' : 'w-0 opacity-0',
         )}
       />
       <span
         className={cn(
-          "h-[2px] rounded-full bg-[var(--forest)] transition-all duration-300",
-          active ? "w-[14px] opacity-100 delay-75" : "w-0 opacity-0"
+          'h-[2px] rounded-full bg-[var(--forest)] transition-all duration-300',
+          active ? 'w-[14px] opacity-100 delay-75' : 'w-0 opacity-0',
         )}
       />
       <span
         className={cn(
-          "h-[2px] rounded-full bg-[var(--red-bright)] transition-all duration-300",
-          active ? "w-[10px] opacity-100 delay-150" : "w-0 opacity-0"
+          'h-[2px] rounded-full bg-[var(--red-bright)] transition-all duration-300',
+          active ? 'w-[10px] opacity-100 delay-150' : 'w-0 opacity-0',
         )}
       />
     </span>
@@ -76,7 +76,7 @@ export function TriLineDock() {
     >
       <div
         className="glass-strong flex max-w-[min(96vw,640px)] items-center gap-0.5 overflow-x-auto rounded-2xl p-1.5 shadow-2xl"
-        style={{ scrollbarWidth: "none" }}
+        style={{ scrollbarWidth: 'none' }}
       >
         {DOCK_SECTIONS.map((s) => {
           const Icon = s.icon;
@@ -89,20 +89,20 @@ export function TriLineDock() {
               onMouseEnter={() => setHovered(s.id)}
               onMouseLeave={() => setHovered(null)}
               aria-label={s.label}
-              aria-current={isActive ? "page" : undefined}
+              aria-current={isActive ? 'page' : undefined}
               className={cn(
-                "group relative flex min-w-[46px] flex-shrink-0 flex-col items-center justify-center gap-1 rounded-xl px-2.5 py-2 transition-all",
+                'group relative flex min-w-[46px] flex-shrink-0 flex-col items-center justify-center gap-1 rounded-xl px-2.5 py-2 transition-all',
                 isActive
-                  ? "bg-[rgba(43,182,115,0.14)] text-mist"
-                  : "text-muted-foreground hover:bg-[rgba(234,243,237,0.06)] hover:text-mist"
+                  ? 'bg-[rgba(43,182,115,0.14)] text-mist'
+                  : 'text-muted-foreground hover:bg-[rgba(234,243,237,0.06)] hover:text-mist',
               )}
             >
               <TriLines active={isActive || hovered === s.id} />
               <Icon className="h-[18px] w-[18px]" strokeWidth={2} />
               <span
                 className={cn(
-                  "hidden text-[10px] font-medium tracking-wide sm:block",
-                  isActive ? "text-gold" : "text-current"
+                  'hidden text-[10px] font-medium tracking-wide sm:block',
+                  isActive ? 'text-gold' : 'text-current',
                 )}
               >
                 {s.label}

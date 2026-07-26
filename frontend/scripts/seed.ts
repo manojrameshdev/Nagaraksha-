@@ -1,8 +1,8 @@
 // Seed NagRaksha demo data: hospitals + antivenom stock + risk reports +
 // the curated, medically-reviewed RAG knowledge base.
 // Run with: bun run scripts/seed.ts
-import { PrismaClient } from "@prisma/client";
-import { KNOWLEDGE_BASE } from "../src/lib/knowledge-base";
+import { PrismaClient } from '@prisma/client';
+import { KNOWLEDGE_BASE } from '../src/lib/knowledge-base';
 
 const db = new PrismaClient();
 
@@ -14,57 +14,58 @@ function minsAgo(m: number) {
 }
 
 async function main() {
-  console.log("Seeding NagRaksha demo data...");
+  // eslint-disable-next-line no-console
+  console.log('Seeding NagRaksha demo data...');
 
   // Hospitals — Bengaluru region demo coordinates
   const hospitals = [
     {
-      name: "District Hospital A — Bannerghatta",
+      name: 'District Hospital A — Bannerghatta',
       lat: 12.8003,
       lng: 77.5954,
-      address: "Bannerghatta Main Rd, Bengaluru 560076",
-      contact: "+91 80 2655 0100",
-      product: "Polyvalent ASV",
-      status: "CONFIRMED",
-      quantityBand: "40-80 vials",
+      address: 'Bannerghatta Main Rd, Bengaluru 560076',
+      contact: '+91 80 2655 0100',
+      product: 'Polyvalent ASV',
+      status: 'CONFIRMED',
+      quantityBand: '40-80 vials',
       verifiedAt: minsAgo(8),
-      verifiedBy: "Pharmacy · Dr. Rao",
+      verifiedBy: 'Pharmacy · Dr. Rao',
     },
     {
-      name: "Hospital B — Jayanagar General",
-      lat: 12.9250,
+      name: 'Hospital B — Jayanagar General',
+      lat: 12.925,
       lng: 77.5938,
-      address: "Jayanagar 4th Block, Bengaluru 560011",
-      contact: "+91 80 2655 0200",
-      product: "Polyvalent ASV",
-      status: "UNKNOWN",
-      quantityBand: "unknown",
+      address: 'Jayanagar 4th Block, Bengaluru 560011',
+      contact: '+91 80 2655 0200',
+      product: 'Polyvalent ASV',
+      status: 'UNKNOWN',
+      quantityBand: 'unknown',
       verifiedAt: hoursAgo(26),
       verifiedBy: null,
     },
     {
-      name: "Hospital C — Rural Tumkur",
+      name: 'Hospital C — Rural Tumkur',
       lat: 13.3409,
-      lng: 77.1000,
-      address: "Tumkur Main, Tumakuru 572101",
-      contact: "+91 816 220 1100",
-      product: "Polyvalent ASV",
-      status: "LOW",
-      quantityBand: "5-10 vials",
+      lng: 77.1,
+      address: 'Tumkur Main, Tumakuru 572101',
+      contact: '+91 816 220 1100',
+      product: 'Polyvalent ASV',
+      status: 'LOW',
+      quantityBand: '5-10 vials',
       verifiedAt: minsAgo(42),
-      verifiedBy: "Pharmacy",
+      verifiedBy: 'Pharmacy',
     },
     {
-      name: "Hospital D — Kengeri Satellite",
+      name: 'Hospital D — Kengeri Satellite',
       lat: 12.9172,
       lng: 77.4865,
-      address: "Kengeri Satellite Town, Bengaluru 560060",
-      contact: "+91 80 2655 0300",
-      product: "Polyvalent ASV",
-      status: "OUT",
-      quantityBand: "0 vials",
+      address: 'Kengeri Satellite Town, Bengaluru 560060',
+      contact: '+91 80 2655 0300',
+      product: 'Polyvalent ASV',
+      status: 'OUT',
+      quantityBand: '0 vials',
       verifiedAt: hoursAgo(3),
-      verifiedBy: "Pharmacy",
+      verifiedBy: 'Pharmacy',
     },
   ];
 
@@ -88,45 +89,47 @@ async function main() {
         },
       },
     });
-    console.log("  hospital:", hosp.name);
+    // eslint-disable-next-line no-console
+    console.log('  hospital:', hosp.name);
   }
 
   // Risk reports
   const risks = [
     {
-      area: "Bannerghatta Forest Edge",
+      area: 'Bannerghatta Forest Edge',
       lat: 12.8003,
       lng: 77.5954,
-      level: "HIGH",
+      level: 'HIGH',
       score: 78,
-      weather: "Monsoon · 28°C · 86% humidity · post-rain",
-      season: "Monsoon",
+      weather: 'Monsoon · 28°C · 86% humidity · post-rain',
+      season: 'Monsoon',
       likelySnakes: "Russell's viper, Saw-scaled viper, Indian cobra, Common krait",
     },
     {
-      area: "Bengaluru Urban Core",
+      area: 'Bengaluru Urban Core',
       lat: 12.9719,
       lng: 77.5937,
-      level: "MODERATE",
+      level: 'MODERATE',
       score: 46,
-      weather: "Pre-monsoon · 31°C · 64% humidity",
-      season: "Pre-monsoon",
-      likelySnakes: "Indian cobra, Rat snake, Wolf snake",
+      weather: 'Pre-monsoon · 31°C · 64% humidity',
+      season: 'Pre-monsoon',
+      likelySnakes: 'Indian cobra, Rat snake, Wolf snake',
     },
     {
-      area: "Tumakuru Rural Belt",
+      area: 'Tumakuru Rural Belt',
       lat: 13.3409,
-      lng: 77.1000,
-      level: "SEVERE",
+      lng: 77.1,
+      level: 'SEVERE',
       score: 88,
-      weather: "Monsoon · 26°C · 92% humidity · heavy rain last 24h",
-      season: "Monsoon",
+      weather: 'Monsoon · 26°C · 92% humidity · heavy rain last 24h',
+      season: 'Monsoon',
       likelySnakes: "Russell's viper, Saw-scaled viper, Common krait, Hump-nosed pit viper",
     },
   ];
   for (const r of risks) {
     await db.riskReport.create({ data: r });
   }
+  // eslint-disable-next-line no-console
   console.log(`Seeded ${hospitals.length} hospitals + ${risks.length} risk reports.`);
 
   // ---- RAG knowledge base (idempotent upsert by docId) ----
@@ -139,7 +142,7 @@ async function main() {
       category: chunk.category,
       content: chunk.content,
       tags: chunk.tags,
-      reviewedBy: "NagRaksha medical review",
+      reviewedBy: 'NagRaksha medical review',
     };
     if (existing) {
       await db.knowledgeChunk.update({ where: { id: existing.id }, data });
@@ -148,12 +151,14 @@ async function main() {
     }
     kbCount++;
   }
+  // eslint-disable-next-line no-console
   console.log(`Seeded ${kbCount} knowledge-base chunks (RAG corpus).`);
 }
 
 main()
   .then(() => db.$disconnect())
   .catch(async (e) => {
+    // eslint-disable-next-line no-console
     console.error(e);
     await db.$disconnect();
     process.exit(1);

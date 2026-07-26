@@ -1,0 +1,16 @@
+exclude_dirs:
+  - .git
+  - node_modules
+  - .next
+  - .planning
+  - docs
+  - model
+  - frontend
+
+skips:
+  - B101
+  - B110
+  - B311
+
+severity: medium
+confidence: medium

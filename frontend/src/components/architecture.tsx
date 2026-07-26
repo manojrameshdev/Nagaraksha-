@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
-import { useInView } from "@/hooks/use-scroll";
-import { apiUrl } from "@/lib/api";
+import { useEffect, useState, type ComponentType, type ReactNode } from 'react';
+import { useInView } from '@/hooks/use-scroll';
+import { apiUrl } from '@/lib/api';
 import {
   ShieldAlert,
   Split,
@@ -18,13 +18,19 @@ import {
   Lock,
   Cpu,
   ChevronRight,
-} from "lucide-react";
-import { Reveal } from "@/components/reveal";
-import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+} from 'lucide-react';
+import { Reveal } from '@/components/reveal';
 
-const ICONS: Record<string, any> = {
-  ShieldAlert, Split, Users, Droplet, Route: RouteIcon, Stethoscope, Bell, BrainCircuit, TrendingUp,
+const ICONS: Record<string, ComponentType<{ className?: string }>> = {
+  ShieldAlert,
+  Split,
+  Users,
+  Droplet,
+  Route: RouteIcon,
+  Stethoscope,
+  Bell,
+  BrainCircuit,
+  TrendingUp,
 };
 
 type ArchData = {
@@ -50,14 +56,18 @@ export function Architecture() {
 
   useEffect(() => {
     if (!inView) return; // gate on scroll-into-view to avoid concurrent compiles
-    fetch(apiUrl("/api/architecture"))
+    fetch(apiUrl('/api/architecture'))
       .then((r) => r.json())
       .then(setData)
       .catch(() => {});
   }, [inView]);
 
   return (
-    <section ref={ref} id="architecture" className="mx-auto max-w-7xl scroll-mt-6 px-5 py-20 md:px-8 md:py-28">
+    <section
+      ref={ref}
+      id="architecture"
+      className="mx-auto max-w-7xl scroll-mt-6 px-5 py-20 md:px-8 md:py-28"
+    >
       <Reveal>
         <div className="mb-3 flex items-center gap-2">
           <span className="h-px w-8 bg-gradient-to-r from-[#2BB673] to-[#D69E2E]" />
@@ -73,10 +83,9 @@ export function Architecture() {
       </Reveal>
       <Reveal delay={120}>
         <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
-          One frontend + one API + a durable outbox + an in-process event bus.
-          Three independent dispatch jobs fan out from a single transactional
-          write — one branch can never block another. Live state reaches the
-          victim UI over SSE.
+          One frontend + one API + a durable outbox + an in-process event bus. Three independent
+          dispatch jobs fan out from a single transactional write — one branch can never block
+          another. Live state reaches the victim UI over SSE.
         </p>
       </Reveal>
 
@@ -88,7 +97,7 @@ export function Architecture() {
           </div>
           <p className="text-sm leading-relaxed text-[#bcd2c6]">
             {data?.logicalFlow ??
-              "PWA → API Gateway/Auth → Incident Service → transactional write → Dispatch Orchestrator → three independent jobs → SSE → victim UI."}
+              'PWA → API Gateway/Auth → Incident Service → transactional write → Dispatch Orchestrator → three independent jobs → SSE → victim UI.'}
           </p>
         </div>
       </Reveal>
@@ -106,7 +115,11 @@ export function Architecture() {
               <div className="grid grid-cols-1 items-stretch gap-2 md:grid-cols-[180px_1fr]">
                 <div
                   className="flex items-center gap-2 rounded-l-xl rounded-r-md px-4 py-3 text-sm font-semibold"
-                  style={{ background: `${l.tone}1a`, color: l.tone, borderLeft: `3px solid ${l.tone}` }}
+                  style={{
+                    background: `${l.tone}1a`,
+                    color: l.tone,
+                    borderLeft: `3px solid ${l.tone}`,
+                  }}
                 >
                   <span className="tnum text-[10px] opacity-60">L{i + 1}</span>
                   {l.name}
@@ -220,7 +233,7 @@ export function Architecture() {
                   <Database className="h-3.5 w-3.5 text-[#4FBF9A]" /> Knowledge base
                 </span>
                 <span className="tnum text-2xl font-semibold text-gold">
-                  {data?.rag?.corpusChunks ?? "—"}
+                  {data?.rag?.corpusChunks ?? '—'}
                 </span>
               </div>
               <p className="mt-1 text-[11px] text-muted-foreground">
@@ -228,9 +241,21 @@ export function Architecture() {
               </p>
 
               <div className="mt-4 space-y-2 text-xs">
-                <PipeRow icon={<ChevronRight className="h-3 w-3" />} label="Retrieval" value={data?.rag?.retrieval ?? "TF-IDF"} />
-                <PipeRow icon={<Cpu className="h-3 w-3" />} label="Generation" value="local GGUF via llama-cpp-python" />
-                <PipeRow icon={<ShieldAlert className="h-3 w-3" />} label="Guard" value="emergency redirect to SOS" />
+                <PipeRow
+                  icon={<ChevronRight className="h-3 w-3" />}
+                  label="Retrieval"
+                  value={data?.rag?.retrieval ?? 'TF-IDF'}
+                />
+                <PipeRow
+                  icon={<Cpu className="h-3 w-3" />}
+                  label="Generation"
+                  value="local GGUF via llama-cpp-python"
+                />
+                <PipeRow
+                  icon={<ShieldAlert className="h-3 w-3" />}
+                  label="Guard"
+                  value="emergency redirect to SOS"
+                />
               </div>
 
               <p className="mt-4 text-[11px] leading-relaxed text-muted-foreground">
@@ -258,7 +283,11 @@ export function Architecture() {
                   </span>
                 </div>
                 <div className="mt-2 grid grid-cols-3 gap-2 tnum text-center">
-                  <OutboxStat label="processed" value={data?.outbox?.PROCESSED ?? 0} tone="#4FBF9A" />
+                  <OutboxStat
+                    label="processed"
+                    value={data?.outbox?.PROCESSED ?? 0}
+                    tone="#4FBF9A"
+                  />
                   <OutboxStat label="pending" value={data?.outbox?.PENDING ?? 0} tone="#D69E2E" />
                   <OutboxStat label="failed" value={data?.outbox?.FAILED ?? 0} tone="#E5484D" />
                 </div>
@@ -271,7 +300,7 @@ export function Architecture() {
   );
 }
 
-function PipeRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+function PipeRow({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
   return (
     <div className="flex items-center gap-2">
       <span className="flex h-6 w-6 items-center justify-center rounded bg-[rgba(234,243,237,0.05)] text-gold">
@@ -286,14 +315,20 @@ function PipeRow({ icon, label, value }: { icon: React.ReactNode; label: string;
 function OutboxStat({ label, value, tone }: { label: string; value: number; tone: string }) {
   return (
     <div className="rounded-lg bg-[rgba(234,243,237,0.03)] py-1.5">
-      <div className="text-lg font-semibold" style={{ color: tone }}>{value}</div>
+      <div className="text-lg font-semibold" style={{ color: tone }}>
+        {value}
+      </div>
       <div className="text-[9px] uppercase tracking-wider text-muted-foreground">{label}</div>
     </div>
   );
 }
 
 const DEFAULT_LAYERS = [
-  { name: "Client", tone: "#2BB673", components: ["React/TypeScript PWA", "Service worker", "IndexedDB"] },
-  { name: "API", tone: "#4FBF9A", components: ["REST", "WebSocket/SSE", "Auth + RBAC"] },
-  { name: "Core domains", tone: "#D69E2E", components: ["Incident", "Dispatch", "Routing", "..."] },
+  {
+    name: 'Client',
+    tone: '#2BB673',
+    components: ['React/TypeScript PWA', 'Service worker', 'IndexedDB'],
+  },
+  { name: 'API', tone: '#4FBF9A', components: ['REST', 'WebSocket/SSE', 'Auth + RBAC'] },
+  { name: 'Core domains', tone: '#D69E2E', components: ['Incident', 'Dispatch', 'Routing', '...'] },
 ];
