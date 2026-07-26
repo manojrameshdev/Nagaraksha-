@@ -95,46 +95,46 @@ Requirements for milestone v1.0. Each maps to roadmap phases.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FORMAT-01 | — | Pending |
-| FORMAT-02 | — | Pending |
-| LINT-01 | — | Pending |
-| LINT-02 | — | Pending |
-| LINT-03 | — | Pending |
-| LINT-04 | — | Pending |
-| LINT-05 | — | Pending |
-| TYPES-01 | — | Pending |
-| TYPES-02 | — | Pending |
-| TYPES-03 | — | Pending |
-| TYPES-04 | — | Pending |
-| TEST-01 | — | Pending |
-| TEST-02 | — | Pending |
-| TEST-03 | — | Pending |
-| TEST-04 | — | Pending |
-| TEST-05 | — | Pending |
-| TEST-06 | — | Pending |
-| TEST-07 | — | Pending |
-| TEST-08 | — | Pending |
-| TEST-09 | — | Pending |
-| TEST-10 | — | Pending |
-| TEST-11 | — | Pending |
-| STATIC-01 | — | Pending |
-| STATIC-02 | — | Pending |
-| STATIC-03 | — | Pending |
-| CI-01 | — | Pending |
-| CI-02 | — | Pending |
-| CI-03 | — | Pending |
-| CI-04 | — | Pending |
-| CI-05 | — | Pending |
-| CI-06 | — | Pending |
-| CI-07 | — | Pending |
-| DX-01 | — | Pending |
-| DX-02 | — | Pending |
-| DX-03 | — | Pending |
+| FORMAT-01 | Phase 1 | Pending |
+| FORMAT-02 | Phase 1 | Pending |
+| LINT-01 | Phase 1 | Pending |
+| LINT-02 | Phase 4 | Pending |
+| LINT-03 | Phase 4 | Pending |
+| LINT-04 | Phase 4 | Pending |
+| LINT-05 | Phase 4 | Pending |
+| TYPES-01 | Phase 2 | Pending |
+| TYPES-02 | Phase 2 | Pending |
+| TYPES-03 | Phase 2 | Pending |
+| TYPES-04 | Phase 2 | Pending |
+| TEST-01 | Phase 3 | Pending |
+| TEST-02 | Phase 3 | Pending |
+| TEST-03 | Phase 3 | Pending |
+| TEST-04 | Phase 3 | Pending |
+| TEST-05 | Phase 3 | Pending |
+| TEST-06 | Phase 3 | Pending |
+| TEST-07 | Phase 3 | Pending |
+| TEST-08 | Phase 3 | Pending |
+| TEST-09 | Phase 3 | Pending |
+| TEST-10 | Phase 3 | Pending |
+| TEST-11 | Phase 3 | Pending |
+| STATIC-01 | Phase 1 | Pending |
+| STATIC-02 | Phase 1 | Pending |
+| STATIC-03 | Phase 5 | Pending |
+| CI-01 | Phase 5 | Pending |
+| CI-02 | Phase 5 | Pending |
+| CI-03 | Phase 5 | Pending |
+| CI-04 | Phase 5 | Pending |
+| CI-05 | Phase 5 | Pending |
+| CI-06 | Phase 5 | Pending |
+| CI-07 | Phase 5 | Pending |
+| DX-01 | Phase 6 | Pending |
+| DX-02 | Phase 5 | Pending |
+| DX-03 | Phase 5 | Pending |
 
 **Coverage:**
 - v1 requirements: 35 total
-- Mapped to phases: 0
-- Unmapped: 35 ⚠️
+- Mapped to phases: 35 ✓
+- Unmapped: 0 ✓
 
 ---
 
