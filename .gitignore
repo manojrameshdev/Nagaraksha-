@@ -51,6 +51,11 @@ test
 prompt
 
 server.log
+
+# Python
+__pycache__/
+*.pyc
+
 # Skills directory
 /skills/
 
