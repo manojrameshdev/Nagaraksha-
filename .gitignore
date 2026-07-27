@@ -61,3 +61,6 @@ __pycache__/
 
 # Local model files — place .gguf files here
 /model/*.gguf
+
+# SQLite runtime database — never commit live data
+backend/db/
