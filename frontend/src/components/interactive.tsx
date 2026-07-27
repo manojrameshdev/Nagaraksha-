@@ -179,7 +179,17 @@ function applyAccepted(
   return next;
 }
 
-export function LiveSosDemo() {
+export function LiveSosDemo({
+  lat = 12.8003,
+  lng = 77.5954,
+  address,
+  locationSource = 'default',
+}: {
+  lat?: number;
+  lng?: number;
+  address?: string;
+  locationSource?: 'gps' | 'default';
+}) {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<SosResponse | null>(null);
   const [phase, setPhase] = useState<
@@ -217,9 +227,9 @@ export function LiveSosDemo() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          lat: 12.8003,
-          lng: 77.5954,
-          address: 'Bannerghatta Forest Edge, Bengaluru',
+          lat,
+          lng,
+          address: address ?? `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
         }),
       });
       if (!res.ok) throw new Error('SOS failed');
@@ -266,7 +276,7 @@ export function LiveSosDemo() {
     } finally {
       setLoading(false);
     }
-  }, [closeStream]);
+  }, [closeStream, lat, lng, address]);
 
   const incident = data?.incident;
   const _attempts: DispatchAttempt[] = incident?.dispatchAttempts ?? [];
@@ -278,6 +288,11 @@ export function LiveSosDemo() {
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <ShieldAlert className="h-4 w-4 text-[#E5484D]" />
             Victim / Bystander view
+            {locationSource === 'gps' && (
+              <span className="ml-1 inline-flex items-center gap-1 rounded-full bg-[rgba(43,182,115,0.15)] px-2 py-0.5 text-[10px] font-medium text-[#7fd6ad]">
+                <Navigation className="h-2.5 w-2.5" /> GPS
+              </span>
+            )}
           </div>
           {incident && (
             <div className="mt-1 flex items-center gap-2">
@@ -506,8 +521,9 @@ type RiskData = {
   advisory?: string;
   weather?: string;
   likelySnakes?: string[];
+  area?: string;
 };
-export function RiskPanel() {
+export function RiskPanel({ lat = 12.8003, lng = 77.5954 }: { lat?: number; lng?: number }) {
   const [data, setData] = useState<RiskData | null>(null);
   const [loading, setLoading] = useState(true);
   const { ref, inView } = useInView<HTMLDivElement>();
@@ -515,7 +531,7 @@ export function RiskPanel() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(apiUrl('/api/risk?lat=12.8003&lng=77.5954'));
+      const res = await fetch(apiUrl(`/api/risk?lat=${lat}&lng=${lng}`));
       const json: RiskData = await res.json();
       setData(json);
     } catch {
@@ -523,16 +539,16 @@ export function RiskPanel() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [lat, lng]);
 
   useEffect(() => {
     if (!inView) return;
-    fetch(apiUrl('/api/risk?lat=12.8003&lng=77.5954'))
+    fetch(apiUrl(`/api/risk?lat=${lat}&lng=${lng}`))
       .then((r) => r.json())
       .then(setData)
       .catch(() => toast.error('Could not load risk advisory'))
       .finally(() => setLoading(false));
-  }, [inView]);
+  }, [inView, lat, lng]);
 
   const level = data?.level ?? 'UNKNOWN';
   const score = data?.score ?? 0;

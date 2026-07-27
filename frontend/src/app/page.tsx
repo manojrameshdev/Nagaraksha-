@@ -13,10 +13,12 @@ import {
   OutboxPanel,
   HospitalStockConsole,
   SymptomLogger,
+  RiskPanel,
 } from '@/components/interactive';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { MapPin, AlertTriangle, CheckCircle2, Navigation, Loader2 } from 'lucide-react';
+import { useGeolocation } from '@/hooks/use-geolocation';
 
 export default function Page() {
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -27,6 +29,9 @@ export default function Page() {
   const toggleDrawer = useCallback(() => setDrawerOpen((prev) => !prev), []);
   const closeDrawer = useCallback(() => setDrawerOpen(false), []);
   const selectRole = useCallback((r: string) => setActiveRole(r as typeof activeRole), []);
+
+  // Real GPS location with fallback to Bannerghatta defaults
+  const { location, loading: geoLoading, error: geoError } = useGeolocation();
 
   return (
     <div className="relative flex min-h-screen flex-col bg-[#051710] font-[Lexend] text-[#d2e7dc] selection:bg-[#2BB673] selection:text-[#051710]">
@@ -67,41 +72,40 @@ export default function Page() {
         {/* -------------------- VIEW 1: VICTIM SOS HOME -------------------- */}
         {activeRole === 'sos' && (
           <div className="space-y-6">
-            {/* Status Row: Area & Monsoon Risk */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-[#1c2e26] rounded-2xl p-5 outline-luminous flex items-start gap-4">
-                <div className="p-3 bg-[#11231c] rounded-xl text-[#b1cdbe]">
-                  <span className="material-symbols-outlined text-2xl">my_location</span>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-widest text-[#8c928e] font-semibold mb-1">
-                    Current Area
-                  </p>
-                  <h2 className="text-xl font-bold text-mist">
-                    Western Ghats Sector 4 · Bengaluru Rural
-                  </h2>
-                  <p className="text-xs text-[#8fa39b] mt-1">High-density agricultural zone</p>
-                </div>
-              </div>
-
-              <div className="bg-[#1c2e26] rounded-2xl p-5 outline-luminous flex items-start gap-4 border-l-4 border-[#ffb4ab]">
-                <div className="p-3 bg-[#93000a] text-[#ffdad6] rounded-xl">
-                  <span className="material-symbols-outlined text-2xl">warning</span>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-widest text-[#8c928e] font-semibold mb-1">
-                    Risk Level
-                  </p>
-                  <h2 className="text-xl font-bold text-[#ffb4ab]">High / Monsoon Advisory</h2>
-                  <p className="text-xs text-[#c2c8c3] mt-1">
-                    Increased Russell&apos;s Viper & Cobra activity reported in wet underbrush.
-                  </p>
-                </div>
-              </div>
+            {/* GPS Location Status Banner */}
+            <div className="flex items-center gap-2 rounded-xl bg-[#0d1f18] border border-[rgba(234,243,237,0.08)] px-4 py-2.5 text-xs">
+              {geoLoading ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-[#2BB673]" />
+                  <span className="text-[#8fa39b]">Acquiring GPS position…</span>
+                </>
+              ) : location.source === 'gps' ? (
+                <>
+                  <Navigation className="h-3.5 w-3.5 text-[#2BB673]" />
+                  <span className="text-[#7fd6ad] font-medium">GPS active</span>
+                  <span className="text-[#8fa39b]">— {location.label}</span>
+                </>
+              ) : (
+                <>
+                  <MapPin className="h-3.5 w-3.5 text-[#D69E2E]" />
+                  <span className="text-[#D69E2E] font-medium">Default location</span>
+                  <span className="text-[#8fa39b]">
+                    — {geoError ? 'Location denied' : 'Bengaluru area'} · Using demo coordinates
+                  </span>
+                </>
+              )}
             </div>
 
+            {/* Live Risk Panel — real data from /api/risk */}
+            <RiskPanel lat={location.lat} lng={location.lng} />
+
             {/* Central SOS Trigger & Dispatch Stream */}
-            <LiveSosDemo />
+            <LiveSosDemo
+              lat={location.lat}
+              lng={location.lng}
+              address={location.label}
+              locationSource={location.source}
+            />
 
             {/* Secondary Bento Grid Actions */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -120,7 +124,7 @@ export default function Page() {
                 <div>
                   <h3 className="text-lg font-bold text-mist">Identify Snake Species</h3>
                   <p className="text-xs text-[#8fa39b] mt-1">
-                    AI photo camera classification & venom disclaimers
+                    Grok Vision AI classification &amp; venom disclaimers
                   </p>
                 </div>
               </button>
@@ -138,7 +142,7 @@ export default function Page() {
                   </span>
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-mist">First Aid & AI Myth Buster</h3>
+                  <h3 className="text-lg font-bold text-mist">First Aid &amp; AI Myth Buster</h3>
                   <p className="text-xs text-[#8fa39b] mt-1">
                     Grounded medical facts, do&apos;s, and don&apos;ts
                   </p>
