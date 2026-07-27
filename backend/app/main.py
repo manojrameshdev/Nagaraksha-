@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -18,10 +19,18 @@ from .rag import ensure_kb_seeded
 from .eventbus import start_worker
 from .routes import sos, incidents, hospitals, risk, snake_id, myth_buster, stats, architecture, ops
 
-app = FastAPI(title="NagRaksha Backend", version="1.0.0")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    db.init_db()
+    ensure_kb_seeded()
+    start_worker()
+    yield
+
+
+app = FastAPI(title="NagRaksha Backend", version="1.0.0", lifespan=lifespan)
 
 # CORS — allow the Next.js dev server (port 3000) to call directly if needed.
-# Normal traffic goes through the Caddy gateway (same-origin).
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
@@ -29,13 +38,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-
-@app.on_event("startup")
-def on_startup():
-    db.init_db()
-    ensure_kb_seeded()
-    start_worker()
 
 
 @app.get("/api/health")

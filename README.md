@@ -67,6 +67,12 @@ This starts:
 - **Backend** → `http://127.0.0.1:8000` (FastAPI)
 - **Frontend** → `http://localhost:3000` (Next.js)
 
+**Check status:**
+
+```bash
+python start.py --status
+```
+
 **Stop:**
 
 ```bash

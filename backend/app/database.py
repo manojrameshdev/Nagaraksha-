@@ -9,7 +9,7 @@ from __future__ import annotations
 import sqlite3
 import os
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 DB_DIR = Path(__file__).resolve().parent.parent / "db"
@@ -183,7 +183,7 @@ def get_conn():
 
 
 def now_iso() -> str:
-    return datetime.utcnow().isoformat() + "Z"
+    return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 import uuid

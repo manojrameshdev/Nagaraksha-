@@ -60,19 +60,24 @@ class TestMinsAgo:
         assert mins_ago("not-a-date") == 0
 
 
+from datetime import datetime, timezone
+
 class TestStockFreshness:
     def test_out_of_stock(self):
-        res = stock_freshness("OUT", "2026-07-27T00:00:00Z")
+        recent = datetime.now(timezone.utc).isoformat()
+        res = stock_freshness("OUT", recent)
         assert res["stale"] is True
         assert res["tone"] == "red"
 
     def test_confirmed_recent(self):
-        res = stock_freshness("CONFIRMED", "2026-07-27T00:00:00Z")
+        recent = datetime.now(timezone.utc).isoformat()
+        res = stock_freshness("CONFIRMED", recent)
         assert res["stale"] is False
         assert res["tone"] == "green"
 
     def test_low_stock(self):
-        res = stock_freshness("LOW", "2026-07-27T00:00:00Z")
+        recent = datetime.now(timezone.utc).isoformat()
+        res = stock_freshness("LOW", recent)
         assert res["stale"] is False
         assert res["tone"] == "gold"
 
@@ -84,12 +89,13 @@ class TestStockFreshness:
 
 class TestRankHospitals:
     def test_confirmed_ranked_first(self):
+        recent = datetime.now(timezone.utc).isoformat()
         origin = {"lat": 12.8, "lng": 77.6}
         hospitals = [
             {"id": "a", "name": "Far Confirmed", "lat": 13.0, "lng": 77.8,
-             "stock": {"status": "CONFIRMED", "verifiedAt": "2026-07-27T00:00:00Z"}},
+             "stock": {"status": "CONFIRMED", "verifiedAt": recent}},
             {"id": "b", "name": "Close Unknown", "lat": 12.81, "lng": 77.61,
-             "stock": {"status": "UNKNOWN", "verifiedAt": "2026-07-27T00:00:00Z"}},
+             "stock": {"status": "UNKNOWN", "verifiedAt": recent}},
         ]
         ranked = rank_hospitals(origin, hospitals)
         assert ranked[0]["id"] == "a"
@@ -97,12 +103,13 @@ class TestRankHospitals:
         assert ranked[0]["score"] > ranked[1]["score"]
 
     def test_out_stocked_last(self):
+        recent = datetime.now(timezone.utc).isoformat()
         origin = {"lat": 12.8, "lng": 77.6}
         hospitals = [
             {"id": "a", "name": "Out", "lat": 12.81, "lng": 77.61,
-             "stock": {"status": "OUT", "verifiedAt": "2026-07-27T00:00:00Z"}},
+             "stock": {"status": "OUT", "verifiedAt": recent}},
             {"id": "b", "name": "Confirmed", "lat": 13.0, "lng": 77.8,
-             "stock": {"status": "CONFIRMED", "verifiedAt": "2026-07-27T00:00:00Z"}},
+             "stock": {"status": "CONFIRMED", "verifiedAt": recent}},
         ]
         ranked = rank_hospitals(origin, hospitals)
         assert ranked[0]["id"] == "b"
