@@ -31,6 +31,120 @@ import { Badge } from '@/components/ui/badge';
 import { SlitherSprite } from '@/components/slither-sprite';
 import { cn } from '@/lib/utils';
 
+export function TopAppBar({
+  onToggleDrawer,
+  activeRole,
+  onSelectRole,
+}: {
+  onToggleDrawer: () => void;
+  activeRole: string;
+  onSelectRole: (_role: string) => void;
+}) {
+  return (
+    <header className="fixed top-0 left-0 right-0 z-50 flex h-[72px] items-center justify-between bg-[#051710]/90 px-4 md:px-8 backdrop-blur-md border-b border-[rgba(234,243,237,0.1)]">
+      <div className="flex items-center gap-3">
+        <button
+          onClick={onToggleDrawer}
+          className="flex h-11 w-11 items-center justify-center rounded-full hover:bg-[rgba(234,243,237,0.1)] text-[#b8cbc1] transition-colors"
+          aria-label="Toggle menu"
+        >
+          <span className="material-symbols-outlined text-2xl">menu</span>
+        </button>
+        <div className="flex items-center gap-2">
+          <h1 className="font-[Lexend] text-lg md:text-xl font-bold tracking-wide text-mist">
+            Snakebite Rescue
+          </h1>
+          <Badge className="bg-[rgba(43,182,115,0.15)] text-[#7fd6ad] border-0 text-[10px] uppercase tracking-wider hidden sm:inline-flex">
+            NagRaksha
+          </Badge>
+        </div>
+      </div>
+
+      {/* Role Navigation Bar */}
+      <div className="hidden lg:flex items-center gap-1 rounded-full bg-[#0a1a14] p-1 border border-[rgba(234,243,237,0.1)]">
+        {[
+          { id: 'sos', label: 'Victim SOS', icon: 'emergency' },
+          { id: 'responder', label: 'Responder', icon: 'stethoscope' },
+          { id: 'hospital', label: 'Hospitals', icon: 'local_hospital' },
+          { id: 'myth', label: 'AI Myth Buster', icon: 'psychology' },
+          { id: 'snake_id', label: 'Snake ID', icon: 'visibility' },
+          { id: 'admin', label: 'Analytics', icon: 'analytics' },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => onSelectRole(tab.id)}
+            className={cn(
+              'flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-medium transition-all',
+              activeRole === tab.id
+                ? 'bg-[#2BB673] text-[#051710] font-bold shadow-md'
+                : 'text-[#b8cbc1] hover:text-mist hover:bg-[rgba(234,243,237,0.06)]',
+            )}
+          >
+            <span className="material-symbols-outlined text-base">{tab.icon}</span>
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      <button
+        onClick={() => onSelectRole('sos')}
+        className="flex h-11 w-11 items-center justify-center rounded-full bg-[#FF4D4D] text-white sos-button-glow transition-transform active:scale-95"
+        aria-label="Emergency SOS"
+      >
+        <span className="material-symbols-outlined text-2xl">emergency</span>
+      </button>
+    </header>
+  );
+}
+
+export function NavigationDrawer({
+  isOpen,
+  onClose,
+  onSelectRole,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onSelectRole: (_role: string) => void;
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[60] flex">
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <aside className="relative z-10 flex h-full w-80 flex-col gap-6 bg-[#0d1f18] p-6 shadow-2xl border-r border-[rgba(234,243,237,0.1)]">
+        <div className="flex items-center justify-between border-b border-[rgba(234,243,237,0.1)] pb-4">
+          <h2 className="font-[Lexend] text-xl font-bold text-[#b8cbc1]">Rescue Menu</h2>
+          <button onClick={onClose} className="text-muted-foreground hover:text-mist">
+            <span className="material-symbols-outlined text-2xl">close</span>
+          </button>
+        </div>
+        <nav className="flex flex-col gap-2 font-[Lexend]">
+          {[
+            { id: 'sos', label: 'Emergency SOS Home', icon: 'campaign' },
+            { id: 'responder', label: 'Responder Dashboard', icon: 'medical_services' },
+            { id: 'hospital', label: 'Hospital Antivenom Stock', icon: 'location_on' },
+            { id: 'myth', label: 'AI Myth Buster Chatbot', icon: 'psychology' },
+            { id: 'snake_id', label: 'Snake Photo ID (CV)', icon: 'visibility' },
+            { id: 'admin', label: 'Platform Analytics', icon: 'analytics' },
+          ].map((item) => (
+            <button
+              key={item.id}
+              onClick={() => {
+                onSelectRole(item.id);
+                onClose();
+              }}
+              className="flex items-center gap-4 rounded-xl px-4 py-3.5 text-left text-sm text-[#c2c8c3] transition-colors hover:bg-[#1c2e26] hover:text-mist"
+            >
+              <span className="material-symbols-outlined text-xl text-[#2BB673]">{item.icon}</span>
+              {item.label}
+            </button>
+          ))}
+        </nav>
+      </aside>
+    </div>
+  );
+}
+
 /* ------------------------------------------------------------------ HERO */
 export function Hero() {
   return (
@@ -268,8 +382,8 @@ export function ParallelDispatch() {
       </div>
       <Reveal delay={120}>
         <p className="mt-6 text-center text-sm text-muted-foreground">
-          <span className="text-gold">Three lines.</span> Three lanes. The dock&apos;s active marker is
-          built from three stacked strokes — one for each responder dispatched at once.
+          <span className="text-gold">Three lines.</span> Three lanes. The dock&apos;s active marker
+          is built from three stacked strokes — one for each responder dispatched at once.
         </p>
       </Reveal>
     </Section>
@@ -448,8 +562,8 @@ export function Prevention({ children }: { children?: ReactNode }) {
             <Bug className="h-6 w-6 text-[#4FBF9A]" />
             <h3 className="mt-3 text-base font-semibold text-mist">Snake ID by Photo</h3>
             <p className="mt-2 text-sm text-muted-foreground">
-              Uses the phone&apos;s existing camera — no external sensor — to classify a photographed
-              snake and flag identification confidence honestly.
+              Uses the phone&apos;s existing camera — no external sensor — to classify a
+              photographed snake and flag identification confidence honestly.
             </p>
           </div>
         </Reveal>
@@ -609,7 +723,15 @@ export function Roadmap() {
   );
 }
 
-function PwaCard({ icon: Icon, title, body }: { icon: ComponentType<{ className?: string }>; title: string; body: string }) {
+function PwaCard({
+  icon: Icon,
+  title,
+  body,
+}: {
+  icon: ComponentType<{ className?: string }>;
+  title: string;
+  body: string;
+}) {
   return (
     <div className="rounded-2xl glass p-5">
       <Icon className="h-5 w-5 text-[#4FBF9A]" />

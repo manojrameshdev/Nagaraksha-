@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter, JetBrains_Mono } from 'next/font/google';
+import { Inter, JetBrains_Mono, Lexend } from 'next/font/google';
 import type { ReactNode } from 'react';
 import './globals.css';
 import { Toaster } from '@/components/ui/sonner';
@@ -80,11 +80,17 @@ export const viewport: Viewport = {
   maximumScale: 5,
 };
 
+const lexend = Lexend({
+  variable: '--font-lexend',
+  subsets: ['latin'],
+  display: 'swap',
+});
+
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <body
-        className={`${inter.variable} ${jetbrainsMono.variable} antialiased bg-background text-foreground`}
+        className={`${inter.variable} ${lexend.variable} ${jetbrainsMono.variable} antialiased bg-background text-foreground`}
       >
         {children}
         <Toaster />

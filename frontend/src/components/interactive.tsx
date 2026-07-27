@@ -1,6 +1,13 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback, type ComponentType, type CSSProperties } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+  type ComponentType,
+  type CSSProperties,
+} from 'react';
 import { toast } from 'sonner';
 import { useInView } from '@/hooks/use-scroll';
 import { apiUrl } from '@/lib/api';
@@ -104,7 +111,18 @@ function buildLanes(attempts: DispatchAttempt[]): LaneMap {
   return lanes;
 }
 
-function applyAttempt(prev: LaneMap, p: { attemptId: string; category: string; candidateName: string; candidateRole: string | null; distanceKm: number | null; etaMin: number | null; sequence: number }): LaneMap {
+function applyAttempt(
+  prev: LaneMap,
+  p: {
+    attemptId: string;
+    category: string;
+    candidateName: string;
+    candidateRole: string | null;
+    distanceKm: number | null;
+    etaMin: number | null;
+    sequence: number;
+  },
+): LaneMap {
   const next = { ...prev };
   const cat = p.category as 'TRAINED' | 'RESCUE' | 'AMBULANCE';
   const attempt: DispatchAttempt = {
@@ -130,7 +148,19 @@ function applyAttempt(prev: LaneMap, p: { attemptId: string; category: string; c
   return next;
 }
 
-function applyAccepted(prev: LaneMap, p: { attemptId: string; category: string; candidateName: string; candidateRole: string | null; distanceKm: number | null; etaMin: number | null; acceptedAt: string; sequence: number }): LaneMap {
+function applyAccepted(
+  prev: LaneMap,
+  p: {
+    attemptId: string;
+    category: string;
+    candidateName: string;
+    candidateRole: string | null;
+    distanceKm: number | null;
+    etaMin: number | null;
+    acceptedAt: string;
+    sequence: number;
+  },
+): LaneMap {
   const next = { ...prev };
   const cat = p.category as 'TRAINED' | 'RESCUE' | 'AMBULANCE';
   const attempt: DispatchAttempt = {
@@ -470,7 +500,13 @@ function StatePill({ phase }: { phase: string }) {
 }
 
 /* ===================================================== RISK PANEL */
-type RiskData = { level?: string; score?: number; advisory?: string; weather?: string; likelySnakes?: string[] };
+type RiskData = {
+  level?: string;
+  score?: number;
+  advisory?: string;
+  weather?: string;
+  likelySnakes?: string[];
+};
 export function RiskPanel() {
   const [data, setData] = useState<RiskData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -569,7 +605,13 @@ export function RiskPanel() {
 }
 
 /* ===================================================== SNAKE ID */
-type SnakeIdResult = { species?: string; venom?: string; confidence?: number; firstAid?: string; disclaimer?: string };
+type SnakeIdResult = {
+  species?: string;
+  venom?: string;
+  confidence?: number;
+  firstAid?: string;
+  disclaimer?: string;
+};
 export function SnakeId() {
   const [text, setText] = useState('');
   const [image, setImage] = useState<string | null>(null);
@@ -719,42 +761,47 @@ export function MythBuster() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages, loading]);
 
-  const ask = useCallback(async () => {
-    const q = input.trim();
-    if (!q || loading) return;
-    setMessages((m) => [...m, { role: 'user', content: q }]);
-    setInput('');
-    setLoading(true);
-    try {
-      const res = await fetch(apiUrl('/api/myth-buster'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: q }),
-      });
-      const json = await res.json();
-      setMessages((m) => [
-        ...m,
-        {
-          role: 'assistant',
-          content: json.answer ?? 'I could not answer that right now.',
-          emergency: json.emergency,
-          myth: json.mythFlagged,
-          sources: json.sources,
-          source: json.source,
-        },
-      ]);
-    } catch {
-      setMessages((m) => [
-        ...m,
-        {
-          role: 'assistant',
-          content: "I'm having trouble reaching the knowledge base. Please try again.",
-        },
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  }, [input, loading]);
+  const ask = useCallback(
+    async (overrideText?: string) => {
+      const q = (typeof overrideText === 'string' ? overrideText : input).trim();
+      if (!q || loading) return;
+      setMessages((m) => [...m, { role: 'user', content: q }]);
+      setInput('');
+      setLoading(true);
+      try {
+        const res = await fetch(apiUrl('/api/myth-buster'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question: q }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        setMessages((m) => [
+          ...m,
+          {
+            role: 'assistant',
+            content: json.answer ?? 'I could not answer that right now.',
+            emergency: json.emergency,
+            myth: json.mythFlagged,
+            sources: json.sources,
+            source: json.source,
+          },
+        ]);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Connection failed';
+        setMessages((m) => [
+          ...m,
+          {
+            role: 'assistant',
+            content: `I'm having trouble reaching the knowledge base (${msg}). Please ensure the backend is running with 'python start.py'.`,
+          },
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [input, loading],
+  );
 
   const quick = [
     'Should I tie a tourniquet above a snakebite?',
@@ -825,7 +872,7 @@ export function MythBuster() {
         {quick.map((q) => (
           <button
             key={q}
-            onClick={() => setInput(q)}
+            onClick={() => ask(q)}
             className="rounded-full border border-[rgba(234,243,237,0.1)] bg-[rgba(234,243,237,0.03)] px-2.5 py-1 text-[10px] text-muted-foreground transition-colors hover:text-mist"
           >
             {q}
@@ -844,7 +891,7 @@ export function MythBuster() {
         <Button
           size="sm"
           className="h-9 gap-2 bg-[#2BB673] text-[#06120C] hover:bg-[#239961]"
-          onClick={ask}
+          onClick={() => ask()}
           disabled={loading || !input.trim()}
         >
           <Send className="h-3.5 w-3.5" />
@@ -855,7 +902,16 @@ export function MythBuster() {
 }
 
 /* ===================================================== STATS STRIP */
-type StatsData = { totals?: { incidents?: number; hospitals?: number; riskAreas?: number; mythConversations?: number; knowledgeChunks?: number }; incidentTrend14d?: { date: string; count: number }[] };
+type StatsData = {
+  totals?: {
+    incidents?: number;
+    hospitals?: number;
+    riskAreas?: number;
+    mythConversations?: number;
+    knowledgeChunks?: number;
+  };
+  incidentTrend14d?: { date: string; count: number }[];
+};
 export function StatsStrip() {
   const [data, setData] = useState<StatsData | null>(null);
   const { ref, inView } = useInView<HTMLDivElement>();
@@ -940,7 +996,13 @@ const ACTION_META: Record<string, { tone: string; label: string }> = {
   RAG_QUERY: { tone: '#8FA39B', label: 'RAG query' },
 };
 
-type AuditEvent = { id: string; action: string; timestamp: string; actor: string; incidentId?: string };
+type AuditEvent = {
+  id: string;
+  action: string;
+  timestamp: string;
+  actor: string;
+  incidentId?: string;
+};
 type AuditData = { events?: AuditEvent[]; byAction?: Record<string, number> };
 export function AuditTrailPanel() {
   const [data, setData] = useState<AuditData | null>(null);
@@ -1061,8 +1123,17 @@ export function AuditTrailPanel() {
 }
 
 /* ===================================================== OUTBOX PANEL */
-type OutboxEvent = { id: string; type: string; aggregateId: string; state: string; attempts: number };
-type OutboxData = { summary?: { pending: number; processed: number; failed: number; total: number }; recent?: OutboxEvent[] };
+type OutboxEvent = {
+  id: string;
+  type: string;
+  aggregateId: string;
+  state: string;
+  attempts: number;
+};
+type OutboxData = {
+  summary?: { pending: number; processed: number; failed: number; total: number };
+  recent?: OutboxEvent[];
+};
 export function OutboxPanel() {
   const [data, setData] = useState<OutboxData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -1336,6 +1407,270 @@ export function KnowledgeBasePanel() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+/* ===================================================== SNAKE ID ALIAS */
+export const SnakeIdUpload = SnakeId;
+
+/* ===================================================== HOSPITAL STOCK CONSOLE */
+export function HospitalStockConsole() {
+  const [hospitals, setHospitals] = useState<RankedHospital[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadHospitals = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(apiUrl('/api/hospitals?lat=12.8003&lng=77.5954'));
+      const json = await res.json();
+      setHospitals(json.rankedHospitals ?? json.hospitals ?? []);
+    } catch {
+      toast.error('Could not load hospital registry');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    fetch(apiUrl('/api/hospitals?lat=12.8003&lng=77.5954'))
+      .then((r) => r.json())
+      .then((json) => {
+        if (isMounted) setHospitals(json.rankedHospitals ?? json.hospitals ?? []);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const updateStock = async (hospitalId: string, status: string) => {
+    try {
+      const res = await fetch(apiUrl(`/api/hospitals/${hospitalId}/stock`), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status, verifiedBy: 'Dr. Sharma · Emergency Chief' }),
+      });
+      if (!res.ok) throw new Error('Stock update failed');
+      toast.success(`Antivenom stock updated to ${status}`);
+      loadHospitals();
+    } catch {
+      toast.error('Failed to update antivenom stock');
+    }
+  };
+
+  return (
+    <div className="rounded-2xl border border-[rgba(234,243,237,0.1)] bg-[rgba(8,20,15,0.6)] p-5">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h3 className="text-lg font-bold text-mist">Hospital Antivenom Registry</h3>
+          <p className="text-xs text-muted-foreground">
+            Live stock reporting directly feeds Dijkstra travel-time hospital ranking
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={loadHospitals}
+          className="h-8 gap-1.5 text-xs text-gold border-gold/30"
+        >
+          <RefreshCw className={cn('h-3.5 w-3.5', loading && 'animate-spin')} /> Refresh
+        </Button>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center gap-2 py-8 justify-center text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin text-[#2BB673]" /> Loading hospital inventory...
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {hospitals.map((h) => (
+            <div
+              key={h.id}
+              className="rounded-xl border border-[rgba(234,243,237,0.08)] bg-[#11231c] p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+            >
+              <div>
+                <div className="flex items-center gap-2">
+                  <h4 className="font-semibold text-mist">{h.name}</h4>
+                  {h.recommended && (
+                    <Badge className="bg-[rgba(214,158,46,0.2)] text-gold border-0 text-[10px]">
+                      RANK #1
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {h.address || 'District Road, Bengaluru'}
+                </p>
+                <div className="flex items-center gap-3 mt-2 text-xs">
+                  <span className="text-[#7fd6ad] font-mono">
+                    {h.freshness?.label || h.stock?.status}
+                  </span>
+                  <span className="text-muted-foreground">
+                    {h.distanceKm} km · {h.etaMin} mins ETA
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <span className="text-xs text-muted-foreground sm:hidden">Set Stock:</span>
+                {(['CONFIRMED', 'LOW', 'OUT'] as const).map((st) => (
+                  <button
+                    key={st}
+                    onClick={() => updateStock(h.id, st)}
+                    className={cn(
+                      'px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex-1 sm:flex-initial',
+                      h.stock?.status === st
+                        ? st === 'CONFIRMED'
+                          ? 'bg-[#2BB673] text-[#051710]'
+                          : st === 'LOW'
+                            ? 'bg-[#D69E2E] text-[#051710]'
+                            : 'bg-[#E5484D] text-white'
+                        : 'bg-[rgba(234,243,237,0.06)] text-muted-foreground hover:text-mist hover:bg-[rgba(234,243,237,0.1)]',
+                    )}
+                  >
+                    {st}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ===================================================== SYMPTOM LOGGER */
+export function SymptomLogger({ incidentId = 'NR-1042' }: { incidentId?: string }) {
+  const [symptoms, setSymptoms] = useState<string[]>([]);
+  const [severity, setSeverity] = useState('MODERATE');
+  const [biteTime, setBiteTime] = useState('10 mins ago');
+  const [bodyPart, setBodyPart] = useState('Right Lower Leg');
+  const [submitting, setSubmitting] = useState(false);
+
+  const toggleSymptom = (sym: string) => {
+    setSymptoms((prev) => (prev.includes(sym) ? prev.filter((s) => s !== sym) : [...prev, sym]));
+  };
+
+  const submitLog = async () => {
+    setSubmitting(true);
+    try {
+      const res = await fetch(apiUrl(`/api/incidents/${incidentId}/symptoms`), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          symptoms,
+          severity,
+          biteTime,
+          bodyPart,
+          observedAt: new Date().toISOString(),
+        }),
+      });
+      if (!res.ok) throw new Error('Symptom log failed');
+      toast.success('Symptom log committed · transmitted to receiving doctor');
+    } catch {
+      toast.error('Failed to log symptoms');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+            Bite Location / Body Part
+          </label>
+          <Input
+            value={bodyPart}
+            onChange={(e) => setBodyPart(e.target.value)}
+            className="mt-1 bg-[#11231c] border-[rgba(234,243,237,0.1)] text-mist text-sm"
+          />
+        </div>
+        <div>
+          <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">
+            Time of Bite
+          </label>
+          <Input
+            value={biteTime}
+            onChange={(e) => setBiteTime(e.target.value)}
+            className="mt-1 bg-[#11231c] border-[rgba(234,243,237,0.1)] text-mist text-sm"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-2 block">
+          Observed Symptoms
+        </label>
+        <div className="flex flex-wrap gap-2">
+          {[
+            'Fang Marks',
+            'Local Swelling',
+            'Active Bleeding',
+            'Severe Pain',
+            'Ptosis / Drooping Eyelids',
+            'Nausea / Vomiting',
+            'Dark Urine',
+          ].map((sym) => (
+            <button
+              key={sym}
+              type="button"
+              onClick={() => toggleSymptom(sym)}
+              className={cn(
+                'px-3 py-1.5 rounded-xl text-xs font-medium border transition-all',
+                symptoms.includes(sym)
+                  ? 'bg-[rgba(43,182,115,0.2)] border-[#2BB673] text-[#7fd6ad]'
+                  : 'bg-[#11231c] border-[rgba(234,243,237,0.08)] text-muted-foreground hover:text-mist',
+              )}
+            >
+              {symptoms.includes(sym) ? '✓ ' : '+ '}
+              {sym}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label className="text-xs uppercase tracking-wider text-muted-foreground font-semibold mb-2 block">
+          Envenomation Severity
+        </label>
+        <div className="grid grid-cols-3 gap-2">
+          {(['MILD', 'MODERATE', 'SEVERE'] as const).map((sev) => (
+            <button
+              key={sev}
+              type="button"
+              onClick={() => setSeverity(sev)}
+              className={cn(
+                'py-2 rounded-xl text-xs font-bold border transition-all',
+                severity === sev
+                  ? sev === 'SEVERE'
+                    ? 'bg-[#E5484D] border-[#E5484D] text-white'
+                    : sev === 'MODERATE'
+                      ? 'bg-[#D69E2E] border-[#D69E2E] text-[#051710]'
+                      : 'bg-[#2BB673] border-[#2BB673] text-[#051710]'
+                  : 'bg-[#11231c] border-[rgba(234,243,237,0.08)] text-muted-foreground',
+              )}
+            >
+              {sev}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <Button
+        onClick={submitLog}
+        disabled={submitting}
+        className="w-full h-11 bg-[#2BB673] hover:bg-[#239961] text-[#051710] font-bold text-sm rounded-xl gap-2 mt-2"
+      >
+        {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+        {submitting ? 'Transmitting...' : 'Transmit Symptom Log to Hospital'}
+      </Button>
     </div>
   );
 }

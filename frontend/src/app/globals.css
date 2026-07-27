@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
@@ -142,6 +143,29 @@
 }
 
 /* ---- NagRaksha custom utilities ---- */
+
+.bg-pattern-snake {
+  background-image: radial-gradient(#273831 1px, transparent 1px);
+  background-size: 16px 16px;
+  opacity: 0.3;
+}
+
+.outline-luminous {
+  border: 1px solid rgba(224, 242, 233, 0.2);
+}
+
+.sos-button-glow {
+  box-shadow: 0 0 40px rgba(255, 77, 77, 0.35);
+}
+
+.urgent-glow {
+  box-shadow: 0 0 24px rgba(255, 77, 77, 0.3);
+  border: 1px solid rgba(255, 77, 77, 0.5);
+}
+
+.hold-progress {
+  transition: width 2s linear;
+}
 
 /* Glassmorphic surface */
 .glass {
