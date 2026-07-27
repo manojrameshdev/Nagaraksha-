@@ -27,7 +27,7 @@ def run():
     ]
     with db.get_conn() as conn:
         for t in ("AntivenomStock", "Hospital", "RiskReport"):
-            conn.execute(f"DELETE FROM {t}")
+            conn.execute(f"DELETE FROM {t}")  # nosec B608 – table name from hardcoded tuple, no user input
         for h in hospitals:
             hid = db.new_id()
             conn.execute(

@@ -45,10 +45,19 @@ export function useScrollProgress() {
   return { progress, velocity };
 }
 
-/** Track when an element enters the viewport (one-shot). */
+/** Track when an element enters the viewport (one-shot).
+ *
+ * IMPORTANT: Do NOT pass an inline object literal as `options` — it creates a new
+ * reference every render and will cause an infinite re-render loop. Pass a stable
+ * reference (e.g. a module-level constant or a `useMemo`/`useRef` value) instead.
+ * All current callers invoke `useInView()` with no arguments, which is safe.
+ */
 // eslint-disable-next-line no-undef
 export function useInView<T extends HTMLElement>(options?: IntersectionObserverInit) {
   const ref = useRef<T | null>(null);
+  // Capture options in a ref so the useEffect dependency is always stable.
+  // Callers must not pass new object literals on every render (see JSDoc above).
+  const optionsRef = useRef(options);
   const [inView, setInView] = useState(false);
   useEffect(() => {
     const el = ref.current;
@@ -62,11 +71,12 @@ export function useInView<T extends HTMLElement>(options?: IntersectionObserverI
           }
         }
       },
-      { threshold: 0.18, rootMargin: '0px 0px -8% 0px', ...options },
+      { threshold: 0.18, rootMargin: '0px 0px -8% 0px', ...optionsRef.current },
     );
     ob.observe(el);
     return () => ob.disconnect();
-  }, [options]);
+    // optionsRef is a stable ref captured at mount — the empty dep array is intentional.
+  }, []);
   return { ref, inView };
 }
 
@@ -91,7 +101,7 @@ export function useActiveSection(ids: string[]) {
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onScroll);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [idsKey]);
   return active;
 }
