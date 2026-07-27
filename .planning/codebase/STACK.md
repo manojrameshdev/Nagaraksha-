@@ -1,107 +1,86 @@
-# Technology Stack
+# STACK.md — Technology Stack
 
-**Analysis Date:** 2026-07-27
+_Last refreshed: 2026-07-27 by gsd-map-codebase_
 
-## Languages
+## Overview
 
-**Primary:**
-- **TypeScript 5.x** — Frontend (Next.js, React, Tailwind CSS), all source code under `frontend/src/`
-- **Python 3.12/3.13** — Backend (FastAPI, scikit-learn, llama-cpp-python, SQLite), all source under `backend/app/`
-
-**Secondary:**
-- **JavaScript (ES2022+)** — Service worker (`frontend/public/sw.js`), seed script helpers (`frontend/scripts/gen-icons.cjs`)
-- **GLSL / WebGL Fragment Shaders** — Organic slithering snake background animation (`frontend/src/components/shader-background.tsx`)
-
-## Runtime & Setup Scripts
-
-**Environment:**
-
-| Layer | Runtime | Version | Notes |
-|-------|---------|---------|-------|
-| Frontend | Node.js | ^20 / ^22 | Next.js App Router dev server on port 3000 |
-| Backend | CPython | 3.12 / 3.13 | Uvicorn ASGI server on port 8000 |
-| Installer | Python Script | 3.10+ | Root `setup.py` (5-step automated environment configuration) |
-| Launcher | Python Script | 3.10+ | Root `start.py` (orchestrates processes, health checks & status) |
-
-**Package Managers:**
-- **Frontend:** npm (`frontend/package.json`, `package-lock.json`)
-- **Backend:** pip (`backend/requirements.txt`)
-
-## Frameworks and Libraries
-
-### Core System Stack
-
-| Framework | Version | Layer | Purpose |
-|-----------|---------|-------|---------|
-| Next.js | 16.1.1 | Frontend | React framework (App Router, relative `/api` rewrite proxy) |
-| React | 19.0.0 | Frontend | Client UI components & hooks |
-| FastAPI | 0.128.0 | Backend | Python ASGI web framework with Pydantic validation & lifespan handlers |
-| uvicorn | 0.44.0 | Backend | ASGI server running FastAPI app |
-| SQLite | 3.x | Backend DB | File-backed durable database with WAL mode (`backend/db/nagraksha.db`) |
-
-### UI / Styling & Aesthetics (Frontend)
-
-| Package | Version | Purpose |
-|---------|---------|---------|
-| tailwindcss | 4.x | Utility-first CSS framework |
-| @tailwindcss/postcss | 4.x | PostCSS plugin for Tailwind v4 |
-| tailwindcss-animate | 1.0.7 | Tailwind plugin for custom keyframe animations |
-| tailwind-merge | 3.3.1 | Utility for merging conflicting Tailwind classes |
-| clsx | 2.1.1 | Utility for conditional class name construction |
-| lucide-react | 0.525.0 | Iconography system |
-| sonner | 2.0.6 | Toast notification system |
-| Google Fonts | API | `Lexend` typography & `Material Symbols Outlined` icons |
-| WebGL2 | Web API | Organic scale fragment shader background canvas |
-
-### Backend / AI / ML / RAG
-
-| Package | Version | Purpose |
-|---------|---------|---------|
-| scikit-learn | 1.5.2 | TF-IDF vectorizer + cosine similarity for medical RAG search |
-| numpy | >=1.26 | Matrix math operations |
-| pydantic | >=2.0 | Request/response validation schemas |
-| llama-cpp-python | >=0.3 | Local GGUF model CPU inference (optional fallback) |
-| httpx | >=0.27 | Async HTTP client |
-| python-dotenv | >=1.0 | `.env` variable loader |
-
-### Testing & Code Quality
-
-| Tool | Layer | Purpose |
-|------|-------|---------|
-| Vitest | Frontend | Unit testing runner (`vitest run`, 16 tests passing) |
-| Pytest | Backend | Unit & integration test framework (`pytest backend/tests`, 33 tests passing) |
-| TypeScript | Frontend | Static type checker (`npx tsc --noEmit`) |
-| ESLint | Frontend | Flat config linting (`frontend/eslint.config.mjs`) |
-| Prettier | Root | Code formatting (`.prettierrc`) |
-| Husky | Root | Git pre-commit hooks (`.husky/pre-commit` running lint-staged) |
-
-## Configuration
-
-### Environment Setup (`.env` / `setup.py`)
-
-Run `python setup.py` to automate creation of `.env` from `.env.example`:
-
-```ini
-DATABASE_URL=sqlite:///backend/db/nagraksha.db
-LOG_LEVEL=INFO
-# Optional LLM keys
-GROK_API_KEY=
-GEMINI_API_KEY=
-LOCAL_GGUF_PATH=model/nagraksha-q4.gguf
-```
-
-### Build & Dev Commands
-
-| Command | Purpose |
-|---------|---------|
-| `python setup.py` | Automated 5-step project setup & DB seed |
-| `python start.py` | Launches FastAPI (8000) & Next.js (3000) with live health checks |
-| `python start.py --status` | Checks running backend & frontend status |
-| `python start.py --stop` | Terminates active background processes |
-| `cd frontend && npm test` | Runs 16 frontend Vitest unit tests |
-| `pytest backend/tests` | Runs 33 backend Pytest unit tests |
-| `cd frontend && npx tsc --noEmit` | Runs TypeScript static type checking |
+NagRaksha is a full-stack monorepo: a **Next.js 16 PWA frontend** (TypeScript, React 19) and a **Python FastAPI backend** (port 8000), connected through a Caddy gateway using `?XTransformPort=8000` query-parameter routing.
 
 ---
 
-*Updated: 2026-07-27*
+## Frontend
+
+| Layer | Technology | Version |
+|-------|-----------|---------|
+| Framework | Next.js | ^16.1.1 |
+| Language | TypeScript | ^5 |
+| UI Runtime | React + React DOM | ^19.0.0 |
+| Styling | Tailwind CSS v4 | ^4 |
+| Component library | Radix UI (full suite) | ^1–2.x |
+| Animation | Framer Motion | ^12.23.2 |
+| Icons | Lucide React | ^0.525.0 |
+| Notifications | Sonner | ^2.0.6 |
+| Forms | react-hook-form + @hookform/resolvers | ^5.1.1 |
+| Date utilities | date-fns | ^4.1.0 |
+| Class utilities | clsx + tailwind-merge | latest |
+| Command palette | cmdk | ^1.1.1 |
+| DB client (unused at runtime) | Prisma + @prisma/client | ^6.11.1 |
+
+### Frontend Dev Tools
+- **ESLint** (eslint-config-next + eslint-plugin-security)
+- **Vitest** (^4.1.10) + jsdom + @testing-library/react
+- **Prettier** (via husky pre-commit)
+- **TypeScript** strict mode
+
+### Key Custom Hooks
+| Hook | Purpose |
+|------|---------|
+| `useGeolocation` | Browser GPS with fallback to Bannerghatta default coords |
+| `useInView` | Intersection Observer for lazy-load gating |
+| `useScroll` | Scroll-position tracking |
+| `useToast` | Sonner toast bridge |
+| `useMobile` | Responsive breakpoint detection |
+
+---
+
+## Backend
+
+| Layer | Technology | Version |
+|-------|-----------|---------|
+| Framework | FastAPI | 0.128.0 |
+| ASGI server | Uvicorn | 0.44.0 |
+| Language | Python | 3.11+ |
+| Database | SQLite (via stdlib sqlite3) | — |
+| ML / RAG | scikit-learn (TF-IDF) | 1.5.2 |
+| ML / RAG | NumPy | >=1.26 |
+| HTTP client | httpx | >=0.27 |
+| Env management | python-dotenv | >=1.0 |
+| Local LLM (optional) | llama-cpp-python | >=0.3 |
+| Validation | Pydantic v2 | >=2.0 |
+| Security audit | Bandit | >=1.8.0 |
+
+### LLM Fallback Chain
+1. **Local GGUF model** (auto-detected from `model/*.gguf`) via llama-cpp-python
+2. **Grok API** (`grok-2-latest`, `grok-2-vision-latest`) — key in `.env`
+3. **Gemini API** (`gemini-2.0-flash`) — key in `.env`
+4. **Retrieval-only** — returns raw top-k TF-IDF chunk if no LLM available
+
+---
+
+## Infrastructure & Tooling
+
+| Tool | Purpose |
+|------|---------|
+| Caddy (via AntiGravity IDE gateway) | Proxies frontend :3000 → port routing via XTransformPort |
+| GitHub Actions | CI: lint + tsc + vitest (frontend) + bandit + pytest (backend) |
+| Husky + lint-staged | Pre-commit: Prettier + ESLint auto-fix |
+| SQLite `nagraksha.db` | Single-file embedded DB for all tables |
+| Service Worker (PWA) | Disabled on localhost; active on prod |
+
+---
+
+## Database Schema Tables
+
+`Incident`, `DispatchAttempt`, `Hospital`, `AntivenomStock`, `SymptomObservation`, `SnakeObservation`, `RiskReport`, `MythThread`, `KnowledgeChunk`, `OutboxEvent`, `AuditEvent`
+
+All tables use 24-character hex UUIDs as primary keys. ISO 8601 UTC timestamps. Foreign keys enabled with `PRAGMA foreign_keys = ON`.

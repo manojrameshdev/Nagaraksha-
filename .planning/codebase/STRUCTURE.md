@@ -1,81 +1,128 @@
-# Codebase Structure
+# STRUCTURE.md — Codebase Directory Structure
 
-**Analysis Date:** 2026-07-27
+_Last refreshed: 2026-07-27 by gsd-map-codebase_
 
-## Directory & File Layout
+## Monorepo Root
 
 ```
 Nagaraksha-/
-├── backend/                       # Python FastAPI Backend
-│   ├── app/
-│   │   ├── __init__.py
-│   │   ├── main.py                # FastAPI app entry point & lifespan handler
-│   │   ├── database.py            # SQLite DDL schema & connection manager
-│   │   ├── domain.py              # Haversine, hospital ranking & dispatch simulation
-│   │   ├── eventbus.py            # Outbox worker thread & SSE event bus
-│   │   ├── llm.py                 # LLM fallback chain (GGUF → Grok → Gemini)
-│   │   ├── models.py              # Pydantic validation schemas
-│   │   ├── rag.py                 # RAG pipeline & TF-IDF cosine similarity search
-│   │   ├── knowledge_base_data.py # Curated medical knowledge base (22 chunks)
-│   │   ├── seed.py                # Database seeding script
-│   │   └── routes/                # REST API routers
-│   │       ├── sos.py             # SOS trigger endpoint
-│   │       ├── incidents.py       # Incidents, symptoms & SSE stream
-│   │       ├── hospitals.py       # Hospital rankings & stock updates
-│   │       ├── risk.py            # Regional risk advisory
-│   │       ├── snake_id.py        # Snake photo identification (CV)
-│   │       ├── myth_buster.py     # AI Myth Buster RAG search
-│   │       ├── stats.py           # Admin analytics totals & 14-day trend
-│   │       └── ops.py             # Audit trail, outbox worker & corpus browser
-│   ├── db/
-│   │   └── nagraksha.db           # Durable SQLite database (WAL mode)
-│   ├── tests/                     # Backend test suite (33 Pytest tests)
-│   │   ├── test_domain.py
-│   │   └── test_routes.py
-│   └── requirements.txt           # Python backend dependencies
-│
-├── frontend/                      # Next.js 16 App Router PWA Frontend
-│   ├── src/
-│   │   ├── app/
-│   │   │   ├── layout.tsx         # Root layout (Metadata, Fonts, Dark Mode)
-│   │   │   ├── page.tsx           # Main application PWA SPA shell
-│   │   │   └── globals.css        # CSS Tokens & Google Fonts import
-│   │   ├── components/
-│   │   │   ├── sections.tsx       # TopAppBar, NavigationDrawer, SiteFooter
-│   │   │   ├── interactive.tsx    # LiveSosDemo, MythBuster, HospitalStockConsole, etc.
-│   │   │   ├── shader-background.tsx # WebGL fragment shader canvas
-│   │   │   ├── snake-progress.tsx # Left rail serpentine progress bar
-│   │   │   ├── tri-line-dock.tsx  # Floating dock navigation
-│   │   │   └── ui/                # UI primitives (Button, Badge, Input, etc.)
-│   │   ├── lib/
-│   │   │   ├── api.ts             # API helper & URL builder
-│   │   │   ├── nagraksha.ts       # Frontend domain helpers & math utilities
-│   │   │   └── __tests__/         # Frontend test suite (16 Vitest tests)
-│   │   │       ├── eventbus.test.ts
-│   │   │       └── nagraksha.test.ts
-│   │   └── hooks/
-│   │       └── use-scroll.ts      # In-view & scroll tracking hooks
-│   ├── next.config.ts             # Relative `/api` rewrite proxy config
-│   ├── package.json               # Node.js dependencies & scripts
-│   └── vitest.config.ts           # Vitest runner configuration
-│
-├── docs/                          # PRD, SRS, System Design, Brand & Pitch docs
-├── setup.py                       # Automated 5-step installer & configuration script
-├── start.py                       # Dev process launcher, health checker & status CLI
-├── README.md                      # Comprehensive developer setup guide
-└── worklog.md                     # Development session timeline
+├── .agents/                  # Workspace-scoped agent rules (AGENTS.md)
+├── .github/workflows/ci.yml  # GitHub Actions CI pipeline
+├── .husky/                   # Pre-commit hooks (prettier + eslint)
+├── .planning/                # GSD planning directory
+│   ├── codebase/             # This codebase map (7 docs)
+│   ├── debug/                # Debug session logs
+│   ├── phases/               # Phase plans
+│   ├── research/             # Research docs
+│   ├── PROJECT.md            # Project charter
+│   ├── REQUIREMENTS.md       # Functional requirements
+│   ├── ROADMAP.md            # Milestone + phase roadmap
+│   ├── MILESTONES.md         # Milestone tracker
+│   ├── STATE.md              # Current GSD state
+│   └── config.json           # GSD configuration
+├── backend/                  # Python FastAPI backend
+├── frontend/                 # Next.js 16 frontend
+├── model/                    # GGUF model directory (empty — optional)
+├── docs/                     # Additional documentation
+├── scripts/                  # Utility scripts
+├── .env                      # API keys + DB config (gitignored)
+├── .env.example              # Template for .env
+├── .bandit.yaml              # Bandit security config
+├── .prettierrc               # Prettier config
+├── package.json              # Root-level lint-staged + husky setup
+├── setup.py                  # Python environment setup helper
+├── start.py                  # Dev launcher (starts both services)
+└── worklog.md                # Development work log
 ```
-
-## Key File Locations
-
-- **Launcher & Installer:** `setup.py`, `start.py`
-- **Frontend Entry:** `frontend/src/app/page.tsx`
-- **Frontend Layout:** `frontend/src/app/layout.tsx`
-- **Backend Entry:** `backend/app/main.py`
-- **API Proxy Config:** `frontend/next.config.ts`
-- **Backend Unit Tests:** `backend/tests/` (33 tests)
-- **Frontend Unit Tests:** `frontend/src/lib/__tests__/` (16 tests)
 
 ---
 
-*Updated: 2026-07-27*
+## Backend Structure
+
+```
+backend/
+├── app/
+│   ├── __init__.py
+│   ├── main.py               # FastAPI app init, router mounting, startup
+│   ├── database.py           # SQLite layer: schema, get_conn, new_id, now_iso
+│   ├── models.py             # Pydantic request models (SosRequest, etc.)
+│   ├── domain.py             # Haversine, road ETA, hospital ranking, dispatch sim
+│   ├── eventbus.py           # Outbox worker, in-process bus, audit logger
+│   ├── llm.py                # LLM fallback chain: GGUF → Grok → Gemini
+│   ├── rag.py                # TF-IDF retrieval + RAG answer pipeline
+│   ├── seed.py               # Demo data seeder (hospitals, risks, KB)
+│   ├── knowledge_base_data.py # 22 curated KB chunks (myths, first aid, species)
+│   └── routes/
+│       ├── __init__.py
+│       ├── sos.py            # POST /api/sos — incident creation + outbox
+│       ├── incidents.py      # GET /api/incidents/:id, SSE stream, audit
+│       ├── hospitals.py      # GET /api/hospitals, PATCH stock
+│       ├── risk.py           # GET /api/risk — nearest risk report
+│       ├── snake_id.py       # POST /api/snake-id — Grok Vision + keyword
+│       ├── myth_buster.py    # POST /api/myth-buster — RAG answer
+│       ├── stats.py          # GET /api/stats — totals + 14-day trend
+│       ├── ops.py            # GET /api/ops/outbox, /audit (admin)
+│       └── architecture.py   # GET /api/architecture — system design JSON
+├── db/
+│   └── nagraksha.db          # SQLite database file (gitignored)
+└── tests/
+    ├── conftest.py           # Test fixtures (temp DB, mock worker, seeded hospital)
+    ├── test_routes.py        # Route integration tests (async httpx ASGI)
+    └── test_domain.py        # Unit tests for domain helpers
+```
+
+---
+
+## Frontend Structure
+
+```
+frontend/
+├── public/                   # Static assets, PWA manifest, icons
+├── src/
+│   ├── app/
+│   │   ├── layout.tsx        # Root layout: fonts, theme, toaster, SW registration
+│   │   ├── page.tsx          # Main page: role router + GPS banner + views
+│   │   └── globals.css       # Global CSS vars, dark theme, animations
+│   ├── components/
+│   │   ├── ui/               # Radix-based shadcn/ui primitives (Button, Badge, etc.)
+│   │   ├── interactive.tsx   # All live data widgets:
+│   │   │                     #   LiveSosDemo, RiskPanel, SnakeId, MythBuster,
+│   │   │                     #   StatsStrip, AuditTrailPanel, OutboxPanel,
+│   │   │                     #   HospitalStockConsole, SymptomLogger,
+│   │   │                     #   KnowledgeBasePanel
+│   │   ├── sections.tsx      # TopAppBar, NavigationDrawer, SiteFooter (memo)
+│   │   ├── architecture.tsx  # System architecture diagram component
+│   │   ├── shader-background.tsx  # WebGL fragment shader (memo)
+│   │   ├── lazy-sections.tsx # Dynamic import wrappers for heavy sections
+│   │   ├── reveal.tsx        # Scroll-reveal animation wrapper
+│   │   ├── snake-progress.tsx # Animated snake-themed progress bar
+│   │   ├── slither-sprite.tsx # CSS snake animation sprite
+│   │   └── tri-line-dock.tsx  # Three-line navigation dock
+│   ├── hooks/
+│   │   ├── use-geolocation.ts # GPS hook with Bannerghatta fallback [NEW]
+│   │   ├── use-scroll.ts     # InView + scroll position hooks
+│   │   ├── use-mobile.ts     # Responsive breakpoint hook
+│   │   └── use-toast.ts      # Sonner toast bridge
+│   ├── lib/
+│   │   ├── api.ts            # apiUrl() helper — appends ?XTransformPort=8000
+│   │   └── utils.ts          # cn() class merge utility
+│   └── test/
+│       └── *.test.tsx        # Vitest component tests
+├── next.config.ts            # Next.js config (standalone output, SW config)
+├── tailwind.config.ts        # Tailwind v4 config
+├── tsconfig.json             # TypeScript strict config
+├── vitest.config.ts          # Vitest config with jsdom
+└── eslint.config.mjs         # ESLint flat config (next + security plugin)
+```
+
+---
+
+## Entry Points
+
+| Entry Point | Path | Purpose |
+|------------|------|---------|
+| Dev launcher | `start.py` | Starts backend (uvicorn) + frontend (next dev) together |
+| Backend app | `backend/app/main.py` | FastAPI app, mounted routers, startup events |
+| Frontend app | `frontend/src/app/layout.tsx` | Root Next.js layout, SW registration (prod only) |
+| Main page | `frontend/src/app/page.tsx` | All role-based views, GPS hook, component tree |
+| API helper | `frontend/src/lib/api.ts` | `apiUrl()` for all fetch calls |

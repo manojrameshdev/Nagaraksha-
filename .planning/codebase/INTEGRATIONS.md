@@ -1,65 +1,101 @@
-# External & Internal Integrations
+# INTEGRATIONS.md — External Integrations
 
-**Analysis Date:** 2026-07-27
+_Last refreshed: 2026-07-27 by gsd-map-codebase_
 
-## Next.js API Rewrite Proxy Gateway
+## Summary
 
-In local development, the Next.js frontend (port 3000) proxies relative `/api/*` HTTP requests directly to the FastAPI backend (port 8000).
-
-- **Configuration:** [frontend/next.config.ts](file:///c:/Users/OM%20Prakash/Documents/Nagaraksha-/frontend/next.config.ts)
-```typescript
-async rewrites() {
-  return [
-    {
-      source: '/api/:path*',
-      destination: 'http://127.0.0.1:8000/api/:path*',
-    },
-  ];
-}
-```
-- **Benefit:** Eliminates CORS issues in browser fetch calls, allowing seamless relative `fetch('/api/...')` execution across client components.
-
-## Internal REST API Endpoints
-
-### 1. Incident Lifecycle & Dispatch (`/api/incidents`)
-- `POST /api/incidents/dispatch`: Creates a new victim SOS incident, appends `IncidentCreated` event to outbox, and starts 3-lane dispatch fan-out (Trained First Responder, Rescue Team, Ambulance).
-- `GET /api/incidents/{id}`: Fetches current incident status, assigned candidates, and Dijkstra hospital rankings.
-- `GET /api/incidents/{id}/stream`: Server-Sent Events (SSE) live-state stream emitting `snapshot`, `dispatch_attempted`, `dispatch_accepted`, and `incident_state`.
-- `POST /api/incidents/{id}/symptoms`: Logs structured symptom observations (fang marks, swelling, ptosis, pain, bite location) for pre-arrival hospital transmission.
-
-### 2. Hospital & Antivenom Inventory (`/api/hospitals`)
-- `GET /api/hospitals?lat={lat}&lng={lng}`: Evaluates Dijkstra shortest travel time + stock freshness penalty to produce antivenom-aware hospital ranking.
-- `POST /api/hospitals/{id}/stock`: Doctors and emergency staff update antivenom availability (`CONFIRMED`, `LOW`, `OUT`) with timestamp verification.
-
-### 3. AI Myth Buster RAG (`/api/myth-buster`)
-- `POST /api/myth-buster`: Queries the 22-chunk medical RAG vector store using TF-IDF cosine similarity. Returns grounded first-aid answers, myth flag badges, and doc ID source citations.
-
-### 4. Risk & Advisory (`/api/risk`)
-- `GET /api/risk?lat={lat}&lng={lng}`: Returns regional monsoon risk level, advisory score (0-100), active species activity (Russell's Viper, Spectacled Cobra), and safety tips.
-
-### 5. Snake Photo ID (`/api/snake-id`)
-- `POST /api/snake-id`: Accepts uploaded photos or textual descriptions to provide species classification confidence, venom severity, and medical disclaimers.
-
-### 6. Analytics & Audit (`/api/stats`, `/api/audit`, `/api/outbox`)
-- `GET /api/stats`: Returns platform incident totals, active hospitals, RAG chunks, and 14-day trend metrics.
-- `GET /api/audit`: Returns immutable audit trail event logs (`SOS_TRIGGERED`, `DISPATCH_FANOUT`, `RESPONDER_ACCEPTED`, `STOCK_UPDATED`, `RAG_QUERY`).
-- `GET /api/outbox`: Returns state of the transactional outbox worker (processed, pending, failed queue metrics).
-
-## External LLM Providers & Fallback Chain
-
-Implemented in `backend/app/llm.py`:
-
-1. **Local GGUF Model:** Local CPU inference via `llama-cpp-python` (`model/*.gguf`).
-2. **Grok (xAI) API:** Primary online fallback (`https://api.x.ai/v1/chat/completions`) via `GROK_API_KEY`.
-3. **Gemini (Google) API:** Secondary online fallback (`https://generativelanguage.googleapis.com/v1beta/...`) via `GEMINI_API_KEY`.
-4. **TF-IDF RAG Grounded Fallback:** If LLM keys are absent, returns the highest-scoring medical RAG chunk directly.
-
-## Event / Message Bus & Outbox Pattern
-
-- **Database Table:** `OutboxEvent` in SQLite (`backend/db/nagraksha.db`).
-- **Worker Thread:** Background loop drains pending outbox events every 2.5s, triggering subscribers and emitting events over SSE streams.
-- **Event Types:** `IncidentCreated`, `DispatchAttempted`, `DispatchAccepted`, `IncidentStateChanged`, `StockUpdated`.
+NagRaksha integrates with three external services, all configured via `.env` at the project root. All API calls are made server-side from the Python backend; the frontend never calls external APIs directly.
 
 ---
 
-*Updated: 2026-07-27*
+## 1. Grok API (xAI) — PRIMARY LLM + VISION
+
+**Purpose**: Powers the Myth-Buster RAG (`/api/myth-buster`) and Snake ID Vision (`/api/snake-id`)
+
+| Field | Value |
+|-------|-------|
+| Base URL | `https://api.x.ai/v1/chat/completions` |
+| Auth | `Authorization: Bearer <GROK_API_KEY>` |
+| Text model | `grok-2-latest` |
+| Vision model | `grok-2-vision-latest` |
+| Env var | `GROK_API_KEY` |
+| Status | ✅ Configured in `.env` |
+| Timeout | 60s (text), 30s (vision) |
+
+### Usage Points
+- **`/api/myth-buster`**: RAG pipeline sends retrieved KB chunks + user question to `grok-2-latest`
+- **`/api/snake-id`** (image input): Base64 image sent to `grok-2-vision-latest` with constrained prompt → returns species number 1-5
+
+### Vision Prompt Strategy
+The vision call uses a constrained prompt asking Grok to return only a single digit (1–5) or "unknown". This prevents hallucinated free-text and allows deterministic CATALOGUE lookup.
+
+---
+
+## 2. Gemini API (Google) — SECONDARY LLM FALLBACK
+
+**Purpose**: Fallback LLM if Grok is unavailable
+
+| Field | Value |
+|-------|-------|
+| Base URL | `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent` |
+| Auth | `?key=<GEMINI_API_KEY>` |
+| Model | `gemini-2.0-flash` |
+| Env var | `GEMINI_API_KEY` |
+| Status | ⚠️ Not configured (commented out in `.env`) |
+| Timeout | 60s |
+
+---
+
+## 3. Browser Geolocation API — FRONTEND
+
+**Purpose**: Get user's real GPS coordinates for SOS dispatch and risk advisory
+
+| Field | Value |
+|-------|-------|
+| API | `navigator.geolocation.getCurrentPosition()` |
+| Timeout | 8 seconds |
+| Max age | 30 seconds |
+| Accuracy | High accuracy enabled |
+| Fallback | `lat: 12.8003, lng: 77.5954` (Bannerghatta Forest Edge) |
+| Source | `frontend/src/hooks/use-geolocation.ts` |
+
+### Fallback Behavior
+- GPS granted → real coordinates passed to `LiveSosDemo` and `RiskPanel`
+- GPS denied/timeout → Bannerghatta defaults; UI shows amber "Default location" banner
+- Not supported → same fallback; `error` state set
+
+---
+
+## 4. Local GGUF Model — OPTIONAL LOCAL LLM
+
+**Purpose**: Offline-capable LLM inference (highest priority in fallback chain)
+
+| Field | Value |
+|-------|-------|
+| Location | `model/*.gguf` (auto-detected) |
+| Library | llama-cpp-python ≥ 0.3 |
+| Status | ⚠️ Not present (no .gguf in `model/`) |
+
+---
+
+## API Gateway (Internal)
+
+All frontend → backend calls go through the AntiGravity IDE Caddy gateway:
+
+```
+Frontend (Next.js :3000) → Caddy → ?XTransformPort=8000 → FastAPI (:8000)
+```
+
+The `apiUrl()` helper in `frontend/src/lib/api.ts` appends `?XTransformPort=8000` to every relative API path. **No hardcoded `http://localhost:8000` URLs exist** in frontend code.
+
+---
+
+## Integration Status Summary
+
+| Integration | Required | Configured | Fallback |
+|------------|---------|------------|---------|
+| Grok (text) | Yes (RAG) | ✅ | Retrieval-only mode |
+| Grok (vision) | No (snake ID photo) | ✅ | Text keyword match |
+| Gemini | No | ❌ | Skipped |
+| Local GGUF | No | ❌ | Skipped |
+| Browser GPS | No | Runtime | Bannerghatta defaults |

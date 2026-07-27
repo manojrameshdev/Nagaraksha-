@@ -1,81 +1,169 @@
-# System Architecture
+# ARCHITECTURE.md — System Architecture
 
-**Analysis Date:** 2026-07-27
+_Last refreshed: 2026-07-27 by gsd-map-codebase_
 
-## Pattern Overview
-
-**Overall:** Modular monolith with an event-driven core and PWA frontend shell.
-
-NagRaksha is designed as a two-tier emergency system consisting of a Next.js 16 App Router PWA frontend and a Python 3.12/3.13 FastAPI event-driven backend.
-
-### Key Architectural Characteristics
-
-1. **Next.js API Proxy Rewrite:** In development, Next.js (`frontend/next.config.ts`) proxies `/api/:path*` directly to FastAPI on `http://127.0.0.1:8000/api/:path*`, unifying API communication without CORS configuration issues.
-2. **WebGL Organic Shader Canvas:** Visual background layer rendered via WebGL fragment shader (`frontend/src/components/shader-background.tsx`), wrapped in CSS glassmorphism overlay tokens (`#051710` Midnight, `#184D36` Forest Green).
-3. **Role & View Switcher:** Mobile-friendly `TopAppBar` and `NavigationDrawer` ([sections.tsx](file:///c:/Users/OM%20Prakash/Documents/Nagaraksha-/frontend/src/components/sections.tsx)) enabling role switching across Victim SOS, First Responder, Hospital Inventory, AI Myth Buster, Snake Photo ID, and Admin Analytics.
-4. **Durable Transactional Outbox Pattern:** `OutboxEvent` table in SQLite written in the same transaction as `Incident` creation. Background worker thread polls every 2.5s and fans out 3 dispatch lanes (Trained First Responder, Rescue Team, Ambulance).
-5. **Real-time SSE Stream:** Server-Sent Events emitted at `GET /api/incidents/{id}/stream` delivering live state changes (`snapshot`, `dispatch_attempted`, `dispatch_accepted`, `incident_state`).
-6. **Antivenom-Aware Hospital Ranking:** Dijkstra travel-time combined with stock freshness scoring (CONFIRMED > LOW > UNKNOWN > STALE > OUT).
-7. **Grounded Medical RAG Pipeline:** TF-IDF cosine similarity search over 22 curated medical chunks with emergency regex guard.
-
-## System Component Diagram
+## High-Level Architecture
 
 ```
-┌────────────────────────────────────────────────────────────────────────┐
-│                        User Web / PWA Client                           │
-│                                                                        │
-│  [TopAppBar] ── [NavigationDrawer] ── [Role View Switcher]             │
-│                                                                        │
-│  ├── 1. Victim SOS View (Hold-to-trigger button & SSE Dispatch Stream) │
-│  ├── 2. First Responder View (Active Alert, Symptom Logger)            │
-│  ├── 3. Hospital Console (Antivenom Stock Manager, Dijkstra Ranking)   │
-│  ├── 4. AI Myth Buster (RAG Chatbot + Grounded Citations)              │
-│  ├── 5. Snake Photo ID (CV Species Classification + Disclaimers)       │
-│  └── 6. Admin Analytics (Platform Stats, Outbox Worker, Audit Trail)   │
-└──────────────────────────────────┬─────────────────────────────────────┘
-                                   │ relative /api/* requests
-                                   ▼
-                       Next.js Rewrite Proxy (3000)
-                                   │
-                                   ▼
-                      FastAPI Backend Engine (8000)
-                                   │
-       ┌───────────────────────────┼───────────────────────────┐
-       ▼                           ▼                           ▼
-┌──────────────┐            ┌──────────────┐            ┌──────────────┐
-│  RAG Engine  │            │ Outbox Engine│            │ Hospital Rank│
-│ TF-IDF + LLM │            │ Event Poller │            │ Dijkstra+Stock│
-└──────────────┘            └──────────────┘            └──────────────┘
-       │                           │                           │
-       └───────────────────────────┼───────────────────────────┘
-                                   ▼
-                        SQLite Database (WAL)
-                      backend/db/nagraksha.db
+Browser (React PWA)
+    │
+    │  HTTP + SSE (via ?XTransformPort=8000)
+    ▼
+Caddy Gateway (AntiGravity IDE)
+    │
+    ├──▶ Next.js Frontend (:3000)   — pages, components, PWA service worker
+    │
+    └──▶ FastAPI Backend (:8000)    — SOS, RAG, hospitals, snake ID, audit
+              │
+              ├── SQLite DB (backend/db/nagraksha.db)
+              ├── Outbox Worker (background daemon thread)
+              ├── In-process Event Bus (threading.Lock + subscribers)
+              └── LLM Module (GGUF → Grok → Gemini → retrieval-only)
 ```
-
-## Layers
-
-### 1. Client Layer (PWA Frontend)
-- **Path:** `frontend/src/app/`, `frontend/src/components/`, `frontend/src/lib/`
-- **Key Components:**
-  - `page.tsx`: Main SPA entry point handling role view switching (`'sos'`, `'responder'`, `'hospital'`, `'myth'`, `'snake_id'`, `'admin'`).
-  - `sections.tsx`: Implements `TopAppBar`, `NavigationDrawer`, and `SiteFooter`.
-  - `interactive.tsx`: Implements `LiveSosDemo`, `MythBuster`, `HospitalStockConsole`, `SymptomLogger`, `SnakeIdUpload`, `StatsStrip`, `AuditTrailPanel`, `OutboxPanel`, and `KnowledgeBasePanel`.
-  - `shader-background.tsx`: WebGL scale fragment shader.
-
-### 2. API & Routing Layer (FastAPI Backend)
-- **Path:** `backend/app/main.py`, `backend/app/routes/`
-- **Modules:** `sos.py`, `incidents.py`, `hospitals.py`, `risk.py`, `snake_id.py`, `myth_buster.py`, `stats.py`, `ops.py`.
-
-### 3. Domain Logic & Data Model Layer
-- **Path:** `backend/app/`
-- **Modules:**
-  - `domain.py`: Geo formulas (`haversine_km`, `road_km`), hospital ranking (`rank_hospitals`), dispatch simulation.
-  - `rag.py`: TF-IDF vectorizer + cosine similarity search over `KnowledgeChunk`.
-  - `llm.py`: Multi-tier fallback chain (Local GGUF → Grok → Gemini).
-  - `eventbus.py`: Transactional outbox worker and audit logger.
-  - `database.py`: SQLite connection management with WAL mode.
 
 ---
 
-*Updated: 2026-07-27*
+## Backend Architecture
+
+### Transactional Outbox Pattern
+
+The SOS flow implements a textbook transactional outbox:
+
+```
+POST /api/sos
+  → DB transaction:
+      INSERT Incident (state=DISPATCHING)
+      INSERT OutboxEvent (type=IncidentCreated, state=PENDING)
+  → Background worker polls every 2.5s
+  → Worker picks up IncidentCreated
+  → Fans out 3 parallel dispatch lanes
+  → Emits SSE events per lane via in-process bus
+  → Advances incident state: DISPATCHING → ACCEPTED → TRANSPORTING → HANDED_OFF
+```
+
+The outbox has retry logic: attempts counter increments on failure, FAILED state after 4 attempts. This ensures at-least-once delivery even if the dispatch handler throws.
+
+### Three-Lane Dispatch Model
+
+```
+IncidentCreated
+   ├── TRAINED lane   (Anjali M., Ravi K.)
+   ├── RESCUE lane    (Bannerghatta Rescue Cell, Urban Wildlife Rescue)
+   └── AMBULANCE lane (Ambulance 108 BLR-South, BLR-Rural)
+```
+
+Each lane fires independently in `_handle_incident_created`. First candidate in each lane "accepts" after a simulated delay (6–15s). State transitions drive SSE events.
+
+> ⚠️ Dispatch candidates are currently simulated in `domain.py:simulate_dispatch()`. Real responder registry integration is a future milestone.
+
+### RAG Pipeline
+
+```
+User question
+  ↓
+Emergency regex guard (bitten|swelling|bleeding…) → hard-coded emergency reply
+  ↓
+TF-IDF retrieval (scikit-learn cosine similarity, bigrams, sublinear_tf)
+  ↓  top-4 chunks, MYTH/FIRST_AID category boosted
+LLM generation: GGUF → Grok grok-2-latest → Gemini → retrieval-only fallback
+  ↓
+Response: answer + sources + mythFlagged + source label
+```
+
+### Hospital Ranking Algorithm (FR-4.2)
+
+Score formula (descending = best):
+```
+CONFIRMED stock: 100 - (etaMin × 0.6)
+LOW stock:        55 - (etaMin × 0.6)
+UNKNOWN stock:    30 - (etaMin × 0.5)
+STALE confirmed: score -= 35
+OUT of stock:      5 - (etaMin × 0.2)
+```
+
+Distance: Haversine straight-line × 1.32 road factor. Speed: 42 km/h >25km, 26 km/h short.
+
+### Snake ID Classification Chain
+
+```
+POST /api/snake-id { image, text }
+  ↓
+1. image + GROK_API_KEY? → Grok Vision (grok-2-vision-latest)
+   Returns single digit 1-5 → CATALOGUE[idx]
+  ↓
+2. text provided? → Deterministic keyword match (cobra/hood/viper/krait/rat snake)
+  ↓
+3. Neither? → Guidance message "Please describe the snake"
+   (no random.choice — eliminated)
+```
+
+---
+
+## Frontend Architecture
+
+### Pages & Routing
+
+Single-page application. One route: `/` (`app/page.tsx`). Role switching via `activeRole` state:
+
+```
+activeRole:
+  'sos'       → GPS banner + RiskPanel + LiveSosDemo + quick-action cards
+  'responder' → Responder Dashboard (incident queue)
+  'hospital'  → HospitalStockConsole + AuditTrailPanel
+  'myth'      → MythBuster (RAG chat)
+  'snake_id'  → SnakeId (Grok Vision + text)
+  'admin'     → StatsStrip + OutboxPanel + ArchitectureDisplay
+```
+
+### Component Hierarchy
+
+```
+page.tsx (Page)
+  ├── ShaderBackground        [memo] WebGL fragment shader animation
+  ├── TopAppBar               [memo] Header + role switcher
+  ├── NavigationDrawer        [memo] Slide-out drawer
+  │
+  ├── GPS Banner              (inline, driven by useGeolocation hook)
+  ├── RiskPanel               fetches /api/risk with real GPS coords
+  ├── LiveSosDemo             SSE stream, 3-lane dispatch view, hospital ranking
+  ├── SnakeId                 Grok Vision + text keyword ID
+  ├── MythBuster              RAG chat UI
+  ├── HospitalStockConsole    Stock PATCH + hospital list
+  ├── StatsStrip              /api/stats bar chart
+  ├── AuditTrailPanel         /api/audit timeline
+  ├── OutboxPanel             /api/ops/outbox live view
+  ├── SymptomLogger           Symptom observation form
+  └── SiteFooter              [memo]
+```
+
+### Data Flow
+
+```
+useGeolocation hook
+  → lat/lng/source/label
+  → passed as props to: RiskPanel, LiveSosDemo
+  → LiveSosDemo passes coords in POST /api/sos body
+  → RiskPanel appends ?lat=&lng= to GET /api/risk
+```
+
+SSE connection lifecycle:
+```
+trigger() → POST /api/sos → streamUrl in response
+  → new EventSource(streamUrl)
+  → events: snapshot, dispatch_attempted, dispatch_accepted, incident_state
+  → closeStream() on HANDED_OFF or component unmount
+```
+
+---
+
+## Key Architecture Decisions
+
+| Decision | Rationale |
+|----------|-----------|
+| Python backend + Next.js frontend (not pure Next.js) | System design requirement: demonstrate outbox pattern, SSE, real DB layer |
+| SQLite not Postgres | Hackathon / demo mode; `NAGRAKSHA_DB` env var allows Postgres path |
+| In-process event bus | No Redis/Kafka dependency; daemonthread handles dispatch; good enough for single-instance |
+| TF-IDF not vector DB | Zero infrastructure; scikit-learn is already a dependency; works offline |
+| Grok Vision over file upload | No CV model deployment; API call is instant; gracefully falls back to text |
+| `?XTransformPort=8000` | AntiGravity IDE gateway convention; keeps all API calls relative |
+| `navigator.geolocation` in hook | Encapsulates browser API; provides typed fallback; prevents prop drilling |
