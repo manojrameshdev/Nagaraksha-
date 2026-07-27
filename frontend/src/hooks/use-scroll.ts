@@ -20,7 +20,7 @@ export function useScrollProgress() {
       target.current = Math.min(1, Math.max(0, p));
       const v = h.scrollTop - lastY.current;
       lastY.current = h.scrollTop;
-      setVelocity(v);
+      setVelocity((prev) => (prev === v ? prev : v));
     };
     const onScroll = () => compute();
     compute();
@@ -36,7 +36,7 @@ export function useScrollProgress() {
   useEffect(() => {
     const loop = () => {
       eased.current += (target.current - eased.current) * 0.12;
-      if (Math.abs(eased.current - lastProgress.current) > 0.001) {
+      if (Math.abs(eased.current - lastProgress.current) > 0.002) {
         lastProgress.current = eased.current;
         setProgress(eased.current);
       }
@@ -96,7 +96,7 @@ export function useActiveSection(ids: string[]) {
         const el = document.getElementById(id);
         if (el && el.offsetTop <= center) current = id;
       }
-      setActive(current);
+      setActive((prev) => (prev === current ? prev : current));
     };
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });

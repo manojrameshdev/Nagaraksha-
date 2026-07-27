@@ -14,6 +14,14 @@
 
 ---
 
+## Additional Re-render Hardening (Step 2)
+1. **`useActiveSection` scroll bailout**: Added `setActive(prev => prev === current ? prev : current)` to prevent state updates on scroll when section ID hasn't changed.
+2. **`useScrollProgress` velocity bailout**: Added `setVelocity(prev => prev === v ? prev : v)` to prevent state updates on scroll when velocity hasn't changed.
+3. **`AuditTrailPanel` polling bailout**: Added JSON deep equality check before `setData` in 8s interval loop to prevent re-renders when backend trail events remain identical.
+4. **`OutboxPanel` polling bailout**: Added JSON deep equality check before `setData` in 6s interval loop to prevent re-renders when outbox metrics remain unchanged.
+
+---
+
 ## Symptoms
 - Frontend re-renders continuously in a loop (~60-120 renders/sec), causing CPU load & UI lag
 - Icons render as raw string text (`my_location`, `warning`, `search`, `arrow_forward`, `healing`, `emergency`, `menu`) instead of Material Symbols glyphs

@@ -1026,13 +1026,21 @@ export function AuditTrailPanel() {
     if (!inView) return;
     fetch(apiUrl('/api/audit'))
       .then((r) => r.json())
-      .then((json: AuditData) => setData(json))
+      .then((json: AuditData) =>
+        setData((prev) =>
+          JSON.stringify(prev?.events) === JSON.stringify(json.events) ? prev : json,
+        ),
+      )
       .catch(() => toast.error('Could not load audit trail'))
       .finally(() => setLoading(false));
     const id = setInterval(() => {
       fetch(apiUrl('/api/audit'))
         .then((r) => r.json())
-        .then((json: AuditData) => setData(json))
+        .then((json: AuditData) =>
+          setData((prev) =>
+            JSON.stringify(prev?.events) === JSON.stringify(json.events) ? prev : json,
+          ),
+        )
         .catch(() => {});
     }, 8000);
     return () => clearInterval(id);
@@ -1143,13 +1151,27 @@ export function OutboxPanel() {
     if (!inView) return;
     fetch(apiUrl('/api/outbox'))
       .then((r) => r.json())
-      .then((json: OutboxData) => setData(json))
+      .then((json: OutboxData) =>
+        setData((prev) =>
+          JSON.stringify(prev?.summary) === JSON.stringify(json.summary) &&
+          JSON.stringify(prev?.recent) === JSON.stringify(json.recent)
+            ? prev
+            : json,
+        ),
+      )
       .catch(() => toast.error('Could not load outbox'))
       .finally(() => setLoading(false));
     const id = setInterval(() => {
       fetch(apiUrl('/api/outbox'))
         .then((r) => r.json())
-        .then((json: OutboxData) => setData(json))
+        .then((json: OutboxData) =>
+          setData((prev) =>
+            JSON.stringify(prev?.summary) === JSON.stringify(json.summary) &&
+            JSON.stringify(prev?.recent) === JSON.stringify(json.recent)
+              ? prev
+              : json,
+          ),
+        )
         .catch(() => {});
     }, 6000);
     return () => clearInterval(id);
