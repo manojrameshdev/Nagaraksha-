@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, memo } from 'react';
 
 /**
  * ShaderBackground — full-viewport WebGL fragment shader.
@@ -95,7 +95,7 @@ void main(){
 }
 `;
 
-export function ShaderBackground() {
+export const ShaderBackground = memo(function ShaderBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const scroll = useRef(0);
   const targetScroll = useRef(0);
@@ -183,4 +183,4 @@ export function ShaderBackground() {
       style={{ width: '100vw', height: '100vh' }}
     />
   );
-}
+});

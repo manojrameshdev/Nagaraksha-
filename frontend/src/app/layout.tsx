@@ -105,7 +105,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
         <Toaster />
         <script
           dangerouslySetInnerHTML={{
-            __html: `if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){})});}`,
+            __html: `if('serviceWorker' in navigator){if(window.location.hostname==='localhost'||window.location.hostname==='127.0.0.1'){navigator.serviceWorker.getRegistrations().then(function(rs){for(var r of rs){r.unregister()}})}else{window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){})})}}`,
           }}
         />
       </body>

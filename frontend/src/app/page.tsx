@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { ShaderBackground } from '@/components/shader-background';
 import { TopAppBar, NavigationDrawer, SiteFooter } from '@/components/sections';
 import {
@@ -24,6 +24,10 @@ export default function Page() {
     'sos' | 'responder' | 'hospital' | 'myth' | 'snake_id' | 'admin'
   >('sos');
 
+  const toggleDrawer = useCallback(() => setDrawerOpen((prev) => !prev), []);
+  const closeDrawer = useCallback(() => setDrawerOpen(false), []);
+  const selectRole = useCallback((r: string) => setActiveRole(r as typeof activeRole), []);
+
   return (
     <div className="relative flex min-h-screen flex-col bg-[#051710] font-[Lexend] text-[#d2e7dc] selection:bg-[#2BB673] selection:text-[#051710]">
       {/* Background Snake Scale Pattern & WebGL Fragment Shader */}
@@ -31,16 +35,8 @@ export default function Page() {
       <ShaderBackground />
 
       {/* Top Header & Navigation Drawer */}
-      <TopAppBar
-        onToggleDrawer={() => setDrawerOpen((prev) => !prev)}
-        activeRole={activeRole}
-        onSelectRole={(r) => setActiveRole(r as typeof activeRole)}
-      />
-      <NavigationDrawer
-        isOpen={drawerOpen}
-        onClose={() => setDrawerOpen(false)}
-        onSelectRole={(r) => setActiveRole(r as typeof activeRole)}
-      />
+      <TopAppBar onToggleDrawer={toggleDrawer} activeRole={activeRole} onSelectRole={selectRole} />
+      <NavigationDrawer isOpen={drawerOpen} onClose={closeDrawer} onSelectRole={selectRole} />
 
       {/* Main Content Area */}
       <main className="relative z-10 flex-1 pt-24 pb-28 px-4 md:px-8 max-w-6xl mx-auto w-full">

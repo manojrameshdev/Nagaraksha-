@@ -1,6 +1,6 @@
 'use client';
 
-import { type ComponentType, type ReactNode } from 'react';
+import { memo, type ComponentType, type ReactNode } from 'react';
 
 import {
   AlertOctagon,
@@ -31,7 +31,7 @@ import { Badge } from '@/components/ui/badge';
 import { SlitherSprite } from '@/components/slither-sprite';
 import { cn } from '@/lib/utils';
 
-export function TopAppBar({
+export const TopAppBar = memo(function TopAppBar({
   onToggleDrawer,
   activeRole,
   onSelectRole,
@@ -95,9 +95,9 @@ export function TopAppBar({
       </button>
     </header>
   );
-}
+});
 
-export function NavigationDrawer({
+export const NavigationDrawer = memo(function NavigationDrawer({
   isOpen,
   onClose,
   onSelectRole,
@@ -143,7 +143,7 @@ export function NavigationDrawer({
       </aside>
     </div>
   );
-}
+});
 
 /* ------------------------------------------------------------------ HERO */
 export function Hero() {
@@ -742,7 +742,7 @@ function PwaCard({
 }
 
 /* ------------------------------------------------------------------ FOOTER */
-export function SiteFooter() {
+export const SiteFooter = memo(function SiteFooter() {
   return (
     <footer className="mt-auto border-t border-[rgba(234,243,237,0.08)] bg-[rgba(8,20,15,0.6)] backdrop-blur">
       <div className="mx-auto max-w-7xl px-5 py-10 md:px-8">
@@ -782,7 +782,7 @@ export function SiteFooter() {
       </div>
     </footer>
   );
-}
+});
 
 /* ----------------------------------------------------------- SECTION SHELL */
 export function Section({
