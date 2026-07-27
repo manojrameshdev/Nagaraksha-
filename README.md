@@ -10,32 +10,33 @@ Snakebite response system for India — myth-busting RAG chatbot, SOS dispatch, 
 - **Node.js** 20+ — [nodejs.org](https://nodejs.org)
 - **npm** or **bun** (we use bun-lock but npm works too)
 
-### 1. Clone & install
+### 1. One-Step Setup
 
 ```bash
 git clone <repo>
 cd nagraksha
+python setup.py
 ```
+
+This single command checks prerequisites, creates your `.env` file, installs Python and Node.js dependencies, and initializes the database.
+
+Alternatively, to set up manually:
 
 **Backend:**
 
 ```bash
-cd backend
-pip install -r requirements.txt
-cd ..
+pip install -r backend/requirements.txt
 ```
 
 **Frontend:**
 
 ```bash
-cd frontend
-npm install
-cd ..
+cd frontend && npm install && cd ..
 ```
 
 ### 2. Configure environment
 
-Copy the example env file — no changes needed to get started:
+Copy `.env.example` to `.env` (automatically done by `python setup.py`):
 
 ```bash
 cp .env.example .env

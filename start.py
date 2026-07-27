@@ -38,14 +38,14 @@ def _check_prerequisites():
     if (major, minor) < (3, 10):
         print(f"  [!] Warning: Python 3.10+ recommended (found {major}.{minor})")
     else:
-        print(f"  [✓] Python {major}.{minor}")
+        print(f"  [OK] Python {major}.{minor}")
 
     # Node / npx check
     if not shutil.which("npx") and not shutil.which("node"):
         print("  [!] Error: Node.js/npx not found on PATH. Please install Node.js 20+.")
         sys.exit(1)
     else:
-        print("  [✓] Node.js / npx available")
+        print("  [OK] Node.js / npx available")
 
     # .env check
     env_file = os.path.join(ROOT, ".env")
@@ -57,7 +57,7 @@ def _check_prerequisites():
         else:
             print("  [!] Note: No .env file found.")
     else:
-        print("  [✓] .env file present")
+        print("  [OK] .env file present")
     print()
 
 
@@ -123,17 +123,17 @@ def _wait_for_health():
             frontend_ready = _is_port_responsive(frontend_url)
 
         if backend_ready and frontend_ready:
-            print("  [✓] Backend & Frontend are fully operational!")
+            print("  [OK] Backend & Frontend are fully operational!")
             return True
         time.sleep(1.0)
 
     if backend_ready:
-        print("  [✓] Backend is ready")
+        print("  [OK] Backend is ready")
     else:
         print("  [!] Backend taking longer than expected to start (check backend.log)")
 
     if frontend_ready:
-        print("  [✓] Frontend is ready")
+        print("  [OK] Frontend is ready")
     else:
         print("  [!] Frontend taking longer than expected to start (check dev.log)")
 
