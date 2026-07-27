@@ -57,10 +57,10 @@ def setup_env():
     # Inform user about API keys / local model
     print("\n  Environment Configuration Summary:")
     print("  * Database: SQLite (default at backend/db/nagraksha.db)")
-    print("  * Chatbot LLM Options:")
-    print("      1. Local GGUF: Place any .gguf model in model/ (no API key needed)")
-    print("      2. Grok (xAI): Set GROK_API_KEY in .env")
-    print("      3. Gemini (Google): Set GEMINI_API_KEY in .env")
+    print("  * Chatbot & Vision AI Options:")
+    print("      1. Local GGUF: Place any .gguf model in model/ (no API key needed for RAG)")
+    print("      2. Grok (xAI): Set GROK_API_KEY in .env (RAG chatbot + Snake ID Vision)")
+    print("      3. Gemini (Google): Set GEMINI_API_KEY in .env (secondary RAG fallback)")
 
 
 def install_backend_deps():
@@ -98,12 +98,9 @@ def init_database():
     print_step(5, "Initializing Database & Knowledge Base")
     sys.path.insert(0, BACKEND_DIR)
     try:
-        from app import database as db
-        from app.rag import ensure_kb_seeded
-        db.init_db()
-        print("  [OK] SQLite database schema initialized at backend/db/nagraksha.db")
-        ensure_kb_seeded()
-        print("  [OK] Medical RAG knowledge base seeded successfully")
+        from app import seed
+        seed.run()
+        print("  [OK] SQLite schema, hospitals, risk reports & RAG knowledge base initialized")
     except Exception as e:
         print(f"  [!] Database initialization notice: {e}")
 
