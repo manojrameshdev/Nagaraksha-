@@ -138,6 +138,11 @@ model/       Place GGUF models here (gitignored)
 | `/api/architecture` | GET      | System manifest          |
 | `/api/ops`          | GET      | Operational endpoints    |
 
+## Process Standards
+
+- **Automated Commit Trigger**: Always propose or execute a git commit with a descriptive message as soon as CI/CD pipelines pass, a milestone/phase is completed, or a debug session (`gsd-debugger`) is completed and resolved.
+- **Workflow & Test Synchronization**: Always ensure GitHub workflow files (`.github/workflows/`) are synchronized with the project structure and that all tests pass before completing a task.
+
 ## Project Status
 
 Hackathon prototype. SQLite used for speed — production deployment should migrate to PostgreSQL + PostGIS (see [design docs](docs/)).

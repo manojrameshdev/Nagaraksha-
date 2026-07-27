@@ -4,6 +4,11 @@
 
 NagRaksha is a brownfield hackathon project with fully functional frontend and backend but zero quality infrastructure. This roadmap transforms it into a maintainable codebase with code formatting, TypeScript strictness, automated tests, progressive ESLint enforcement, CI pipeline automation, and developer experience polish — all introduced incrementally to avoid overwhelming the codebase with 200+ violations at once.
 
+## Process Standards
+
+- **Automated Commit Trigger**: Always propose or execute a git commit with a descriptive message as soon as CI/CD pipelines pass, a milestone/phase is completed, or a debug session (`gsd-debugger`) is completed and resolved.
+- **Workflow & Test Synchronization**: Always ensure GitHub workflow files (`.github/workflows/`) are synchronized with the project structure and that all tests pass before completing a task.
+
 ## Phases
 
 - [x] **Phase 1: Foundation** — Consistent code formatting & baseline code quality rules

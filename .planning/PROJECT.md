@@ -10,6 +10,11 @@ Target users: snakebite victims and bystanders in India, first responders, rescu
 
 A victim or bystander can trigger a one-tap SOS that instantly dispatches three parallel responder lanes and routes to the nearest hospital with confirmed antivenom stock.
 
+## Process Standards
+
+- **Automated Commit Trigger**: Always propose or execute a git commit with a descriptive message as soon as CI/CD pipelines pass, a milestone/phase is completed, or a debug session (`gsd-debugger`) is completed and resolved.
+- **Workflow & Test Synchronization**: Always ensure GitHub workflow files (`.github/workflows/`) are synchronized with the project structure and that all tests pass before completing a task.
+
 ## Current Milestone: v1.0 Quality Infrastructure
 
 **Goal:** Establish code quality guardrails, automated testing, and CI/CD pipeline to ensure code correctness and maintainability.
