@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 
 /**
@@ -16,7 +16,7 @@ const FRAMES = [1, 2, 3, 4, 5, 6];
 
 export function SlitherSprite({ className, size = 220 }: { className?: string; size?: number }) {
   const [frame, setFrame] = useState(0);
-  const [_speed, setSpeed] = useState(1);
+  const speedRef = useRef(1);
 
   useEffect(() => {
     let raf = 0;
@@ -31,9 +31,8 @@ export function SlitherSprite({ className, size = 220 }: { className?: string; s
       const v = Math.abs(window.scrollY - lastY);
       lastY = window.scrollY;
       // 1x at rest, up to ~3x when scrolling fast
-      const s = 1 + Math.min(2, v / 60);
-      setSpeed(s);
-      acc += dt * s;
+      speedRef.current = 1 + Math.min(2, v / 60);
+      acc += dt * speedRef.current;
       if (acc >= interval) {
         acc = 0;
         setFrame((f) => (f + 1) % FRAMES.length);

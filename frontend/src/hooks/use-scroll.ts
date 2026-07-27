@@ -9,6 +9,7 @@ export function useScrollProgress() {
   const target = useRef(0);
   const eased = useRef(0);
   const lastY = useRef(0);
+  const lastProgress = useRef(0);
   const raf = useRef<number>(0);
 
   useEffect(() => {
@@ -35,7 +36,10 @@ export function useScrollProgress() {
   useEffect(() => {
     const loop = () => {
       eased.current += (target.current - eased.current) * 0.12;
-      setProgress(eased.current);
+      if (Math.abs(eased.current - lastProgress.current) > 0.001) {
+        lastProgress.current = eased.current;
+        setProgress(eased.current);
+      }
       raf.current = requestAnimationFrame(loop);
     };
     raf.current = requestAnimationFrame(loop);
