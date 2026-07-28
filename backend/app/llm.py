@@ -199,7 +199,7 @@ def generate(
             return out
 
     # 2. Groq
-    if _env("GROK_API_KEY") or _env("GROQ_API_KEY"):
+    if _env("GROQ_API_KEY"):
         out = _generate_groq(system_prompt, prompt, max_tokens, temperature)
         if out is not None:
             return out
