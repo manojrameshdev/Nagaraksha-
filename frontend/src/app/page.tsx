@@ -15,6 +15,7 @@ import {
   SymptomLogger,
   RiskPanel,
 } from '@/components/interactive';
+import { EmergencyGuide } from '@/components/emergency-guide';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, AlertTriangle, CheckCircle2, Navigation, Loader2 } from 'lucide-react';
@@ -23,7 +24,7 @@ import { useGeolocation } from '@/hooks/use-geolocation';
 export default function Page() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeRole, setActiveRole] = useState<
-    'sos' | 'responder' | 'hospital' | 'myth' | 'snake_id' | 'admin'
+    'sos' | 'responder' | 'hospital' | 'myth' | 'snake_id' | 'guide' | 'admin'
   >('sos');
 
   const toggleDrawer = useCallback(() => setDrawerOpen((prev) => !prev), []);
@@ -49,6 +50,7 @@ export default function Page() {
         <div className="flex lg:hidden overflow-x-auto gap-2 pb-4 mb-4 border-b border-[rgba(234,243,237,0.1)] no-scrollbar">
           {[
             { id: 'sos', label: 'Victim SOS' },
+            { id: 'guide', label: 'Emergency Guide' },
             { id: 'responder', label: 'Responder' },
             { id: 'hospital', label: 'Hospitals' },
             { id: 'myth', label: 'AI Myth Buster' },
@@ -148,7 +150,35 @@ export default function Page() {
                   </p>
                 </div>
               </button>
+
+              <button
+                onClick={() => setActiveRole('guide')}
+                className="col-span-1 md:col-span-2 bg-[#1c2e26] hover:bg-[#273831] transition-all rounded-2xl p-6 outline-luminous flex items-center justify-between border-l-2 border-[#2BB673] group"
+              >
+                <div>
+                  <h3 className="text-lg font-bold text-mist">
+                    Clinical First-Aid &amp; Emergency Guide
+                  </h3>
+                  <p className="text-xs text-[#8fa39b] mt-1">
+                    2-minute calm timer, bite swelling tracker, offline SMS SOS, and species mimic
+                    matrix
+                  </p>
+                </div>
+                <span className="material-symbols-outlined text-[#2BB673] group-hover:translate-x-1 transition-transform">
+                  arrow_forward
+                </span>
+              </button>
             </div>
+
+            {/* Embedded Emergency Guide Component */}
+            <EmergencyGuide lat={location.lat} lng={location.lng} />
+          </div>
+        )}
+
+        {/* -------------------- VIEW: EMERGENCY GUIDE TABS -------------------- */}
+        {activeRole === 'guide' && (
+          <div className="space-y-6">
+            <EmergencyGuide lat={location.lat} lng={location.lng} />
           </div>
         )}
 

@@ -17,7 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from . import database as db
 from .rag import ensure_kb_seeded
 from .eventbus import start_worker
-from .routes import sos, incidents, hospitals, risk, snake_id, myth_buster, stats, architecture, ops
+from .routes import sos, incidents, hospitals, risk, snake_id, myth_buster, stats, architecture, ops, transcribe
 
 
 @asynccontextmanager
@@ -55,3 +55,4 @@ app.include_router(myth_buster.router)
 app.include_router(stats.router)
 app.include_router(architecture.router)
 app.include_router(ops.router)
+app.include_router(transcribe.router)

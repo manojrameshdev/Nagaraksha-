@@ -11,6 +11,7 @@ import {
 import { toast } from 'sonner';
 import { useInView } from '@/hooks/use-scroll';
 import { apiUrl } from '@/lib/api';
+import { VoiceInput } from './voice-input';
 import {
   Truck,
   Stethoscope,
@@ -626,6 +627,12 @@ type SnakeIdResult = {
   venom?: string;
   confidence?: number;
   firstAid?: string;
+  danger?: string;
+  mimicWarning?: string;
+  headShape?: string;
+  markings?: string;
+  source?: string;
+  note?: string;
   disclaimer?: string;
 };
 export function SnakeId() {
@@ -664,14 +671,14 @@ export function SnakeId() {
     <div className="mt-4 rounded-xl border border-[rgba(234,243,237,0.08)] bg-[rgba(8,20,15,0.5)] p-4">
       <div className="flex items-center justify-between">
         <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Bug className="h-3.5 w-3.5 text-[#4FBF9A]" /> Photo identification
+          <Bug className="h-3.5 w-3.5 text-[#4FBF9A]" /> Photo & Voice Identification
         </span>
-        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-          CV assist
+        <span className="text-[10px] uppercase tracking-wider text-[#7fd6ad] font-mono">
+          GROQ / Multi-Vision AI
         </span>
       </div>
 
-      <div className="mt-3 flex items-center gap-2">
+      <div className="mt-3 flex flex-wrap items-center gap-2">
         <input
           ref={fileRef}
           type="file"
@@ -687,9 +694,18 @@ export function SnakeId() {
         >
           <Upload className="h-3.5 w-3.5" /> {image ? 'Photo selected' : 'Upload photo'}
         </Button>
+
+        {/* Voice Input Button */}
+        <VoiceInput
+          buttonText="Voice Description"
+          onTranscript={(spokenText) =>
+            setText((prev) => (prev ? `${prev} ${spokenText}` : spokenText))
+          }
+        />
+
         <Button
           size="sm"
-          className="h-9 gap-2 bg-[#2BB673] text-[#06120C] hover:bg-[#239961]"
+          className="h-9 gap-2 bg-[#2BB673] text-[#06120C] hover:bg-[#239961] ml-auto font-bold"
           onClick={identify}
           disabled={loading || (!image && !text)}
         >
@@ -698,52 +714,80 @@ export function SnakeId() {
           ) : (
             <Bug className="h-3.5 w-3.5" />
           )}
-          Identify
+          Identify Snake
         </Button>
       </div>
 
       <Textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
-        placeholder="Or describe the snake (e.g. 'black with a white hood marking, about 4 feet')…"
+        placeholder="Or describe the snake in any language (e.g. 'kala saap, hood, spectacled pattern') or use the Voice button above…"
         className="mt-2 min-h-[60px] resize-none border-[rgba(234,243,237,0.1)] bg-[rgba(8,20,15,0.4)] text-sm text-mist placeholder:text-muted-foreground"
       />
 
       {result && (
-        <div className="mt-3 rounded-lg border border-[rgba(214,158,46,0.2)] bg-[rgba(214,158,46,0.05)] p-3">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold text-mist">{result.species}</span>
+        <div className="mt-3 rounded-lg border border-[rgba(214,158,46,0.3)] bg-[rgba(214,158,46,0.06)] p-4 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h4 className="text-base font-bold text-mist">
+                {result.species || 'Uncertain Species'}
+              </h4>
+              {result.source && (
+                <span className="text-[10px] text-[#7fd6ad] font-mono">
+                  Engine: {result.source}
+                </span>
+              )}
+            </div>
             <span
-              className="tnum rounded-full px-2 py-0.5 text-[10px] font-medium"
+              className="tnum rounded-full px-2.5 py-1 text-xs font-bold"
               style={{
                 background:
                   result.venom === 'NON_VENOMOUS'
-                    ? 'rgba(43,182,115,0.18)'
-                    : 'rgba(229,72,77,0.18)',
-                color: result.venom === 'NON_VENOMOUS' ? '#7fd6ad' : '#E5484D',
+                    ? 'rgba(43,182,115,0.2)'
+                    : result.venom === 'MILDLY_VENOMOUS'
+                      ? 'rgba(214,158,46,0.2)'
+                      : 'rgba(229,72,77,0.2)',
+                color:
+                  result.venom === 'NON_VENOMOUS'
+                    ? '#7fd6ad'
+                    : result.venom === 'MILDLY_VENOMOUS'
+                      ? '#D69E2E'
+                      : '#E5484D',
               }}
             >
               {result.venom}
             </span>
           </div>
-          <div className="mt-2 flex items-center gap-2">
-            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[rgba(234,243,237,0.08)]">
+
+          <div className="flex items-center gap-2">
+            <div className="h-2 flex-1 overflow-hidden rounded-full bg-[rgba(234,243,237,0.08)]">
               <div
-                className="h-full rounded-full bg-gold"
-                style={{ width: `${Math.round((result.confidence ?? 0) * 100)}%` }}
+                className="h-full rounded-full bg-gold transition-all duration-500"
+                style={{ width: `${Math.round((result.confidence ?? 0.7) * 100)}%` }}
               />
             </div>
-            <span className="tnum text-[11px] text-muted-foreground">
-              {Math.round((result.confidence ?? 0) * 100)}% confidence
+            <span className="tnum text-xs font-bold text-gold">
+              {Math.round((result.confidence ?? 0.7) * 100)}% confidence
             </span>
           </div>
+
+          {result.mimicWarning && (
+            <div className="rounded-lg bg-[rgba(229,72,77,0.1)] p-2.5 border border-[rgba(229,72,77,0.2)] text-xs text-[#ffb4ab]">
+              <span className="font-bold uppercase tracking-wider text-[#FF4D4D] block mb-1">
+                ⚠️ Mimic Warning / Confusion Guard:
+              </span>
+              {result.mimicWarning}
+            </div>
+          )}
+
           {result.firstAid && (
-            <p className="mt-2 text-xs leading-relaxed text-[#bcd2c6]">
-              <span className="font-medium text-gold">First aid:</span> {result.firstAid}
+            <p className="text-xs leading-relaxed text-[#bcd2c6]">
+              <span className="font-bold text-gold">Immediate First Aid:</span> {result.firstAid}
             </p>
           )}
-          <p className="mt-2 flex items-start gap-1.5 text-[11px] text-muted-foreground">
-            <AlertTriangle className="mt-0.5 h-3 w-3 flex-shrink-0 text-gold" />
+
+          <p className="flex items-start gap-1.5 text-[11px] text-muted-foreground border-t border-[rgba(234,243,237,0.08)] pt-2">
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-gold" />
             {result.disclaimer}
           </p>
         </div>
@@ -897,11 +941,18 @@ export function MythBuster() {
       </div>
 
       <div className="mt-2 flex items-center gap-2">
+        <VoiceInput
+          buttonText="Voice Ask"
+          onTranscript={(spokenText) => {
+            setInput(spokenText);
+            ask(spokenText);
+          }}
+        />
         <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && ask()}
-          placeholder="Ask about a myth, remedy, or first-aid step…"
+          placeholder="Ask in any language or tap Voice Ask…"
           className="h-9 border-[rgba(234,243,237,0.1)] bg-[rgba(8,20,15,0.4)] text-sm text-mist"
         />
         <Button

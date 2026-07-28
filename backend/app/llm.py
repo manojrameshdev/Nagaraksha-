@@ -77,6 +77,37 @@ def _generate_gguf(prompt: str, max_tokens: int, temperature: float) -> str | No
             return None
 
 
+# ── Groq (Groq Inc.) ──────────────────────────────────────────────────
+
+def _generate_groq(system: str, user: str, max_tokens: int, temperature: float) -> str | None:
+    key = _env("GROQ_API_KEY")
+    if not key:
+        return None
+    try:
+        messages = []
+        if system:
+            messages.append({"role": "system", "content": system})
+        messages.append({"role": "user", "content": user})
+        resp = httpx.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+            json={
+                "model": "llama-3.3-70b-versatile",
+                "messages": messages,
+                "max_tokens": max_tokens,
+                "temperature": temperature,
+            },
+            timeout=30,
+        )
+        if resp.status_code != 200:
+            return None
+        data = resp.json()
+        text = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+        return _trim(text) if text else None
+    except Exception:
+        return None
+
+
 # ── Grok (xAI) ───────────────────────────────────────────────────────
 
 def _generate_grok(system: str, user: str, max_tokens: int, temperature: float) -> str | None:
@@ -151,7 +182,7 @@ def generate(
     *,
     system_prompt: str = "",
 ) -> str | None:
-    """Generate text trying local GGUF → Grok → Gemini in order.
+    """Generate text trying local GGUF → Groq → Grok → Gemini in order.
 
     ``prompt`` is the user message.  ``system_prompt`` is the system
     instruction (only used by cloud providers; the local GGUF model
@@ -167,13 +198,19 @@ def generate(
         if out is not None:
             return out
 
-    # 2. Grok
+    # 2. Groq
+    if _env("GROK_API_KEY") or _env("GROQ_API_KEY"):
+        out = _generate_groq(system_prompt, prompt, max_tokens, temperature)
+        if out is not None:
+            return out
+
+    # 3. Grok
     if _env("GROK_API_KEY"):
         out = _generate_grok(system_prompt, prompt, max_tokens, temperature)
         if out is not None:
             return out
 
-    # 3. Gemini
+    # 4. Gemini
     if _env("GEMINI_API_KEY"):
         out = _generate_gemini(system_prompt, prompt, max_tokens, temperature)
         if out is not None:
@@ -186,6 +223,8 @@ def is_available() -> bool:
     """Check if ANY LLM provider is available (local model file or API key)."""
     return bool(
         _find_model()
+        or _env("GROQ_API_KEY")
         or _env("GROK_API_KEY")
         or _env("GEMINI_API_KEY")
     )
+
