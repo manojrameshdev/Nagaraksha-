@@ -1,13 +1,34 @@
 # NagRaksha backend — Python FastAPI
-# The complete emergency-coordination + RAG backend, separated from the
-# Next.js frontend. Runs on port 8000; the frontend calls it via the
-# gateway using ?XTransformPort=8000.
+# Runs on port 8000; frontend calls it via NEXT_PUBLIC_BACKEND_URL env var.
+
+# Core
 fastapi==0.128.0
-uvicorn==0.44.0
-scikit-learn==1.5.2
-numpy>=1.26
+uvicorn[standard]==0.44.0
 pydantic>=2.0
-llama-cpp-python>=0.3
-httpx>=0.27
 python-dotenv>=1.0
+httpx>=0.27
+python-multipart>=0.0.9
+
+# RAG — ChromaDB replaces scikit-learn TF-IDF
+chromadb>=0.5.0
+scikit-learn>=1.5.2   # kept as TF-IDF fallback if ChromaDB unavailable
+numpy>=1.26
+
+# Scheduling
+apscheduler>=3.10.0
+
+# Auth
+python-jose[cryptography]>=3.3.0
+
+# Rate limiting
+slowapi>=0.1.9
+
+# SMS dispatch
+twilio>=9.0.0
+
+# Error monitoring
+sentry-sdk[fastapi]>=2.0.0
+
+# Dev / CI
 bandit>=1.8.0
+ruff>=0.5.0

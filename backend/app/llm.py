@@ -146,7 +146,8 @@ def _generate_gemini(system: str, user: str, max_tokens: int, temperature: float
         return None
     try:
         resp = httpx.post(
-            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={key}",
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+            headers={"Content-Type": "application/json", "X-Goog-Api-Key": key},
             json={
                 "contents": [
                     {
@@ -227,4 +228,67 @@ def is_available() -> bool:
         or _env("GROK_API_KEY")
         or _env("GEMINI_API_KEY")
     )
+
+
+WOUND_ANALYSIS_PROMPT = """\
+You are a clinical AI assisting snakebite first responders.
+Analyze this wound photograph taken after a reported snakebite.
+The pixel measurement system detected approximately {area_px} discolored pixels
+out of a 640x480 frame ({pct:.1f}% of image area).
+
+Return ONLY a JSON object with exactly these fields, no markdown, no explanation:
+{{"severity_score": <integer 0-100>, "progression": "<rapid|moderate|slow|insufficient_data>", "estimated_venom_spread_cm": <float>, "recommended_antivenom_vials": <integer 1-10>, "notes": "<one clinical observation>"}}
+
+Base your assessment on: wound discoloration extent visible in the image, estimated tissue involvement.
+Do NOT guess species. Focus purely on observable envenomation severity.
+"""
+
+
+async def analyze_wound_image(img_b64: str, swelling_area_px: int) -> dict:
+    """Call Gemini Vision to score wound severity. Returns structured dict."""
+    import json as _json
+    key = _env("GEMINI_API_KEY")
+    total_px = 640 * 480
+    pct = (swelling_area_px / total_px) * 100
+    prompt = WOUND_ANALYSIS_PROMPT.format(area_px=swelling_area_px, pct=pct)
+
+    fallback = {
+        "severity_score": min(100, round(pct * 4)),
+        "progression": "insufficient_data",
+        "estimated_venom_spread_cm": round(pct * 0.3, 1),
+        "recommended_antivenom_vials": max(1, min(10, round(pct / 10))),
+        "notes": "Pixel-based estimate only — Gemini Vision unavailable.",
+    }
+
+    if not key:
+        return fallback
+
+    try:
+        import httpx as _httpx
+        resp = _httpx.post(
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+            headers={"Content-Type": "application/json", "X-Goog-Api-Key": key},
+            json={
+                "contents": [{
+                    "role": "user",
+                    "parts": [
+                        {"text": prompt},
+                        {"inline_data": {"mime_type": "image/jpeg", "data": img_b64}},
+                    ],
+                }],
+                "generationConfig": {"maxOutputTokens": 256, "temperature": 0.1},
+            },
+            timeout=30,
+        )
+        if resp.status_code != 200:
+            return fallback
+        candidates = resp.json().get("candidates", [])
+        if not candidates:
+            return fallback
+        raw = candidates[0].get("content", {}).get("parts", [{}])[0].get("text", "")
+        # strip possible markdown fences
+        raw = raw.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+        return _json.loads(raw)
+    except Exception:
+        return fallback
 

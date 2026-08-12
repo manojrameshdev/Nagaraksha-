@@ -16,6 +16,9 @@ import {
   RiskPanel,
 } from '@/components/interactive';
 import { EmergencyGuide } from '@/components/emergency-guide';
+import { AshaAuditTool } from '@/components/asha-audit-tool';
+import { DistrictRiskMap } from '@/components/district-risk-map';
+import { StakeholderRegistry } from '@/components/stakeholder-registry';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, AlertTriangle, CheckCircle2, Navigation, Loader2 } from 'lucide-react';
@@ -24,7 +27,7 @@ import { useGeolocation } from '@/hooks/use-geolocation';
 export default function Page() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [activeRole, setActiveRole] = useState<
-    'sos' | 'responder' | 'hospital' | 'myth' | 'snake_id' | 'guide' | 'admin'
+    'sos' | 'responder' | 'hospital' | 'myth' | 'snake_id' | 'guide' | 'admin' | 'asha' | 'stakeholders'
   >('sos');
 
   const toggleDrawer = useCallback(() => setDrawerOpen((prev) => !prev), []);
@@ -47,12 +50,14 @@ export default function Page() {
       {/* Main Content Area */}
       <main className="relative z-10 flex-1 pt-24 pb-28 px-4 md:px-8 max-w-6xl mx-auto w-full">
         {/* Role Quick Selector Tabs (Mobile / Sub-header) */}
-        <div className="flex lg:hidden overflow-x-auto gap-2 pb-4 mb-4 border-b border-[rgba(234,243,237,0.1)] no-scrollbar">
+        <div className="flex overflow-x-auto gap-2 pb-4 mb-4 border-b border-[rgba(234,243,237,0.1)] no-scrollbar">
           {[
             { id: 'sos', label: 'Victim SOS' },
             { id: 'guide', label: 'Emergency Guide' },
             { id: 'responder', label: 'Responder' },
             { id: 'hospital', label: 'Hospitals' },
+            { id: 'asha', label: 'ASHA GP Audit' },
+            { id: 'stakeholders', label: 'Stakeholder Registry' },
             { id: 'myth', label: 'AI Myth Buster' },
             { id: 'snake_id', label: 'Snake ID' },
             { id: 'admin', label: 'Analytics' },
@@ -300,6 +305,35 @@ export default function Page() {
             </div>
 
             <KnowledgeBasePanel />
+          </div>
+        )}
+
+        {/* -------------------- VIEW 7: ASHA WORKER GP AUDIT -------------------- */}
+        {activeRole === 'asha' && (
+          <div className="space-y-6">
+            <div className="flex flex-col gap-1">
+              <h2 className="text-2xl font-bold text-mist">ASHA Worker Gram Panchayat Audit Tool</h2>
+              <p className="text-sm text-[#8fa39b]">
+                Standardized offline-first mobile home visit vulnerability assessments & district heatmaps
+              </p>
+            </div>
+
+            <AshaAuditTool />
+            <DistrictRiskMap />
+          </div>
+        )}
+
+        {/* -------------------- VIEW 8: STAKEHOLDER REGISTRY -------------------- */}
+        {activeRole === 'stakeholders' && (
+          <div className="space-y-6">
+            <div className="flex flex-col gap-1">
+              <h2 className="text-2xl font-bold text-mist">Verified Stakeholder & Authority Registry</h2>
+              <p className="text-sm text-[#8fa39b]">
+                Documented partners, clinical validators, and government approvals supporting NagRaksha
+              </p>
+            </div>
+
+            <StakeholderRegistry />
           </div>
         )}
       </main>

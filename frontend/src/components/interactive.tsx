@@ -41,6 +41,9 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { ComplianceBadge } from './compliance-badge';
+import { WoundTracker } from './wound-tracker';
+import { HospitalPacket } from './hospital-packet';
 
 /* ===================================================== LIVE SOS DEMO */
 type DispatchAttempt = {
@@ -472,8 +475,9 @@ export function LiveSosDemo({
                         </Badge>
                       )}
                     </div>
-                    <div className="mt-0.5 text-[11px] text-muted-foreground">
-                      {h.freshness.label}
+                    <div className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground">
+                      <span>{h.freshness.label}</span>
+                      <ComplianceBadge score={(h as any).complianceScore ?? (h.recommended ? 92 : 45)} showDetails />
                     </div>
                   </div>
                   <div className="tnum flex items-center gap-3 text-xs">
@@ -486,8 +490,18 @@ export function LiveSosDemo({
             <p className="mt-3 text-[11px] text-muted-foreground">
               Note the farther <span className="text-mist">Hospital A</span> is recommended over a
               nearer hospital with <span className="text-gold">stale / unknown stock</span>. That is
-              the NagRaksha differentiator (FR-4.2).
+              the NagRaksha compliance-weighted differentiator.
             </p>
+          </div>
+
+          {/* Envenomation Wound Swelling Progression Tracker */}
+          <div className="mt-8">
+            <WoundTracker incidentId={incident?.id || 'inc-demo-1'} />
+          </div>
+
+          {/* Hospital Pre-Arrival Intelligence Packet */}
+          <div className="mt-6">
+            <HospitalPacket incidentId={incident?.id || 'inc-demo-1'} />
           </div>
         </>
       )}
