@@ -1,7 +1,7 @@
 """Hospital routes — list (ranked) + stock update."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Query
 from ..models import StockUpdate
 from .. import database as db
 from ..eventbus import audit, get_ranked_hospitals
@@ -10,9 +10,10 @@ router = APIRouter()
 
 
 @router.get("/api/hospitals")
-def list_hospitals(request: Request):
-    lat = float(request.query_params.get("lat", 12.8003))
-    lng = float(request.query_params.get("lng", 77.5954))
+def list_hospitals(
+    lat: float = Query(12.8003, ge=-90, le=90, description="Latitude of origin"),
+    lng: float = Query(77.5954, ge=-180, le=180, description="Longitude of origin"),
+):
     return {"hospitals": get_ranked_hospitals(lat, lng), "origin": {"lat": lat, "lng": lng}}
 
 

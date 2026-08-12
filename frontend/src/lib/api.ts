@@ -1,13 +1,19 @@
 /**
- * API helper — the NagRaksha backend is a separate Python FastAPI service on
- * port 8000. The Caddy gateway routes ?XTransformPort=8000 to that port.
- * All API calls use relative paths + the XTransformPort query (never an
- * absolute http://localhost:8000 URL, per the gateway rules).
+ * API helper — the NagRaksha backend is a separate Python FastAPI service.
+ * In local dev set NEXT_PUBLIC_BACKEND_URL=http://localhost:8000 in .env.local
+ * In production Railway sets this to the backend service URL.
+ * No more XTransformPort gateway artifact.
  */
-export const API_PORT = '8000';
+const BACKEND_URL =
+  process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/$/, '') ?? 'http://localhost:8000';
 
-/** Append ?XTransformPort=8000 to a relative API path. */
+/** Build an absolute URL to a backend API path. */
 export function apiUrl(path: string): string {
-  const sep = path.includes('?') ? '&' : '?';
-  return `${path}${sep}XTransformPort=${API_PORT}`;
+  return `${BACKEND_URL}${path}`;
+}
+
+/** Build a WebSocket URL (ws:// or wss://) for a backend path. */
+export function wsUrl(path: string): string {
+  const base = BACKEND_URL.replace(/^http/, 'ws');
+  return `${base}${path}`;
 }

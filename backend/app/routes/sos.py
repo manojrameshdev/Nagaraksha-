@@ -41,8 +41,9 @@ def trigger_sos(req: SosRequest):
         "ref": gen_incident_ref(),
         "rankedHospitals": ranked,
         "dispatchedAt": now,
-        "streamUrl": f"/api/incidents/{inc_id}/stream?XTransformPort=8000",
-        "auditUrl": f"/api/incidents/{inc_id}/audit?XTransformPort=8000",
+        "streamUrl": f"/api/incidents/{inc_id}/stream",
+        "wsUrl": f"/ws/incidents/{inc_id}",
+        "auditUrl": f"/api/incidents/{inc_id}/audit",
     }
 
 
