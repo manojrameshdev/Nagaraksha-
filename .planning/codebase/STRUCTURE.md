@@ -1,209 +1,201 @@
 # Codebase Structure
 
-**Analysis Date:** 2026-08-11
+**Analysis Date:** 2026-08-13
 
 ## Directory Layout
 
 ```
 Nagaraksha-/
-├── backend/                 # Python FastAPI service (port 8000)
+├── backend/                # Python FastAPI backend (port 8000)
 │   ├── app/
-│   │   ├── main.py          # FastAPI app entry, lifespan, router registration
-│   │   ├── database.py      # SQLite schema + connection manager
-│   │   ├── domain.py        # Geo/ETA/ranking/dispatch pure functions
-│   │   ├── eventbus.py      # Outbox worker, pub/sub bus, audit logger
-│   │   ├── rag.py           # TF-IDF retrieval + RAG answer pipeline
-│   │   ├── llm.py           # Local GGUF → Groq → Grok → Gemini chain
-│   │   ├── models.py        # Pydantic request DTOs
-│   │   ├── seed.py          # Demo data seeding
+│   │   ├── main.py         # App entry: lifespan, Sentry, limiter, CORS, token endpoint, router registration
+│   │   ├── database.py     # SQLite schema, migrate_db(), get_conn(), id/time helpers
+│   │   ├── domain.py       # Geo math, stock freshness, hospital ranking, dispatch simulation
+│   │   ├── auth.py         # JWT role tokens + require_role() dependency factory
+│   │   ├── eventbus.py     # Outbox worker thread, in-process bus, audit logger, 3-lane fan-out
+│   │   ├── dispatch.py     # Twilio SMS dispatch (currently unused — see CONCERNS.md)
+│   │   ├── rag.py          # ChromaDB retrieval + TF-IDF fallback, rag_answer() pipeline
+│   │   ├── llm.py          # Local GGUF → Groq → Grok → Gemini chain; wound vision analysis
+│   │   ├── compliance.py   # Hospital compliance scoring + badge labels
+│   │   ├── scheduler.py    # APScheduler wrapper for the 15-min compliance job
+│   │   ├── models.py       # Pydantic request DTOs
+│   │   ├── seed.py         # Demo seed: hospitals, stock, risk reports, KB
 │   │   ├── knowledge_base_data.py  # Curated KB corpus (seed source)
-│   │   ├── __init__.py
-│   │   └── routes/          # 10 route modules (one per API domain)
-│   ├── db/                  # Runtime SQLite DB (gitignored)
-│   ├── tests/               # pytest suite (conftest, routes, domain)
-│   ├── requirements.txt
-│   └── run.sh
-├── frontend/                # Next.js 16 app (port 3000)
+│   │   ├── routes/         # 16 FastAPI router modules (see Key File Locations)
+│   │   └── __init__.py
+│   ├── db/                 # Runtime SQLite file (gitignored)
+│   ├── chroma_db/          # Runtime ChromaDB vectors (gitignored)
+│   ├── tests/              # Pytest: conftest.py, test_domain.py, test_routes.py
+│   ├── Dockerfile
+│   └── requirements.txt
+├── frontend/               # Next.js 16 PWA (port 3000)
 │   ├── src/
-│   │   ├── app/             # layout.tsx, page.tsx, globals.css
-│   │   ├── components/      # panels, shell, ui primitives
-│   │   │   └── ui/          # ~50 shadcn/ui Radix primitives
-│   │   ├── hooks/           # use-geolocation, use-mobile, use-scroll, use-toast
-│   │   ├── lib/             # api.ts + legacy TS mirrors (tests only)
-│   │   │   └── __tests__/   # vitest unit tests
-│   │   └── test/            # vitest setup file
-│   ├── prisma/              # Legacy Prisma schema (prototype only)
-│   ├── public/              # sw.js, offline.html (PWA shell)
-│   ├── scripts/             # Legacy seed.ts (prototype only)
-│   ├── next.config.ts       # /api rewrite → backend:8000
-│   ├── tailwind.config.ts, tsconfig.json, vitest.config.ts, components.json
-│   └── package.json
-├── model/                   # GGUF model drop location (gitignored)
-├── docs/                    # SRS, PRD, System Design, wireframes, brand guide
-├── .planning/               # GSD planning artifacts (research, phases, codebase)
-├── .github/workflows/       # ci.yml (frontend + backend + gatekeeper)
-├── scripts/                 # dev.sh
-├── .husky/                  # Git hooks (pre-commit via lint-staged)
-├── .env / .env.example      # Environment config (example committed)
-├── .bandit.yaml             # Bandit security scanner config
-├── start.py                 # Dev launcher (start/stop/status)
-├── setup.py                 # One-step setup (deps + .env + seed)
-├── package.json             # Root scripts (dev, lint, format, seed)
-└── README.md
+│   │   ├── app/
+│   │   │   ├── page.tsx    # Single-page role-based UI (9 views)
+│   │   │   ├── layout.tsx  # Metadata, fonts, SW registration, Toaster
+│   │   │   └── globals.css # Tailwind + theme tokens
+│   │   ├── components/
+│   │   │   ├── ui/         # shadcn/ui primitives (~50 files, excluded from lint)
+│   │   │   ├── interactive.tsx    # 10 live panels (1791 lines — see CONCERNS.md)
+│   │   │   ├── sections.tsx       # TopAppBar, NavigationDrawer, SiteFooter + dead marketing sections
+│   │   │   ├── emergency-guide.tsx, architecture.tsx, wound-tracker.tsx,
+│   │   │   │   asha-audit-tool.tsx, district-risk-map.tsx, stakeholder-registry.tsx,
+│   │   │   │   hospital-packet.tsx, compliance-badge.tsx, voice-input.tsx,
+│   │   │   │   snake-progress.tsx, tri-line-dock.tsx, shader-background.tsx,
+│   │   │   │   slither-sprite.tsx, reveal.tsx, lazy-sections.tsx
+│   │   ├── hooks/
+│   │   │   ├── use-geolocation.ts  # GPS with Bannerghatta fallback
+│   │   │   ├── use-scroll.ts, use-mobile.ts, use-toast.ts
+│   │   ├── lib/
+│   │   │   ├── api.ts      # apiUrl()/wsUrl() from NEXT_PUBLIC_BACKEND_URL
+│   │   │   ├── realtime.ts # useIncidentSocket WebSocket hook (unused)
+│   │   │   ├── nagraksha.ts # TS mirror of domain.py (tests only)
+│   │   │   ├── utils.ts    # cn() helper
+│   │   │   └── __tests__/  # eventbus.test.ts (broken), nagraksha.test.ts
+│   │   ├── store/
+│   │   │   └── sos-store.ts # Zustand store for SOS flow
+│   │   └── test/setup.ts   # Vitest jest-dom setup
+│   ├── public/
+│   │   ├── sw.js           # Service worker (app shell cache, NetworkOnly for API)
+│   │   ├── manifest.webmanifest, offline.html, icons/, snake/, logo.svg
+│   ├── next.config.ts      # standalone output, rewrite /api → :8000
+│   ├── tsconfig.json, tailwind.config.ts, postcss.config.mjs, vitest.config.ts
+│   ├── eslint.config.mjs, Dockerfile, package.json
+├── .github/workflows/ci.yml  # backend pytest+ruff, frontend build
+├── .husky/pre-commit         # lint-staged hook
+├── .planning/                # GSD project docs (PROJECT.md, ROADMAP.md, phases/, codebase/)
+├── docs/                     # PRD/SRS/System Design docs (Office files)
+├── model/                    # Local GGUF models (gitignored)
+├── scripts/dev.sh            # Launches both services
+├── setup.py, start.py        # Setup + dev launcher
+├── docker-compose.yml        # backend + frontend services
+└── package.json              # Root scripts, lint-staged, prettier/eslint config
 ```
 
 ## Directory Purposes
 
-**`backend/app/`:**
-- Purpose: The complete backend — API, domain logic, async worker, AI pipeline
-- Contains: 11 modules + `routes/` subpackage
-- Key files: `main.py` (entry), `database.py` (schema), `eventbus.py` (async core), `rag.py` (AI core)
+**`backend/app/` (core logic):**
+- Purpose: All backend domain logic, routes, and services
+- Contains: FastAPI app, domain functions, event bus, RAG/LLM, compliance, auth
+- Key files: `main.py`, `database.py`, `domain.py`, `eventbus.py`, `rag.py`, `llm.py`
 
-**`backend/app/routes/`:**
-- Purpose: One module per API domain, each exposing a `router = APIRouter()`
-- Contains: `sos.py`, `incidents.py`, `hospitals.py`, `risk.py`, `snake_id.py`, `myth_buster.py`, `stats.py`, `ops.py`, `architecture.py`, `transcribe.py`
-- Key file: `backend/app/main.py:49-58` registers all ten routers
+**`backend/app/routes/` (API layer):**
+- Purpose: HTTP/WS endpoints grouped by feature
+- Contains: `sos.py`, `incidents.py`, `hospitals.py`, `risk.py`, `snake_id.py`, `myth_buster.py`, `stats.py`, `ops.py`, `architecture.py`, `transcribe.py`, `ws.py`, `wound.py`, `audit.py`, `stakeholders.py`, `twilio_webhook.py`
+- Key files: `incidents.py` (SSE + symptom/accept/decline), `ws.py` (WebSocket broadcast)
 
 **`backend/tests/`:**
-- Purpose: pytest suite; `conftest.py` sets a temp `NAGRAKSHA_DB`, uses httpx `ASGITransport`, and mocks the background worker/KB seeding
-- Key files: `conftest.py`, `test_routes.py`, `test_domain.py`
-
-**`frontend/src/app/`:**
-- Purpose: Next.js App Router — one route (`/`) rendered as a role-switched SPA
-- Key files: `page.tsx` (all 7 views), `layout.tsx` (metadata/fonts/SW), `globals.css` (Tailwind v4 theme)
+- Purpose: Pytest suites against the FastAPI app
+- Contains: `conftest.py` (temp DB + background mocks), `test_domain.py` (pure functions), `test_routes.py` (HTTP integration)
 
 **`frontend/src/components/`:**
-- Purpose: All UI. `interactive.tsx` holds the 10 live panels; `sections.tsx` holds the shell chrome (+ unrendered marketing sections); `ui/` holds shadcn/ui primitives; `lazy-sections.tsx` provides `next/dynamic` wrappers; visual-effect components (`shader-background.tsx`, `slither-sprite.tsx`, `snake-progress.tsx`, `tri-line-dock.tsx`, `reveal.tsx`) and `voice-input.tsx`, `architecture.tsx`, `emergency-guide.tsx` are standalone
-- Key files: `interactive.tsx` (1688 lines — the main feature surface), `emergency-guide.tsx`
+- Purpose: UI components; panels, feature components, and shadcn/ui primitives
+- Contains: `interactive.tsx` (all live panels), `sections.tsx` (shell chrome), feature components (`wound-tracker.tsx`, `asha-audit-tool.tsx`, `emergency-guide.tsx`, etc.), `ui/` primitives
+- Key files: `interactive.tsx`, `sections.tsx`, `emergency-guide.tsx`
 
 **`frontend/src/lib/`:**
-- Purpose: Client logic. `api.ts` is the single integration point to the backend; the remaining files (`nagraksha.ts`, `eventbus.ts`, `db.ts`, `knowledge-base.ts`) are legacy prototype modules referenced only by `frontend/src/lib/__tests__/`
-- Key file: `api.ts` (`apiUrl()` helper, `?XTransformPort=8000` convention)
+- Purpose: Client-side helpers and utilities
+- Contains: `api.ts`, `realtime.ts`, `nagraksha.ts` (legacy mirror), `utils.ts`
+- Key files: `api.ts` — the single integration point for backend calls
 
-**`frontend/public/`:**
-- Purpose: PWA static assets — `sw.js` (app-shell precache, network-first navigation, never-cache API), `offline.html`, icons/manifest
-
-**`docs/`:**
-- Purpose: Product/design documentation (`.docx` + a plain-text bundle): `NagRaksha_SRS.docx`, `NagRaksha_PRD.docx`, `NagRaksha_System_Design.docx`, `NagRaksha_User_Journey_Wireframes.docx`, `NagRaksha_Brand_Style_Guide.docx`, `NagRaksha_Pitch.pptx`
+**`frontend/src/store/`:**
+- Purpose: Client state management
+- Contains: `sos-store.ts` — Zustand store for incident/lane/wound state
 
 **`.planning/`:**
-- Purpose: GSD workflow state — `PROJECT.md`, `ROADMAP.md`, `REQUIREMENTS.md`, `MILESTONES.md`, `STATE.md`, `research/` (pre-implementation studies), `phases/` (per-phase plans), `debug/` (incident notes), and this `codebase/` mapping
-
-**`.github/workflows/`:**
-- Purpose: CI — `ci.yml` runs frontend (`eslint`, `tsc --noEmit`, `vitest run`) and backend (`bandit`, `pytest`) jobs plus a merge gatekeeper
-
-**Root scripts:**
-- `start.py` — cross-platform dev launcher with health checks and `--status`/`--stop`
-- `setup.py` — 5-step setup: prerequisites, `.env` from `.env.example`, backend pip install, frontend `npm install`, DB seed
-- `scripts/dev.sh` — bash launcher (uvicorn + `next dev -p 3000 --webpack`)
-- `package.json` — orchestrates both via `npm run dev`, `dev:frontend`, `dev:backend`
+- Purpose: GSD planning docs (project, roadmap, phases, codebase map, debug logs)
+- Contains: `PROJECT.md`, `ROADMAP.md`, `STATE.md`, `phases/`, `codebase/`, `debug/`
 
 ## Key File Locations
 
 **Entry Points:**
-- `backend/app/main.py:31` — FastAPI app; run via `uvicorn app.main:app`
-- `frontend/src/app/layout.tsx` — Next.js root layout
-- `frontend/src/app/page.tsx` — the only page (role-based SPA)
-- `start.py` / `scripts/dev.sh` — local orchestration
+- `backend/app/main.py`: FastAPI app assembly + lifespan + token endpoint
+- `backend/app/routes/*.py`: 16 routers registered in `main.py`
+- `frontend/src/app/page.tsx`: single-page UI with role tabs
+- `frontend/src/app/layout.tsx`: root layout, metadata, SW registration
+- `frontend/public/sw.js`: PWA service worker
 
 **Configuration:**
-- `backend/requirements.txt` — pinned Python deps (FastAPI 0.128, scikit-learn, llama-cpp-python, httpx)
-- `frontend/package.json` — Next.js 16, React 19, Prisma (legacy), Tailwind v4, Vitest
-- `frontend/next.config.ts` — `output: 'standalone'`, `/api/:path*` rewrite to `127.0.0.1:8000`
-- `frontend/tsconfig.json`, `frontend/vitest.config.ts` (`@` → `./src` alias), `frontend/tailwind.config.ts`, `frontend/components.json` (shadcn)
-- `.env.example` — documented vars (`NAGRAKSHA_DB`, `GROK_API_KEY`, `GROK_API_KEY`, `GEMINI_API_KEY`); `.env` is gitignored
-- `.bandit.yaml` — Bandit scanner config; `.prettierrc` + `.prettierignore` — formatting
-- `.github/workflows/ci.yml` — CI pipeline
+- `backend/requirements.txt`: backend deps (pinned)
+- `frontend/package.json`, `frontend/next.config.ts`, `frontend/tsconfig.json`, `frontend/tailwind.config.ts`, `frontend/eslint.config.mjs`, `frontend/vitest.config.ts`
+- `.env.example`: documented env vars; `.env` (gitignored) for real values
+- `.prettierrc`, `.bandit.yaml`, `.github/workflows/ci.yml`, `docker-compose.yml`
 
 **Core Logic:**
-- Backend: `backend/app/domain.py` (ranking/ETA), `backend/app/eventbus.py` (dispatch/outbox), `backend/app/rag.py` (RAG), `backend/app/llm.py` (provider chain)
-- Frontend: `frontend/src/components/interactive.tsx` (all feature panels), `frontend/src/lib/api.ts` (backend integration)
+- `backend/app/domain.py`: hospital ranking, ETA math, dispatch simulation
+- `backend/app/eventbus.py`: outbox worker + state machine + audit
+- `backend/app/rag.py`: retrieval + RAG answer pipeline
+- `backend/app/llm.py`: provider fallback chain + wound vision
+- `backend/app/database.py`: schema + connection manager
+- `frontend/src/store/sos-store.ts`: client incident state
+- `frontend/src/lib/api.ts`: backend URL resolution
 
 **Testing:**
-- Backend: `backend/tests/test_routes.py`, `backend/tests/test_domain.py`, `backend/tests/conftest.py`
-- Frontend: `frontend/src/lib/__tests__/nagraksha.test.ts`, `frontend/src/lib/__tests__/eventbus.test.ts`, `frontend/src/test/setup.ts`
+- `backend/tests/`: pytest (domain units + route integration)
+- `frontend/src/lib/__tests__/`: vitest (nagraksha.test.ts OK; eventbus.test.ts broken)
+- `frontend/src/test/setup.ts`: jest-dom matchers
+- `frontend/vitest.config.ts`: jsdom environment, `@` alias
 
 ## Naming Conventions
 
 **Files:**
-- Python: `snake_case.py` — module names follow the API domain (`sos.py`, `myth_buster.py`)
-- TypeScript: kebab-case for component files (`emergency-guide.tsx`, `voice-input.tsx`, `shader-background.tsx`); `page.tsx` / `layout.tsx` per Next.js App Router convention; `use-*.ts` for hooks; lowercase for shadcn primitives in `src/components/ui/` (`button.tsx`, `dropdown-menu.tsx`)
-- Backend route modules are single-purpose; each declares `router = APIRouter()` and is registered in `backend/app/main.py:49-58`
+- Python modules: snake_case (`database.py`, `twilio_webhook.py`); routes named by feature (`sos.py`, `wound.py`)
+- React components: PascalCase (`WoundTracker`, `HospitalStockConsole`); files kebab-case (`wound-tracker.tsx`, `hospital-packet.tsx`)
+- Test files: `test_*.py` (pytest discovery), `*.test.ts` (vitest discovery)
 
-**Functions:**
-- Python: `snake_case` (`rank_hospitals`, `ensure_kb_seeded`, `get_ranked_hospitals`)
-- TypeScript: `camelCase` (`apiUrl`, `rankHospitals`, `simulateDispatch`, `stockFreshness`)
-- React components: `PascalCase` exports (`LiveSosDemo`, `HospitalStockConsole`, `EmergencyGuide`), memoized with `memo(function ...)` where applicable (`frontend/src/components/sections.tsx:34`)
-
-**Variables:**
-- Python: `snake_case`; DB columns are `camelCase` (legacy Prisma alignment, e.g. `biteTime`, `dispatchAttempts`)
-- TypeScript: `camelCase`; DOM/effect refs prefixed `useRef`, CSS custom properties in `globals.css` use `--kebab-case`
-
-**Types:**
-- TypeScript: `PascalCase` interfaces/type unions — `RankedHospital` (`frontend/src/lib/nagraksha.ts:47`), `ResponderCategory`, `StockStatus`, `KBChunk` (`frontend/src/lib/knowledge-base.ts:7`); union of event names `BusEventMap` (`frontend/src/lib/eventbus.ts:20`)
-- Python: Pydantic models `PascalCase` in `backend/app/models.py` (`SosRequest`, `StockUpdate`, `MythRequest`, `SnakeIdRequest`)
-
-**API / JSON:**
-- Endpoints: `/api/{resource}` with `kebab-case` resource segments (`/api/myth-buster`, `/api/snake-id`, `/api/transcribe-b64`)
-- JSON fields: `camelCase` (`biteTime`, `verifiedAt`, `dispatchAttempts`, `streamUrl`)
-- Database tables: `PascalCase` entities (`Incident`, `DispatchAttempt`, `AntivenomStock`, `OutboxEvent`), matching `frontend/prisma/schema.prisma`
+**Directories:**
+- `backend/app/routes/` — one module per API feature
+- `frontend/src/components/` — feature components + `ui/` for primitives
+- `frontend/src/lib/` — helpers; `__tests__/` co-located with lib tests
 
 ## Where to Add New Code
 
-**New API endpoint:**
-- Create `backend/app/routes/<domain>.py` with `router = APIRouter()` and register it in `backend/app/main.py:49-58`
-- Add request DTOs to `backend/app/models.py` (or inline if single-use, as in `backend/app/routes/transcribe.py:18`)
-- Add a pytest class in `backend/tests/test_routes.py` (uses the `async_client` fixture from `backend/tests/conftest.py`)
+**New API Endpoint:**
+- Primary code: create/extend a router module in `backend/app/routes/` (e.g. `backend/app/routes/hospitals.py`), add Pydantic models to `backend/app/models.py`, register in `backend/app/main.py`
+- Tests: `backend/tests/test_routes.py` (async client fixtures in `conftest.py`)
 
-**New database table/column:**
-- Edit `SCHEMA` in `backend/app/database.py:19-160` (raw SQL `CREATE TABLE IF NOT EXISTS`); runtime DB is recreated from schema on `init_db()`
-- If legacy parity matters, mirror the change in `frontend/prisma/schema.prisma` (prototype only — not used at runtime)
+**New Domain Logic:**
+- Implementation: `backend/app/domain.py` (pure functions) — keep `backend/app/eventbus.py` for orchestration
+- Tests: `backend/tests/test_domain.py`
 
-**New frontend feature panel:**
-- Add the component to `frontend/src/components/` (prefer a new file over extending `interactive.tsx`, which is already 1688 lines)
-- Wire it into the role switch in `frontend/src/app/page.tsx` (`activeRole` union at `page.tsx:26-28`)
-- Call the backend via `apiUrl('/api/...')` from `frontend/src/lib/api.ts` — never a hardcoded absolute URL
+**New Frontend Panel:**
+- Implementation: add a feature component under `frontend/src/components/` (or a new `panels/` dir), render it from `frontend/src/app/page.tsx` under a role view
+- API access: use `apiUrl()` from `frontend/src/lib/api.ts`
+- State: extend `frontend/src/store/sos-store.ts` if part of the SOS flow
 
-**New UI primitive:**
-- `frontend/src/components/ui/<name>.tsx`, following the shadcn/ui + Radix pattern of the existing primitives; update `frontend/src/components/ui/index.ts` barrel if one exists (see `components.json`)
+**New Database Table:**
+- Add `CREATE TABLE` to `SCHEMA` in `backend/app/database.py`; add `ALTER TABLE` steps to `migrate_db()` for columns on existing tables; seed in `backend/app/seed.py`
 
-**New hook:**
-- `frontend/src/hooks/use-<name>.ts` with `'use client'` if it touches browser APIs (e.g. `use-geolocation.ts`)
-
-**New knowledge-base content:**
-- Add chunks to `backend/app/knowledge_base_data.py` (seed source; re-seed via `npm run backend:seed`); `ensure_kb_seeded()` only seeds when the table is empty (`backend/app/rag.py:155`)
-- Optional mirror in `frontend/src/lib/knowledge-base.ts` only if legacy test parity is still required
-
-**Tests:**
-- Backend: `backend/tests/test_<module>.py`
-- Frontend: `frontend/src/lib/__tests__/<module>.test.ts` (Vitest, `@` alias configured in `frontend/vitest.config.ts`)
+**Utilities:**
+- Shared helpers: `frontend/src/lib/utils.ts` (frontend), `backend/app/domain.py` (backend)
 
 ## Special Directories
 
-**`model/`:**
-- Purpose: Local GGUF model drop location — auto-detected at startup by `backend/app/llm.py:39` (`_find_model()` globs `model/*.gguf`)
-- Generated: No. Committed: Only `.gitkeep` — `*.gguf` is gitignored (`.gitignore` → `/model/*.gguf`)
-
 **`backend/db/`:**
-- Purpose: Runtime SQLite database file (`nagraksha.db`), created by `init_db()`
-- Generated: Yes. Committed: No — `backend/db/` is gitignored; path overridable via `NAGRAKSHA_DB`
+- Purpose: Runtime SQLite database
+- Generated: Yes
+- Committed: No (`.gitignore` — `backend/db/`)
 
-**`frontend/.next/`, `node_modules/`:**
-- Purpose: Build/runtime artifacts for Next.js and npm
-- Generated: Yes. Committed: No
+**`backend/chroma_db/`:**
+- Purpose: Runtime ChromaDB vector store
+- Generated: Yes
+- Committed: No (in `.gitignore`; persisted via Docker volume `backend_data`)
 
-**`frontend/prisma/`:**
-- Purpose: Legacy prototype Prisma schema — mirrors `backend/app/database.py` tables; referenced by `frontend/scripts/seed.ts` and the root `db:push`/`db:generate` scripts
-- Generated: No. Committed: Yes (kept for prototype parity; not used by the runtime UI)
+**`model/`:**
+- Purpose: Local GGUF model files for offline LLM
+- Generated: No (manually placed)
+- Committed: No (`/model/*.gguf` ignored)
 
-**`.planning/`:**
-- Purpose: GSD workflow state (project, roadmap, requirements, milestones, phases, research, debug, codebase maps)
-- Generated: Yes (tooling). Committed: Yes
+**`frontend/src/components/ui/`:**
+- Purpose: shadcn/ui primitives
+- Generated: Partially (scaffolded via shadcn CLI, hand-edited)
+- Committed: Yes; excluded from ESLint/TS strict checks via `eslint.config.mjs` ignores and `@ts-nocheck` in some files
 
 **`docs/`:**
-- Purpose: Official product/design artifacts (`.docx`/`.pptx`) — the SRS, PRD, and System Design docs are the requirement source for the codebase
-- Generated: No. Committed: Yes
+- Purpose: PRD, SRS, System Design, wireframes (Office formats)
+- Generated: No
+- Committed: Yes
 
 ---
 
-*Structure analysis: 2026-08-11*
+*Structure analysis: 2026-08-13*

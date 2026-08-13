@@ -1,129 +1,113 @@
 # External Integrations
 
-**Analysis Date:** 2026-08-11
+**Analysis Date:** 2026-08-13
 
 ## APIs & External Services
 
-**LLM / Chat (fallback chain, tried in order):**
-- Local GGUF model — offline LLM via `llama-cpp-python`, auto-detected from `model/*.gguf`
-  - Location: `backend/app/llm.py:39-77` (`_find_model`, `_load_gguf`, `_generate_gguf`)
-  - Config: place any `.gguf` file in `model/` — no API key
-  - Docs: `README.md` recommends `llama-3.2-1b-instruct-q4_k_m.gguf`, `gemma-2-2b-it-Q4_K_M.gguf`, `qwen2.5-1.5b-instruct-q4_k_m.gguf`
-- Groq (Groq Inc.) — OpenAI-compatible chat completions
-  - Endpoint: `POST https://api.groq.com/openai/v1/chat/completions`, model `llama-3.3-70b-versatile` (`backend/app/llm.py:82-108`)
-  - SDK: raw `httpx` (no SDK package)
-  - Auth: `GROQ_API_KEY` env var (Bearer header)
-- Grok (xAI) — OpenAI-compatible chat completions
-  - Endpoint: `POST https://api.x.ai/v1/chat/completions`, model `grok-2-latest` (`backend/app/llm.py:113-138`)
-  - SDK: raw `httpx`
-  - Auth: `GROK_API_KEY` env var (Bearer header)
-- Gemini (Google) — Generative Language API
-  - Endpoint: `POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=...` (`backend/app/llm.py:143-173`)
-  - SDK: raw `httpx`
-  - Auth: `GEMINI_API_KEY` env var (passed as `?key=` query param — note: key in URL)
-  - Role: secondary fallback after local GGUF and Grok
+**LLM Chat Generation (RAG myth-buster):**
+- Local GGUF via llama-cpp-python - First-choice local fallback (`backend/app/llm.py`, models in `model/*.gguf`, gitignored)
+- Groq - `llama-3.3-70b-versatile` chat completions (`backend/app/llm.py`)
+  - Auth: `GROQ_API_KEY` env var, Bearer header
+- Grok (xAI) - `grok-2-latest` chat completions (`backend/app/llm.py`)
+  - Auth: `GROK_API_KEY` env var, Bearer header
+- Gemini (Google) - `gemini-2.5-flash` generateContent (`backend/app/llm.py`)
+  - Auth: `GEMINI_API_KEY` env var, `X-Goog-Api-Key` header
+  - Fallback chain order: local GGUF → Groq → Grok → Gemini; `generate()` returns `None` if all fail, caller falls back to retrieval-only (`backend/app/llm.py:178`)
 
-**Vision / Snake ID (multi-provider pipeline, tried in order):**
-- Groq Vision — `POST https://api.groq.com/openai/v1/chat/completions`, model `llama-3.2-11b-vision-instruct`, base64 image in message (`backend/app/routes/snake_id.py:192-228`); auth `GROQ_API_KEY`
-- Grok Vision — `POST https://api.x.ai/v1/chat/completions`, model `grok-2-vision-latest` (`backend/app/routes/snake_id.py:231-269`); auth `GROK_API_KEY`
-- Gemini Vision — `POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=...` (`backend/app/routes/snake_id.py:272-304`); auth `GEMINI_API_KEY`
-- Offline fallback — keyword/natural-language matcher against a 15-species catalogue (no network): `backend/app/routes/snake_id.py:21-154, 307-339`
-- Prompt contract: `_VISION_PROMPT` at `backend/app/routes/snake_id.py:161-189` — JSON schema output required
+**Vision APIs (Snake ID):**
+- Groq Vision - `llama-3.2-11b-vision-instruct` (`backend/app/routes/snake_id.py`)
+- Grok Vision - `grok-2-vision-latest` (`backend/app/routes/snake_id.py`)
+- Gemini 2.5 Flash Vision - snake photo ID + wound analysis (`backend/app/routes/snake_id.py`, `backend/app/llm.py:analyze_wound_image`)
+  - Auth: same keys as above; attempt order Groq → Grok → Gemini
 
 **Speech-to-Text:**
-- Groq Whisper — `POST https://api.groq.com/openai/v1/audio/transcriptions`, model `whisper-large-v3-turbo` (`backend/app/routes/transcribe.py:24-89` file upload, `92-145` base64 variant); auth `GROQ_API_KEY`
-  - Accepts WAV, MP3, WebM, M4A, OGG; multilingual (Hindi, Kannada, Tamil, Telugu, Marathi, Bengali, English)
-  - Client-side fallback: browser Web Speech API (`SpeechRecognition`/`webkitSpeechRecognition`, `lang: 'hi-IN'`) in `frontend/src/components/voice-input.tsx:57-101`
+- Groq Whisper - `whisper-large-v3-turbo` transcription (`backend/app/routes/transcribe.py`)
+  - Auth: `GROQ_API_KEY`
+  - Endpoints: `POST /api/transcribe` (multipart), `POST /api/transcribe-b64` (base64)
 
-**Frontend-fetched fonts:**
-- Google Fonts — `next/font/google` (Inter, JetBrains_Mono, Lexend) in `frontend/src/app/layout.tsx:2,7-17` plus a manual Google Fonts stylesheet link (`layout.tsx:93-99`)
+**SMS Dispatch:**
+- Twilio - Real SMS to first-aider / rescue / hospital lanes (`backend/app/dispatch.py`)
+  - Auth: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER`
+  - Webhook: `POST /webhook/twilio` handles ACCEPT/READY/DECLINE replies (`backend/app/routes/twilio_webhook.py`)
+  - Falls back to `simulate_dispatch()` when credentials absent or no registered responders
 
-**Browser-native APIs (not backend services):**
-- Geolocation API — `navigator.geolocation.getCurrentPosition` with high accuracy in `frontend/src/hooks/use-geolocation.ts:45-61`; falls back to fixed Bannerghatta coordinates
-- MediaRecorder + `getUserMedia` — audio capture for voice input (`frontend/src/components/voice-input.tsx:103-171`)
-- EventSource (SSE) — live incident stream consumer (`frontend/src/components/interactive.tsx:242`); backend producer at `backend/app/routes/incidents.py:63-107` (`/api/incidents/{id}/stream`)
+**Error Monitoring:**
+- Sentry - Backend errors + traces (`backend/app/main.py:22-29`)
+  - Auth: `SENTRY_DSN` env var; `sentry-sdk[fastapi]` integration; traces_sample_rate 0.2
 
 ## Data Storage
 
 **Databases:**
-- SQLite — primary store, default path `backend/db/nagraksha.db` (file committed in repo; runtime DB dir gitignored)
-  - Python client: raw `sqlite3` with raw SQL, connection context manager + PRAGMA foreign_keys — `backend/app/database.py` (11 tables: Incident, DispatchAttempt, Hospital, AntivenomStock, SymptomObservation, SnakeObservation, RiskReport, MythThread, KnowledgeChunk, OutboxEvent, AuditEvent)
-  - Node client: Prisma ORM — `frontend/prisma/schema.prisma` (10 models, mirrored schema) instantiated in `frontend/src/lib/db.ts`
-  - Connection override: `NAGRAKSHA_DB` env var (`backend/app/database.py:17`); Prisma uses `DATABASE_URL` env (`frontend/prisma/schema.prisma:10`)
-- PostgreSQL + PostGIS — documented production target only (`README.md` "Project Status", `.env.example` commented `DATABASE_URL` + `PG*` vars); no live Postgres code paths
+- SQLite - Primary operational store (single file `backend/db/nagraksha.db`, gitignored)
+  - Connection: raw `sqlite3` via `get_conn()` context manager (`backend/app/database.py:170`)
+  - Client: stdlib sqlite3, no ORM; schema in `backend/app/database.py:SCHEMA`; `migrate_db()` for ALTER-style changes
+  - Overridable via `NAGRAKSHA_DB` env var (used by tests)
+- ChromaDB - Vector store for RAG retrieval (persistent dir `backend/chroma_db`)
+  - Client: `chromadb.PersistentClient` + `DefaultEmbeddingFunction` (ONNX) (`backend/app/rag.py`)
+  - Docker volume `backend_data` persists it in compose; fails back to scikit-learn TF-IDF if unavailable
 
 **File Storage:**
-- Local filesystem only — no object storage. Snake photos are passed as base64 in API payloads (`backend/app/routes/snake_id.py`), audio as multipart upload; no disk/cloud persistence for user media
-- `frontend/public/` — static assets (icons, SVG logo, offline.html, service worker)
+- Local filesystem only — no object storage; wound photos stored base64 in `WoundReading.imageB64` column (`backend/app/database.py`)
 
 **Caching:**
-- None external (no Redis/Memcached). In-process caches:
-  - TF-IDF retrieval index rebuilt on corpus change — `backend/app/rag.py:20-51`
-  - Lazy singleton LLM model — `backend/app/llm.py:22-24,44-56`
-  - Prisma client singleton on globalThis — `frontend/src/lib/db.ts:7-13`
-
-**Async / Eventing (internal):**
-- In-process event bus (Python `threading` + subscribers) + durable `OutboxEvent` SQLite table + poller worker every 2.5s — `backend/app/eventbus.py:130-179`
-- Next.js-side twin implementation with `EventEmitter` + Prisma outbox worker — `frontend/src/lib/eventbus.ts`
-- SSE streams push live incident state to the client (`backend/app/routes/incidents.py:63-107`)
+- None external. In-process singletons: RAG Chroma client/collection (`backend/app/rag.py`), TF-IDF index, LLM model handle
 
 ## Authentication & Identity
 
 **Auth Provider:**
-- None implemented. No user accounts, sessions, JWT, or OAuth in the codebase
-- Server-side API keys only: `GROQ_API_KEY`, `GROK_API_KEY`, `GEMINI_API_KEY` (read from env in `backend/app/llm.py`, `backend/app/routes/snake_id.py`, `backend/app/routes/transcribe.py`)
-- "Authentication + RBAC at API boundary" is listed as a future layer in the architecture manifest (`backend/app/routes/architecture.py:26`)
-- No rate limiting or key storage beyond env vars
+- Custom minimal JWT (`backend/app/auth.py`)
+  - Implementation: HS256 via python-jose; role-keyed secrets in env (`ROLE_SECRET_VICTIM/HOSPITAL/ADMIN`); `POST /api/auth/token` issues role tokens (rate-limited 10/min)
+  - Token storage: `Authorization: Bearer` header
+  - Protected routes: stakeholder registry write/delete require `system_admin` (`backend/app/routes/stakeholders.py`); `require_role()` dependency factory in `backend/app/auth.py`
+  - Default secrets hardcoded as fallbacks (`auth.py:ROLE_SECRETS`) — demo-grade, not production
+
+**OAuth Integrations:**
+- None
 
 ## Monitoring & Observability
 
 **Error Tracking:**
-- None (no Sentry/Bugsnag). Errors swallowed defensively throughout backend (`except Exception: pass` / best-effort patterns in `backend/app/eventbus.py:63-65,162-163`)
+- Sentry - backend only, no DSN in dev by default (optional via `SENTRY_DSN`)
+  - Frontend has `@sentry/nextjs` in `frontend/package.json` but no `Sentry.init` in `frontend/src`
 
 **Logs:**
-- File logs: `backend.log` (uvicorn), `dev.log` (Next.js dev) — written by `start.py` and `scripts/dev.sh`
-- `console` logging only in frontend; `no-console` is an ESLint error in `frontend/eslint.config.mjs:18`
-- Prisma logging restricted to `['error', 'warn']` (`frontend/src/lib/db.ts:10-12`)
-- Audit trail persisted in `AuditEvent` table via `audit()` helper (`backend/app/eventbus.py:55-65`, `frontend/src/lib/eventbus.ts:68-88`)
-- Health check: `GET /api/health` (`backend/app/main.py:43-45`), polled by `python start.py --status`
+- Process logs: root npm scripts tee to `backend.log` / `dev.log` (`package.json:dev:frontend/dev:backend`)
+- Domain events: `AuditEvent` table, inspectable at `GET /api/audit` (`backend/app/routes/ops.py`)
+- `print()` statements in backend modules (compliance, dispatch, RAG seed)
 
 ## CI/CD & Deployment
 
 **Hosting:**
-- Self-hosted / local dev model: Next.js standalone bundle served by `bun` on :3000, FastAPI/uvicorn on :8000 (`frontend/package.json` `build`/`start`, `backend/run.sh`)
-- Caddy gateway expected in front of both services — client code appends `?XTransformPort=8000` to route to the backend port (`frontend/src/lib/api.ts:10-13`, comments in `backend/app/main.py`, `backend/app/routes/sos.py:44`)
-- Domain `nagraksha.app` referenced in metadata/OG tags (`frontend/src/app/layout.tsx:20,39,61`)
+- Docker Compose (`docker-compose.yml`): backend :8000 + frontend :3000, with env passthrough for Gemini/Groq/Twilio/JWT/Sentry and `NEXT_PUBLIC_BACKEND_URL=http://backend:8000`
+- Individual Dockerfiles in `backend/Dockerfile` and `frontend/Dockerfile` (Next.js standalone)
 
 **CI Pipeline:**
-- GitHub Actions — `.github/workflows/ci.yml`
-  - Frontend job: `npm ci`, `eslint . --max-warnings 0`, `tsc --noEmit`, `vitest run` (Node 20, npm cache)
-  - Backend job: `pip install -r requirements.txt` + `bandit pytest httpx pytest-asyncio`, `bandit -r . -c ../.bandit.yaml`, `pytest tests/ -v` (Python 3.11)
-  - Gatekeeper job aggregates both results
-- Local gate: Husky pre-commit → `lint-staged` (Prettier + ESLint `--max-warnings 0`) — `/.husky/pre-commit`, `package.json` lint-staged config
-- PWA: service worker `frontend/public/sw.js` registered in production only (`frontend/src/app/layout.tsx:106-110`), manifest `frontend/public/manifest.webmanifest`, offline shell `frontend/public/offline.html`
+- GitHub Actions - `.github/workflows/ci.yml`
+  - `backend-test` job: Python 3.11, `ruff check backend/app`, `py_compile`, pytest
+  - `frontend-build` job: Node 20, `npm ci --legacy-peer-deps`, `next build` with `NEXT_PUBLIC_BACKEND_URL=http://localhost:8000`
+  - Frontend vitest tests are NOT run in CI
 
 ## Environment Configuration
 
-**Required env vars:**
-- `GROK_API_KEY` — Grok (xAI) chat + vision (`backend/app/llm.py:208`, `backend/app/routes/snake_id.py:233`)
-- `GROQ_API_KEY` — Groq chat + vision + Whisper transcription (`backend/app/llm.py:202`, `backend/app/routes/snake_id.py:194`, `backend/app/routes/transcribe.py:30`)
-- `GEMINI_API_KEY` — Gemini chat + vision fallback (`backend/app/llm.py:214`, `backend/app/routes/snake_id.py:274`)
-- `NAGRAKSHA_DB` — SQLite path override (default `backend/db/nagraksha.db`) (`backend/app/database.py:17`)
-- `DATABASE_URL` — Prisma SQLite connection string (`frontend/prisma/schema.prisma:10`; required by `prisma generate`/`db push`)
-- Optional (documented, unused in code): `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE` for future Postgres (`/.env.example:18-23`)
+**Development:**
+- Required env vars: `NEXT_PUBLIC_BACKEND_URL` (defaults to `http://localhost:8000`), `JWT_SECRET` (has fallback)
+- Secrets location: `.env` at repo root (gitignored); `.env.example` documents all vars; never commit real keys
+- Mock/stub services: all LLM/vision/SMS calls fail-open — no keys = simulated dispatch, pixel-based wound fallback, retrieval-only RAG
 
-**Secrets location:**
-- `.env` at repo root (gitignored; `.env.example` committed). `python setup.py` copies `.env.example` → `.env` if absent (`setup.py:44-63`)
-- Keys are read at runtime from process env — never in code or git history
+**Production:**
+- Secrets via docker-compose env passthrough (docker-compose.yml) or platform env vars
+- Backend CORS allowlist: localhost:3000/127.0.0.1:3000 + optional `FRONTEND_URL` env (`backend/app/main.py:36`)
 
 ## Webhooks & Callbacks
 
 **Incoming:**
-- None — no external webhook endpoints; the only streaming endpoint is the internal SSE feed `/api/incidents/{id}/stream` consumed by the frontend (`backend/app/routes/incidents.py:63`)
+- Twilio - `POST /webhook/twilio` (`backend/app/routes/twilio_webhook.py`)
+  - Verification: none (no signature validation) — matches responder by `From` phone against `Responder.phone`
+  - Events: ACCEPT/READY → attempt ACCEPTED; DECLINE/BUSY/NO → attempt DECLINED; broadcasts via WebSocket
 
 **Outgoing:**
-- None — responder dispatch is simulated in-process and written to SQLite (`backend/app/domain.py` `simulate_dispatch`, `backend/app/eventbus.py:68-121`); no SMS/push/email providers wired up
+- None
 
 ---
 
-*Integration audit: 2026-08-11*
+*Integration audit: 2026-08-13*
