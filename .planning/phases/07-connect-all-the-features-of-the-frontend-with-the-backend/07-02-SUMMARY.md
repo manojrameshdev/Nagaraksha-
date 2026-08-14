@@ -117,7 +117,7 @@ Each task was committed atomically:
 2. **Task 2: useIncidentSocket hook** - `f0a1401` (feat)
 3. **Task 3: incident tracking page** - `f211332` (feat)
 
-**Plan metadata:** (docs commits to follow)
+**Plan metadata:** `e07438e` (docs: complete plan), `09e64df` (docs: state + roadmap)
 
 ## Files Created/Modified
 
