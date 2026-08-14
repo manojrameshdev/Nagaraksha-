@@ -132,7 +132,7 @@ Each task was committed atomically:
 5. **Task 5: useGeolocation hook** - `faad26d` (feat)
 6. **Task 6: frontend/.env.example** - `a3a6502` (chore)
 
-**Plan metadata:** pending final docs commit
+**Plan metadata:** `3f0eca8` / `97c01a7` (docs: SUMMARY + self-check), `ebdcb9e` (docs: state + roadmap + windows ledger)
 
 ## Files Created/Modified
 
