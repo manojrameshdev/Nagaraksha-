@@ -1,307 +1,230 @@
-<!-- refreshed: 2026-08-13 -->
+<!-- refreshed: 2026-08-14 -->
 # Architecture
 
-**Analysis Date:** 2026-08-13
+**Analysis Date:** 2026-08-14
 
 ## System Overview
 
-NagRaksha is a dual-service modular monolith: a Next.js/React PWA frontend and a
-Python FastAPI backend sharing a single SQLite database file (`backend/db/nagraksha.db`).
-The frontend is the only UI; the backend owns all domain logic, persistence, the
-transactional-outbox worker, RAG/LLM pipeline, Twilio SMS dispatch, and a WebSocket
-realtime layer. The backend has evolved past the original prototype: v2 added JWT
-role auth, rate limiting, Sentry, Twilio SMS with a reply webhook, WebSocket
-broadcast (SSE kept for compatibility), a Gemini-vision wound tracker, APScheduler
-hospital compliance scoring, ASHA village audits, and a stakeholder registry.
-
 ```text
-┌──────────────────────────────────────────────────────────────────────────┐
-│                      Client Layer (PWA / Next.js 16)                      │
-│  Role-based SPA shell         Interactive panels         PWA shell        │
-│  `frontend/src/app/page.tsx`  `frontend/src/components/`  `public/sw.js`  │
-│  Zustand store `frontend/src/store/sos-store.ts`                          │
-├──────────────┬───────────────────────────────────────────┬───────────────┤
-│              │ fetch(apiUrl('/api/...'))                 │ WebSocket     │
-│              ▼                                           ▼ (wsUrl)       │
-│   Gateway: NEXT_PUBLIC_BACKEND_URL (default http://localhost:8000)        │
-│   Next.js rewrite `/api/:path*` → 127.0.0.1:8000 (next.config.ts)         │
-├──────────────┬───────────────────────────────────────────┬───────────────┤
-│              ▼                                           ▼               │
-│   API Layer — FastAPI  `backend/app/routes/*.py` (16 routers)            │
-│   sos incidents hospitals risk snake_id myth_buster stats                 │
-│   ops architecture transcribe ws wound audit stakeholders twilio_webhook │
-│   + auth token (main.py), rate limiting, Sentry                           │
-│        ▼                                                                  │
-│   Domain/Service Layer — `backend/app/domain.py`, `dispatch.py`,          │
-│   `eventbus.py`, `rag.py`, `llm.py`, `compliance.py`, `scheduler.py`      │
-│        ▼                                                                  │
-│   Data Layer — SQLite via raw sqlite3 `backend/app/database.py`           │
-│   `backend/db/nagraksha.db` (16 tables) + ChromaDB `backend/chroma_db`    │
-│        ▼                                                                  │
-│   Async — outbox worker thread (2.5s poll) + APScheduler (15 min)         │
-│        ▼                                                                  │
-│   External — Groq / Grok / Gemini / Twilio SMS / Sentry / local GGUF      │
-└──────────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│                    Frontend — Next.js 16 / React 19                  │
+│  `frontend/app/page.tsx` → `components/nagraksha/{shell,workspaces,  │
+│  shared}.tsx`  (role-based demo presentation shell, NOT yet wired     │
+│  to the backend API)                                                  │
+└───────────────────────────────┬─────────────────────────────────────┘
+                                │  (planned) NEXT_PUBLIC_BACKEND_URL
+                                ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                    API Layer — FastAPI (uvicorn)                     │
+│  `backend/app/main.py` (app factory, CORS, rate limit, Sentry,       │
+│  lifespan)  →  `backend/app/routes/*.py` (15 APIRouter modules)      │
+├─────────────────────────────────────────────────────────────────────┤
+│  Domain Services — `backend/app/`                                     │
+│  `rag.py` RAG pipeline · `llm.py` fallback chain · `domain.py` geo/  │
+│  ranking · `dispatch.py` Twilio SMS · `compliance.py` scoring ·      │
+│  `auth.py` JWT RBAC · `scheduler.py` APScheduler · `eventbus.py`     │
+│  outbox/event bus · `seed.py` demo data                              │
+└───────────────────────────────┬─────────────────────────────────────┘
+                                ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                    Data Layer — SQLite (raw sqlite3)                 │
+│  `backend/app/database.py` (SCHEMA, WAL, get_conn, migrate_db)       │
+│  `backend/db/nagraksha.db` · `backend/chroma_db/` (vector store)     │
+│  + Async: `OutboxEvent` table → worker thread → WebSocket push       │
+│  + External: Twilio, Groq/Grok/Gemini, Sentry, llama-cpp (GGUF)      │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Component Responsibilities
 
 | Component | Responsibility | File |
 |-----------|----------------|------|
-| Backend entry | FastAPI app, lifespan (init DB, seed KB, start worker + scheduler), Sentry init, rate limiter, CORS, JWT token endpoint, router registration | `backend/app/main.py` |
-| Database layer | SQLite schema (16 tables), `migrate_db()` for ALTER changes, `get_conn()` context manager, id/time helpers | `backend/app/database.py` |
-| Domain helpers | Pure functions: haversine, road factor, ETA, stock freshness, hospital ranking (distance 40% / stock 30% / compliance 30%), dispatch simulation | `backend/app/domain.py` |
-| Auth | JWT role tokens, `require_role()` dependency factory, role secrets from env | `backend/app/auth.py` |
-| Event bus / outbox | In-process pub/sub, durable outbox table, 2.5s polling worker, 3-lane dispatch fan-out (simulated), incident state machine, audit logging | `backend/app/eventbus.py` |
-| SMS dispatch | Real Twilio dispatch with `simulate_dispatch()` fallback; nearest-responder lookup from `Responder` table | `backend/app/dispatch.py` |
-| RAG | ChromaDB semantic retrieval (TF-IDF fallback), emergency guard regex, system prompt, answer fallback chain | `backend/app/rag.py` |
-| LLM provider chain | Local GGUF → Groq → Grok → Gemini, fail-open; Gemini vision wound analysis | `backend/app/llm.py` |
-| Compliance | Hospital compliance scoring (freshness decay + activity bonus), badge labels, 15-min job | `backend/app/compliance.py` |
-| Scheduler | APScheduler AsyncIOScheduler wrapper for the compliance job | `backend/app/scheduler.py` |
-| API request models | Pydantic DTOs for SOS, stock, myth, snake-id, symptoms, audits, stakeholders, token, responders | `backend/app/models.py` |
-| KB corpus | Curated medically-reviewed knowledge chunks (seed source) | `backend/app/knowledge_base_data.py` |
-| Demo seed | Hospitals, antivenom stock, risk reports, KB seeding | `backend/app/seed.py` |
-| Route modules ×16 | REST + SSE + WebSocket endpoints (see Entry Points) | `backend/app/routes/*.py` |
-| Root page | Single-page role-based UI (sos/guide/responder/hospital/asha/stakeholders/myth/snake_id/admin) | `frontend/src/app/page.tsx` |
-| Root layout | Metadata, fonts, SW registration, Toaster | `frontend/src/app/layout.tsx` |
-| Interactive panels | 10 live panels (SOS demo, risk, snake ID, myth buster, stats, audit, outbox, KB, hospital console, symptom logger) | `frontend/src/components/interactive.tsx` |
-| Shell chrome | TopAppBar, NavigationDrawer, SiteFooter (+ unrendered marketing sections) | `frontend/src/components/sections.tsx` |
-| Emergency guide | Offline clinical first-aid tabs, calm timer, species mimic matrix | `frontend/src/components/emergency-guide.tsx` |
-| SOS state store | Zustand store: phase, lanes, wound readings, severity, WS connected flag | `frontend/src/store/sos-store.ts` |
-| Realtime hook | `useIncidentSocket` WebSocket hook wiring store updates (defined but not currently imported by any component) | `frontend/src/lib/realtime.ts` |
-| API helper | Builds absolute backend URLs from `NEXT_PUBLIC_BACKEND_URL` + `wsUrl()` for WebSocket | `frontend/src/lib/api.ts` |
-| Legacy TS domain mirror | Duplicate of `domain.py` logic — used only by tests | `frontend/src/lib/nagraksha.ts` |
-| Geolocation hook | GPS resolve with Bannerghatta fallback | `frontend/src/hooks/use-geolocation.ts` |
-| Dev launcher | Start/stop/status both services | `start.py`, `scripts/dev.sh` |
-| Setup | One-step env + dependency + seed install | `setup.py` |
+| FastAPI app | App factory, lifespan (init DB, seed KB, start worker/scheduler), CORS, rate limiting, Sentry, router registration, `/api/health`, `/api/auth/token` | `backend/app/main.py` |
+| Route modules | HTTP request/response surface — one module per resource family | `backend/app/routes/*.py` |
+| Database layer | SQLite connection management, schema DDL, migrations, id/time helpers | `backend/app/database.py` |
+| Pydantic models | Request body validation contracts | `backend/app/models.py` |
+| RAG pipeline | Semantic retrieval (ChromaDB, TF-IDF fallback), emergency guard, retrieval-only fallback | `backend/app/rag.py` |
+| LLM module | Provider fallback chain: local GGUF → Groq → Grok → Gemini; wound image analysis | `backend/app/llm.py` |
+| Event bus / outbox | Durable outbox table, poller worker, in-process pub/sub, audit logger, incident dispatch fan-out | `backend/app/eventbus.py` |
+| Dispatch | Real SMS dispatch via Twilio, falls back to simulation | `backend/app/dispatch.py` |
+| Domain helpers | Haversine distance, road/ETA estimates, hospital ranking, simulated dispatch, incident refs | `backend/app/domain.py` |
+| Compliance | Hospital compliance scoring + badge, run on schedule | `backend/app/compliance.py` |
+| Scheduler | APScheduler — compliance job every 15 min | `backend/app/scheduler.py` |
+| Auth | JWT creation/validation, role dependency factories | `backend/app/auth.py` |
+| Seed | Idempotent demo data: hospitals, stock, risk reports, KB | `backend/app/seed.py` |
+| KB corpus | Curated, medically-reviewed knowledge chunks | `backend/app/knowledge_base_data.py` |
+| Frontend shell | Role-based demo workspace shell (sidebar, nav, workspaces) | `frontend/components/nagraksha/shell.tsx`, `workspaces.tsx`, `shared.tsx` |
 
 ## Pattern Overview
 
-**Overall:** Modular monolith — feature-sliced Python backend behind a thin
-Next.js client, with a transactional-outbox / in-process event-bus for async
-work, WebSocket (with SSE fallback) for live updates, and a scheduled
-compliance job.
+**Overall:** Modular monolith — a single FastAPI process with a module-per-route API layer over a raw-SQL SQLite store, driven by a transactional-outbox event backbone. The Next.js frontend is currently a standalone demo presentation shell that does not yet call the API.
 
 **Key Characteristics:**
-- Single SQLite database file shared by both services; raw SQL, no ORM on the backend. ChromaDB used for RAG vectors only.
-- Transactional outbox pattern: incident write + `OutboxEvent` row committed together, then drained by a polling worker thread.
-- Fail-open architecture: every LLM/AI/SMS provider degrades gracefully; audit writes are best-effort.
-- Two realtime transports: WebSocket (`/ws/incidents/{id}`, preferred) and SSE (`/api/incidents/{id}/stream`, kept for backward compat).
-- Real dispatch with demo fallback: Twilio SMS if configured AND responders registered; otherwise `simulate_dispatch()`.
-- Duplicated domain logic across languages: Python (`backend/app/domain.py`) is authoritative; a TS mirror (`frontend/src/lib/nagraksha.ts`) survives for test coverage only.
-- PWA-first client: service worker caches the app shell but never API data (`frontend/public/sw.js`).
+- **Transactional outbox**: SOS writes `Incident` + `OutboxEvent` in one SQLite transaction; a background worker drains the outbox, so dispatch fan-out survives restarts
+- **Fallback chains**: LLM generation (GGUF→Groq→Grok→Gemini), RAG retrieval (ChromaDB→TF-IDF→text match), dispatch (Twilio→simulation) all degrade gracefully to retrieval-only / simulated modes
+- **In-process event bus + WebSocket push**: subscribers + `broadcast_sync` fan events to per-incident WebSocket channels from worker threads
+- **Raw SQL with sqlite3**: no ORM; schema is one `SCHEMA` string in `backend/app/database.py` (PascalCase table names inherited from the old Prisma prototype)
+- **FastAPI dependency injection** for auth (`Depends(require_role_if_enforced(...))`) and rate limiting (`@limiter.limit(...)`)
 
 ## Layers
 
-**Client Layer (Next.js):**
-- Purpose: Role-based SPA shell rendering 9 views from one page component
-- Location: `frontend/src/app/`, `frontend/src/components/`, `frontend/src/hooks/`, `frontend/src/store/`
-- Contains: React components, shadcn/ui primitives (`frontend/src/components/ui/`), hooks, Zustand store, API helper `frontend/src/lib/api.ts`
-- Depends on: Backend API via `fetch`/WebSocket; never touches SQLite directly
-- Used by: Browser (PWA, `frontend/public/sw.js` app shell)
+**Frontend / Presentation:**
+- Purpose: Role-switchable demo UI for Victim, Responder, Rescue, Ambulance, Hospital, ASHA, Stakeholder, Admin
+- Location: `frontend/app/`, `frontend/components/nagraksha/`
+- Contains: `page.tsx` (client page), `layout.tsx`, `manifest.ts`, `globals.css`, role workspace components
+- Depends on: nothing external — all data is hardcoded demo/presentation state
+- Used by: browser at `http://localhost:3000`
 
-**Gateway Layer:**
-- Purpose: Route browser calls to the Python backend
-- Location: `frontend/src/lib/api.ts` (absolute `NEXT_PUBLIC_BACKEND_URL`) + `frontend/next.config.ts:9` (dev rewrite `/api/:path*` → `http://127.0.0.1:8000`)
-- Convention: absolute URL from env var; the `?XTransformPort=8000` artifact was removed
+**API Layer:**
+- Purpose: HTTP surface for every capability
+- Location: `backend/app/routes/` (15 modules)
+- Contains: APIRouter modules — `sos.py`, `incidents.py`, `hospitals.py`, `risk.py`, `snake_id.py`, `myth_buster.py`, `stats.py`, `architecture.py`, `ops.py`, `transcribe.py`, `ws.py`, `wound.py`, `audit.py`, `stakeholders.py`, `twilio_webhook.py`
+- Depends on: `database.py`, `models.py`, `auth.py`, `eventbus.py`, `domain.py`, `rag.py`, `llm.py`, `routes/ws.py`
+- Used by: external clients (frontend, Twilio webhook, curl)
 
-**API Layer (FastAPI):**
-- Purpose: HTTP boundary, request validation, response shaping, auth
-- Location: `backend/app/routes/` (16 modules), `backend/app/models.py`
-- Contains: ~30 endpoints (see Entry Points); Pydantic DTOs; SSE stream handler (`backend/app/routes/incidents.py`); WebSocket handler (`backend/app/routes/ws.py`); JWT token endpoint + rate limiting in `backend/app/main.py`
-- Depends on: `backend/app/database.py`, `domain.py`, `eventbus.py`, `rag.py`, `llm.py`, `auth.py`, `compliance.py`
-- Used by: Frontend via `frontend/src/lib/api.ts`
-
-**Domain / Service Layer:**
-- Purpose: Business logic — dispatch orchestration, hospital ranking, RAG pipeline, LLM fallback chain, compliance scoring, real SMS
-- Location: `backend/app/eventbus.py`, `backend/app/domain.py`, `backend/app/rag.py`, `backend/app/llm.py`, `backend/app/dispatch.py`, `backend/app/compliance.py`, `backend/app/scheduler.py`
-- Contains: Outbox worker thread, in-process bus, scoring functions, ChromaDB/TF-IDF retrieval, provider adapters, Twilio client
-- Depends on: `backend/app/database.py`, external APIs
-- Used by: Route modules
+**Domain/Service Layer:**
+- Purpose: Business logic — RAG, LLM, dispatch, ranking, compliance, auth, scheduling, events
+- Location: `backend/app/` (`rag.py`, `llm.py`, `domain.py`, `dispatch.py`, `eventbus.py`, `compliance.py`, `auth.py`, `scheduler.py`)
+- Depends on: `database.py`; `eventbus.py` → `dispatch.py`, `domain.py`, `routes/ws.py`; `rag.py` → `llm.py`, `knowledge_base_data.py`
+- Used by: route modules, app lifespan (`main.py`)
 
 **Data Layer:**
-- Purpose: SQLite persistence + ChromaDB vectors
-- Location: `backend/app/database.py`, runtime DB `backend/db/nagraksha.db` (gitignored), `backend/chroma_db` (gitignored)
-- Contains: 16 tables (Incident, DispatchAttempt, Hospital, AntivenomStock, SymptomObservation, SnakeObservation, RiskReport, MythThread, KnowledgeChunk, OutboxEvent, AuditEvent, WoundReading, Responder, VillageAudit, HouseholdAudit, Stakeholder)
-- Depends on: stdlib `sqlite3`, `chromadb`
-- Used by: All backend layers
-
-**Async Layer:**
-- Purpose: Durable event processing, live state fan-out, scheduled jobs
-- Location: `backend/app/eventbus.py` — `_worker_tick` drains outbox every 2.5 s; `backend/app/scheduler.py` — APScheduler runs compliance every 15 min
-- Contains: Outbox drain, 3-lane dispatch simulation, incident state machine (`DISPATCHING → ACCEPTED → TRANSPORTING → HANDED_OFF`), audit writer, compliance job
-- Used by: WebSocket/SSE endpoints and the SOS route
-
-**External Services:**
-- Purpose: AI generation, vision classification, speech-to-text, SMS, error monitoring
-- Location: `backend/app/llm.py` (Groq/Grok/Gemini REST), `backend/app/routes/snake_id.py` (3 vision providers), `backend/app/routes/transcribe.py` (Groq Whisper), `backend/app/dispatch.py` + `backend/app/routes/twilio_webhook.py` (Twilio), `backend/app/main.py` (Sentry), `model/` (local GGUF)
-- Auth: `GROQ_API_KEY`, `GROK_API_KEY`, `GEMINI_API_KEY`, `TWILIO_*`, `SENTRY_DSN`, `JWT_SECRET` from `.env` (see `.env.example`)
+- Purpose: Persistence — relational + vector
+- Location: `backend/app/database.py`, `backend/db/`, `backend/chroma_db/`
+- Contains: SQLite (WAL), `OutboxEvent` queue, ChromaDB collection `nagraksha_kb`
+- Depends on: nothing (stdlib `sqlite3`)
+- Used by: all layers
 
 ## Data Flow
 
-### Primary Request Path — Trigger SOS
+### Primary Request Path — SOS Dispatch
 
-1. `LiveSosDemo` collects GPS + incident details and POSTs `/api/sos` (`frontend/src/components/interactive.tsx:230` via `apiUrl`).
-2. `trigger_sos` (`backend/app/routes/sos.py`) inserts `Incident` (state `DISPATCHING`) and a `PENDING` `OutboxEvent` of type `IncidentCreated` in the **same transaction** (`sos.py:22-35`), then writes an `AuditEvent` (`SOS_TRIGGERED`).
-3. Response returns incident, ranked hospitals, `streamUrl` (SSE), `wsUrl` (WebSocket) and `auditUrl` (`sos.py:38-46`).
-4. The outbox worker (`backend/app/eventbus.py`) drains the event and calls `_handle_incident_created` (`eventbus.py:69`): it fans out three lanes — `TRAINED`, `RESCUE`, `AMBULANCE` — inserting `DispatchAttempt` rows, emitting `DispatchAttempted` / `DispatchAccepted` bus events, and simulating first-candidate acceptance. (Note: `dispatch.py`'s real Twilio path exists but is not invoked by the worker — `eventbus.py` calls `simulate_dispatch` directly.)
-5. The state machine advances `ACCEPTED → TRANSPORTING → HANDED_OFF` with sleeps between transitions (`eventbus.py:113-118`) and a `HANDOFF` audit.
-6. The victim UI receives the initial snapshot + live events over SSE (`frontend/src/components/interactive.tsx:245`); server generator in `backend/app/routes/incidents.py:88-121` subscribes to bus events and re-emits with 15 s heartbeats, closing after `HANDED_OFF`. The WebSocket channel (`backend/app/routes/ws.py`) also exists for push (`broadcast()`), consumed by the wound tracker updates.
+1. `POST /api/sos` — `backend/app/routes/sos.py:15` `trigger_sos()` inserts `Incident` (state `DISPATCHING`) and a `PENDING` `OutboxEvent` of type `IncidentCreated` in the **same transaction**; returns incident, ranked hospitals, stream/ws URLs
+2. Outbox poller `_worker_tick()` (`backend/app/eventbus.py:200`) drains PENDING events every 2.5 s; `IncidentCreated` jobs run on a `ThreadPoolExecutor(max_workers=4)` via `_run_incident_job` (`eventbus.py:152`)
+3. `_handle_incident_created` (`eventbus.py:76`) calls `do_dispatch()` (`backend/app/dispatch.py:94`) — real responders from `Responder` table with Twilio SMS, else `simulate_dispatch()`; persists `DispatchAttempt` rows across 3 lanes (TRAINED/RESCUE/AMBULANCE)
+4. Each attempt emits `DispatchAttempted` → in-process subscribers + `broadcast_sync` (`backend/app/routes/ws.py:29`) which schedules `broadcast()` onto the app event loop via `asyncio.run_coroutine_threadsafe`
+5. State machine advances `_set_state` (`eventbus.py:192`): `DISPATCHING → ACCEPTED → TRANSPORTING → HANDED_OFF` (simulated lanes sleep-paced; real lanes poll for an accepted attempt with a 300 s timeout in `_wait_for_accept_then_advance`, `eventbus.py:168`)
+6. Client receives pushes over WebSocket `/ws/incidents/{incident_id}` (`backend/app/routes/ws.py:40`); legacy SSE `/api/incidents/{incident_id}/stream` (`backend/app/routes/incidents.py:152`) kept for backward compat
+7. Twilio replies (`ACCEPT`/`READY`/`DECLINE`) arrive at `/webhook/twilio` (`backend/app/routes/twilio_webhook.py:20`), signature-validated, and flip the matching `DispatchAttempt`
 
-### Secondary Flow — Myth-Buster RAG
+### RAG Chat Path — Myth-Buster
 
-1. `MythBuster` panel POSTs `/api/myth-buster` (`frontend/src/components/interactive.tsx:846`).
-2. `ask` (`backend/app/routes/myth_buster.py`) calls `rag_answer` (`backend/app/rag.py:171`): ChromaDB semantic retrieval of top-5 chunks (fallback TF-IDF; category boosts `MYTH` 1.08 / `FIRST_AID` 1.06).
-3. An emergency-keyword guard (`EMERGENCY_RE`, `rag.py:117`) short-circuits to a fixed triage answer.
-4. Otherwise `generate` (`backend/app/llm.py:178`) tries local GGUF → Groq → Grok → Gemini; on total failure the top chunk is returned verbatim (`source: rag-retrieval-only`).
-5. Result + retrieved docIds are persisted to `MythThread` and audited (`myth_buster.py:19-30`).
+1. `POST /api/myth-buster` — `backend/app/routes/myth_buster.py:14` → `rag_answer()` (`backend/app/rag.py:190`)
+2. `retrieve()` (`rag.py:107`) queries ChromaDB (`nagraksha_kb`, cosine); falls back to TF-IDF cosine with category boosts, then substring match
+3. Emergency regex guard `EMERGENCY_RE` short-circuits to a fixed SOS instruction
+4. If any LLM available (`llm.py is_available()`), `generate()` tries local GGUF → Groq → Grok → Gemini with the curated `SYSTEM_PROMPT`; on failure returns top chunk verbatim (`rag-retrieval-only`)
+5. Response is persisted as a `MythThread` row + `RAG_QUERY` audit event
 
-### Secondary Flow — Snake Photo/Text ID
+### Secondary Flow — Hospital Ranking & Compliance
 
-1. `SnakeIdUpload` panel POSTs `/api/snake-id` (`frontend/src/components/interactive.tsx:670`).
-2. `identify` (`backend/app/routes/snake_id.py:341`) tries three vision providers in order: Groq `llama-3.2-11b-vision-instruct` → Grok `grok-2-vision-latest` → Gemini 2.5 Flash.
-3. Text-only input falls back to keyword matching over the 11-species `CATALOGUE` (`snake_id.py:307-339`), with mimic warnings; responses always carry the medical disclaimer.
-
-### Secondary Flow — Wound Reading / Pre-Arrival Packet
-
-1. `WoundTracker` POSTs image + pixel measurement to `/api/wound/{incident_id}/reading` (`frontend/src/components/wound-tracker.tsx:111`, mounted in `interactive.tsx`).
-2. `submit_wound_reading` (`backend/app/routes/wound.py`) calls Gemini Vision `analyze_wound_image` (`backend/app/llm.py:262`) with a pixel-based fallback, stores a `WoundReading`, and broadcasts `WOUND_UPDATE` over WebSocket (`wound.py:78-89`).
-3. `GET /api/wound/{incident_id}/packet` assembles the pre-arrival hospital packet (`wound.py:117-173`); `GET /api/wound/{incident_id}/trend` feeds the Recharts severity chart.
-
-### Secondary Flow — ASHA Village Audit
-
-1. `AshaAuditTool` creates a village audit session (`POST /api/audit/village`, `backend/app/routes/audit.py:47`) then submits household forms (`POST /api/audit/village/{id}/household`).
-2. `compute_household_risk` (`audit.py:15-33`) produces a weighted 0-100 risk score; `VillageAudit` aggregates `householdsVisited` and `aggregateRiskScore` (`audit.py:101-110`).
-3. `DistrictRiskMap` fetches GP-level profiles via `GET /api/audit/district/{district}`.
+1. `GET /api/hospitals` — `backend/app/routes/hospitals.py:13` → `get_ranked_hospitals()` (`eventbus.py:266`) joins freshest `AntivenomStock` per hospital (window function) → `rank_hospitals()` (`backend/app/domain.py:73`) composites distance (40%) + stock freshness (30%) + compliance (30%)
+2. `scheduler.py` runs `run_compliance_job()` (`backend/app/compliance.py:52`) every 15 min — exponential freshness decay + activity bonus, writes `complianceScore`/`complianceRank` to `Hospital`
 
 **State Management:**
-- Server-authoritative: SQLite is the source of truth; the browser holds ephemeral UI state (useState + Zustand store `frontend/src/store/sos-store.ts`)
-- Live state: WebSocket (`frontend/src/lib/realtime.ts`) and SSE snapshots + events; EventSource auto-reconnects
-- Outbox rows carry event state `PENDING | PROCESSED | FAILED` with an attempt counter (max 4 attempts)
+- Incident lifecycle state machine persisted on the `Incident.state` column; `DispatchAttempt.outcome` per attempt
+- Durable event queue in `OutboxEvent` (PENDING → PROCESSED / FAILED after 4 attempts)
+- Audit trail in `AuditEvent` (best-effort writes)
+- In-memory: ChromaDB client/collection (`rag.py`), GGUF model (`llm.py`), WebSocket connection map + event loop ref (`ws.py`), event-bus subscriber map + inflight set (`eventbus.py`), APScheduler instance (`scheduler.py`)
 
 ## Key Abstractions
 
-**Transactional Outbox / Event Bus:**
-- Purpose: Durable event emission decoupled from request handling
-- Examples: `append_outbox` (`backend/app/eventbus.py:44`), `OutboxEvent` table (`backend/app/database.py:135`), `_worker_tick` drain (`eventbus.py:129`), `subscribe`/`unsubscribe` (`eventbus.py:20-31`)
-- Pattern: Write-ahead event row in the same DB transaction as the aggregate write; poller dispatches; retries with max 4 attempts then `FAILED`
+**Outbox / Event Bus:**
+- Purpose: Durable decoupling between transactional writes and side effects (dispatch, notifications)
+- Examples: `append_outbox()` (`backend/app/eventbus.py:54`), `_worker_tick()`, `subscribe/unsubscribe`
+- Pattern: Poll-based transactional outbox with bounded thread-pool processing and per-event retry accounting
 
-**Hospital Ranking Score:**
-- Purpose: Antivenom-aware routing (distance 40%, stock freshness 30%, compliance 30%)
-- Examples: `rank_hospitals` (`backend/app/domain.py:103`), consumed by `get_ranked_hospitals` (`backend/app/eventbus.py:181`), surfaced at `/api/hospitals` and inside the SOS response
-- Pattern: Composite scoring: distance penalty (max 50 km → 100), freshness from `stock_freshness` (CONFIRMED 100 decaying after 2 h, LOW 55, UNKNOWN 30, STALE 15, OUT 0), compliance score 0-100 from `backend/app/compliance.py`; sorted descending, `recommended` = rank 1
+**Fallback Chain:**
+- Purpose: Graceful degradation when external providers are missing or fail
+- Examples: `generate()` (`backend/app/llm.py:179`), `retrieve()` (`backend/app/rag.py:107`), `do_dispatch()` (`backend/app/dispatch.py:94`)
+- Pattern: Try providers in priority order; first non-None wins; caller falls back to a safe default (retrieval-only / simulation)
 
-**LLM Provider Fallback Chain:**
-- Purpose: One `generate()` call that never throws
-- Examples: `generate` (`backend/app/llm.py:178`), `is_available` (`llm.py:250`), local model autodetect `_find_model` (`llm.py:43`)
-- Pattern: Try local GGUF → Groq → Grok → Gemini; each adapter returns `None` on missing key/HTTP error; caller falls back to retrieval-only
+**Role Auth Dependency Factory:**
+- Purpose: Conditional RBAC on mutating routes
+- Examples: `require_role_if_enforced()` (`backend/app/auth.py:115`) used in `incidents.py`, `hospitals.py`, `wound.py`, `twilio_webhook.py`; hard `require_role()` in `stakeholders.py`
+- Pattern: FastAPI `Depends` factories returning the caller role or raising 401/403; enforcement toggled by `AUTH_ENFORCED`/`ENV=production`
 
-**WebSocket Broadcast:**
-- Purpose: Push incident + wound events to all viewers
-- Examples: `broadcast` (`backend/app/routes/ws.py:49`), `_connections` map, client `useIncidentSocket` (`frontend/src/lib/realtime.ts`)
-- Pattern: Per-incident connection list; broadcast serializes `{event, data}` JSON; dead connections pruned on send failure
-
-**JWT Role Auth:**
-- Purpose: Minimal RBAC for quota-burning/admin routes
-- Examples: `create_token`/`require_role` (`backend/app/auth.py`), `POST /api/auth/token` (`backend/app/main.py:53`)
-- Pattern: HS256 tokens with role claim, 24 h expiry; role secrets from env; `require_role()` returns a FastAPI dependency
-
-**`get_conn()` Connection Manager:**
-- Purpose: Single SQLite connection per operation with commit/rollback
-- Examples: `backend/app/database.py:170-182`; used everywhere in routes/eventbus/rag
-- Pattern: `@contextmanager` yielding `sqlite3.Row` rows with `PRAGMA foreign_keys = ON`; commits on success, rolls back on exception
+**Route Module Convention:**
+- Purpose: One `APIRouter` per resource family, registered in `main.py`
+- Examples: all files under `backend/app/routes/`
+- Pattern: `router = APIRouter()`, decorated handlers, Pydantic bodies from `models.py`, `with db.get_conn() as conn:` for queries
 
 ## Entry Points
 
-**Backend FastAPI app:**
-- Location: `backend/app/main.py:36` (`app = FastAPI(...)`); lifespan at `:30-35` runs `db.init_db()`, `ensure_kb_seeded()`, `start_worker()`, `start_scheduler()`
-- Run: `python3 -m uvicorn app.main:app --host 127.0.0.1 --port 8000` (`scripts/dev.sh`, root `package.json`)
-- Health: `GET /api/health` (`main.py:47`)
+**Backend (uvicorn):**
+- Location: `backend/app/main.py` — `app = FastAPI(...)`; run via `uvicorn app.main:app` (see `start.py:91`, `scripts/dev.sh:7`, `backend/Dockerfile`)
+- Triggers: `python start.py`, `npm run dev:backend`, `docker-compose up`
+- Responsibilities: lifespan (DB init, KB seed, ws loop registration, worker + scheduler start), middleware, router registration, health + token endpoints
 
-**Registered API routers (endpoints):**
-- `backend/app/routes/sos.py:13` — `POST /api/sos`
-- `backend/app/routes/incidents.py` — `GET /api/incidents/{id}`, `GET /api/incidents/{id}/audit`, `POST /api/incidents/{id}/symptoms`, `PATCH /api/incidents/{id}/accept`, `PATCH /api/incidents/{id}/decline`, `GET /api/incidents/{id}/stream` (SSE)
-- `backend/app/routes/ws.py:20` — `WS /ws/incidents/{id}` (WebSocket)
-- `backend/app/routes/hospitals.py` — `GET /api/hospitals`, `PATCH /api/hospitals/{hid}/stock`
-- `backend/app/routes/risk.py:17` — `GET /api/risk`
-- `backend/app/routes/snake_id.py:341` — `POST /api/snake-id`
-- `backend/app/routes/myth_buster.py:12` — `POST /api/myth-buster`
-- `backend/app/routes/stats.py:11` — `GET /api/stats`
-- `backend/app/routes/ops.py` — `GET /api/audit`, `GET /api/outbox`, `GET /api/knowledge-base`
-- `backend/app/routes/architecture.py:10` — `GET /api/architecture` (self-describing system manifest)
-- `backend/app/routes/transcribe.py` — `POST /api/transcribe`, `POST /api/transcribe-b64`
-- `backend/app/routes/wound.py` — `POST /api/wound/{id}/reading`, `GET /api/wound/{id}/trend`, `GET /api/wound/{id}/packet`
-- `backend/app/routes/audit.py` — `POST /api/audit/village`, `POST /api/audit/village/{id}/household`, `GET /api/audit/village/{id}`, `GET /api/audit/district/{district}`, `GET /api/audit/districts`
-- `backend/app/routes/stakeholders.py` — `GET/POST /api/stakeholders` (POST admin-only), `DELETE /api/stakeholders/{id}` (admin-only)
-- `backend/app/routes/twilio_webhook.py` — `POST /webhook/twilio`, `POST /api/responders`, `GET /api/responders`
-- `backend/app/main.py:53` — `POST /api/auth/token`
+**Frontend (Next.js):**
+- Location: `frontend/app/page.tsx` (client page composing `AppShell` + `RoleWorkspace`), `frontend/app/layout.tsx` (root layout + metadata)
+- Triggers: `next dev -p 3000` (see `start.py:102`, `scripts/dev.sh:12`)
+- Responsibilities: role-switching shell, per-role demo workspaces, PWA manifest (`frontend/app/manifest.ts`)
 
-**Frontend entry points:**
-- `frontend/src/app/layout.tsx` — root layout (metadata, fonts, SW registration, Toaster)
-- `frontend/src/app/page.tsx` — single route `/`; role switch via `activeRole` state (9 roles)
-- PWA shell: `frontend/public/sw.js` (precache, network-first navigation, `NetworkOnly` for API), `frontend/public/manifest.webmanifest`, `frontend/public/offline.html`
+**Root Launchers:**
+- `start.py` — starts/stops/status-checks both services with health polling
+- `setup.py` — one-step prerequisite check, `.env` creation, dependency install, DB seed
+- `package.json` scripts — `dev`, `dev:frontend`, `dev:backend`, `format:*`, `lint`, `db:push`, `db:generate`, `backend:seed`
+- `scripts/dev.sh` — bash variant of the dev launcher
 
 ## Architectural Constraints
 
-- **Threading:** Backend uses a single daemon outbox poller thread (`backend/app/eventbus.py:177`) that blocks on `time.sleep` while simulating dispatch; APScheduler runs the compliance job on the async loop (`backend/app/scheduler.py`); FastAPI sync endpoints run in the default threadpool; SSE handlers and WebSocket are async. Shared state guarded by `_bus_lock` (`eventbus.py:18`), `_lock`/`_index_lock`/`_tfidf_lock` (`backend/app/rag.py`), `_lock` (`backend/app/llm.py`), `_connections` dict (single-threaded event loop, `backend/app/routes/ws.py`).
-- **Global state (module singletons):** `_subscribers`/`_worker_started` (`backend/app/eventbus.py`), `_client`/`_collection`/`_tfidf_index` (`backend/app/rag.py`), `_model`/`_model_path` (`backend/app/llm.py`), `_scheduler` (`backend/app/scheduler.py`), `_connections` (`backend/app/routes/ws.py`), `GLOBAL`-attached bus in legacy frontend tests.
-- **Schema ownership:** The authoritative schema is the raw SQL in `backend/app/database.py:SCHEMA`; `migrate_db()` handles `ALTER TABLE` additions. The legacy Prisma schema (`frontend/prisma/schema.prisma`) has been removed.
-- **Gateway convention:** Frontend calls the backend through absolute `NEXT_PUBLIC_BACKEND_URL` (`frontend/src/lib/api.ts`) with a dev rewrite in `frontend/next.config.ts`; no more `?XTransformPort=8000`.
-- **CORS:** Backend allowlist is `http://localhost:3000` / `http://127.0.0.1:3000` plus optional `FRONTEND_URL` env (`backend/app/main.py:36`); production deployments must go through the same-origin gateway.
-- **Authentication:** Minimal JWT role auth — only stakeholder write routes and the token endpoint are protected; most endpoints are open.
+- **Threading:** Async FastAPI event loop + daemon background threads: outbox poller (`eventbus.py:257`), thread-pool dispatch executor (4 workers), APScheduler on the async loop. Worker threads cross into the async loop only through `asyncio.run_coroutine_threadsafe` via the loop captured in `ws.set_loop()` (`backend/app/routes/ws.py:24`)
+- **Global state:** Module-level singletons — ChromaDB `_client`/`_collection` (`rag.py:21-22`), GGUF `_model` (`llm.py:23`), WebSocket `_connections` map + `_loop` (`ws.py:17,21`), `_subscribers`/`_inflight`/`_executor` (`eventbus.py:21-28`), `_scheduler` (`scheduler.py:12`), `limiter` (`main.py:47`). All guarded by `threading.Lock` except `_connections` (touched only on the loop)
+- **Database:** Single-writer SQLite in WAL mode (`PRAGMA journal_mode = WAL`), `synchronous = NORMAL`, foreign keys ON, one connection per operation via `get_conn()` context manager
+- **Circular imports:** Avoided by deferred imports — `domain.py` imports `compliance_badge` inside `rank_hospitals()` (`domain.py:109`); `eventbus.py` → `routes.ws` is acyclic (ws.py imports nothing from eventbus)
+- **Secrets:** `ENV=production` refuses demo/placeholder JWT and role secrets at import time (`auth.py:29-53`); `.env` loaded via `python-dotenv` in `main.py:14`
 
 ## Anti-Patterns
 
-### Dual-Language Domain Duplication
+### Frontend/Backend Disconnect (presentation shell)
 
-**What happens:** The same business logic — haversine, road factor, ETA, stock freshness, hospital ranking, dispatch simulation — exists in Python (`backend/app/domain.py`) and in TypeScript (`frontend/src/lib/nagraksha.ts`), and the two can drift (e.g. `stockFreshness` freshness thresholds differ: Python treats `CONFIRMED` ≤ 120 min as fresh at `domain.py:54` while the TS copy at `frontend/src/lib/nagraksha.ts:37-43` has a separate ≤ 30 min branch).
-**Why it's wrong:** Two sources of truth for ranking/ETA math; fixes must be applied twice; the TS copy is only exercised by unit tests and its `rankHospitals` scoring (100 − 0.6·ETA style) differs from the Python composite score (distance/stock/compliance weights).
-**Do this instead:** Treat `backend/app/domain.py` as the single source of truth (the runtime UI already calls the backend for ranking via `/api/hospitals`), and delete the TS mirror + its tests (`frontend/src/lib/nagraksha.ts`, `frontend/src/lib/__tests__/nagraksha.test.ts`).
+**What happens:** The frontend contains zero API calls — no `fetch`, no `WebSocket`, no `NEXT_PUBLIC_BACKEND_URL` usage anywhere under `frontend/`. All workspaces render hardcoded demo data (`frontend/components/nagraksha/workspaces.tsx`). The `AdminWorkspace` even labels `frontend/src/lib/api.ts` as a "Future seam" (`workspaces.tsx:17`).
+**Why it's wrong:** The backend exposes a full API surface that no client consumes; the app cannot perform a real SOS, RAG query, or dispatch end-to-end.
+**Do this instead:** Add an API client layer (e.g. `frontend/lib/api.ts` as referenced) that calls the backend via `NEXT_PUBLIC_BACKEND_URL`, then wire workspaces to real endpoints, keeping the demo state only as loading/offline fallbacks. Phase 7 of `ROADMAP.md` ("Connect all the features of the frontend with the backend") targets exactly this.
 
-### Dead Twilio Dispatch Module
+### Duplicated Incident Loader
 
-**What happens:** `backend/app/dispatch.py` implements real Twilio SMS dispatch (`do_dispatch`, `get_nearest_responders`), but nothing imports it — `backend/app/eventbus.py` calls `simulate_dispatch()` directly (verified: no references to `dispatch.py` outside the file).
-**Why it's wrong:** The headline "real SMS dispatch" feature is not wired into the incident flow; the responder registry (`/api/responders`) exists but SMS is never sent from an SOS.
-**Do this instead:** Call `do_dispatch()` from `_handle_incident_created` in `backend/app/eventbus.py` when real responders are registered (keep the simulation fallback), and persist SMS attempt SIDs in `DispatchAttempt`.
+**What happens:** The same `_load_incident()` helper (incident + dispatchAttempts + symptomObservations + snakeObservations) is copy-pasted in `backend/app/routes/sos.py:50` and `backend/app/routes/incidents.py:17`.
+**Why it's wrong:** Drift risk — a schema or response change must be applied in two places.
+**Do this instead:** Extract into a single module (e.g. `backend/app/loaders.py` or a method on `database.py`) and import from both route modules.
 
-### Mega-Component Files
+### Time-Sleep Paced State Machine in the Live Path
 
-**What happens:** `frontend/src/components/interactive.tsx` (1791 lines) contains 10 exported panels; `frontend/src/components/sections.tsx` (826 lines) exports 12 components, most of which (`Hero`, `Problem`, `ParallelDispatch`, `HowItFlows`, `Roles`, `Prevention`, `Routing`, `Roadmap`) are **not rendered** by `frontend/src/app/page.tsx` — only `TopAppBar`, `NavigationDrawer`, `SiteFooter` are imported.
-**Why it's wrong:** Poor discoverability, merge conflicts, dead marketing sections add bundle/type-check surface (they pull in `Reveal`/`SlitherSprite`).
-**Do this instead:** Split panels into one file per component under `frontend/src/components/panels/`; delete the unrendered sections from `frontend/src/components/sections.tsx`. Also remove orphaned `frontend/src/components/tri-line-dock.tsx` and `snake-progress.tsx` (no importers) and `frontend/src/lib/realtime.ts` (unused — `useIncidentSocket` has no callers).
+**What happens:** `_handle_incident_created()` (`backend/app/eventbus.py:141-149`) blocks worker threads with `time.sleep(0.6/1.6/2.0)` to demo-pace incident state transitions, and `_wait_for_accept_then_advance()` polls every 2 s.
+**Why it's wrong:** Demo pacing is embedded in the production dispatch handler; sleeps tie up the 4-worker pool and make real timings fake.
+**Do this instead:** Keep simulated pacing behind a `SIMULATION`/`DEMO` flag, or drive transitions from actual events (Twilio reply, responder PATCH) plus a scheduled state timer, so production behavior is event-driven.
 
-### Client Calls Hardcoded Fake Incident IDs
+### Duplicated "Freshest Stock" Join
 
-**What happens:** `SymptomLogger` defaults to `incidentId = 'NR-1042'` (`frontend/src/components/interactive.tsx:1651`) and `frontend/src/app/page.tsx` passes `incidentId="NR-1042"`, but real incidents use 24-char hex IDs. The Responder view's "Accept Dispatch"/"Decline" buttons (`frontend/src/app/page.tsx:220-228`) have no `onClick` handlers.
-**Why it's wrong:** Responder/hospital role views promise actions that silently fail against real data.
-**Do this instead:** Wire accept/decline to `PATCH /api/incidents/{id}/accept|decline` with a real incident ID, or remove the demo buttons.
+**What happens:** The same window-function query (`ROW_NUMBER() OVER (PARTITION BY hospitalId ORDER BY verifiedAt DESC)`) is repeated in `get_ranked_hospitals()` (`backend/app/eventbus.py:269`) and `stats.py:28`.
+**Why it's wrong:** Query drift and duplicated SQL.
+**Do this instead:** Centralize as a view or shared SQL constant/helper in `database.py`.
 
-### Time-Sleep Simulation Inside the Worker
+### Placeholder / Prototype Config Flags
 
-**What happens:** The outbox handler blocks the single worker thread with `time.sleep` for simulated accept delays and state transitions (`backend/app/eventbus.py:97-118` — ≈4-5 s per incident); only one incident processes at a time.
-**Why it's wrong:** A real fan-out would be parallel/async; the queue stalls behind the sleep.
-**Do this instead:** Accept for the demo, but note that a real implementation would move delays into per-lane timers/async tasks or a job queue.
+**What happens:** `frontend/next.config.mjs:4` keeps `typescript.ignoreBuildErrors: true` and `images.unoptimized: true`; `docker-compose.yml` references a frontend build context with a Dockerfile that does not exist (`frontend/Dockerfile` absent); root `package.json` lint-staged references `frontend/eslint.config.mjs` which is also absent.
+**Why it's wrong:** Safety valves mask type errors in CI; compose and hook configs are broken by missing files.
+**Do this instead:** Remove `ignoreBuildErrors`, add the missing `frontend/Dockerfile` and `frontend/eslint.config.mjs` (or repoint lint-staged), and align configs with the actual file tree.
 
 ## Error Handling
 
-**Strategy:** Fail-open everywhere. Providers degrade rather than crash; audit writes are best-effort; the outbox marks events `FAILED` after 4 attempts instead of blocking the queue.
+**Strategy:** Defensive fallbacks + best-effort side effects; exceptions are contained so the request/worker never crashes.
 
 **Patterns:**
-- LLM adapters return `None` on missing key or any HTTP/JSON error (`backend/app/llm.py:58-176`); `generate` returns `None` when all four fail (`llm.py:219`); wound analysis falls back to pixel-based estimates when Gemini is unavailable (`llm.py:262-294`).
-- RAG falls back `rag-llm-chromadb → rag-retrieval-only → fallback` (`backend/app/rag.py:171-202`), with a regex emergency guard short-circuit.
-- Audit is wrapped in try/except and silently skipped (`backend/app/eventbus.py:55-65`).
-- Worker `_worker_tick` is fully guarded (`eventbus.py:129-163`); subscriber exceptions are swallowed (`eventbus.py:39-43`).
-- Twilio SMS failures log and return `None`; dispatch falls back to simulation (`backend/app/dispatch.py:66-73`).
-- Frontend panels use sonner `toast.success/error`; the service worker never caches API responses (`frontend/public/sw.js` header comment, `NetworkOnly`).
-- Compliance job catches all exceptions and logs (`backend/app/compliance.py:63-67`).
+- Provider failures return `None` and trigger the next fallback (`llm.py`, `rag.py`, `dispatch.py`)
+- Outbox failures: `_mark_failed_or_retry()` (`eventbus.py:235`) — attempts++ then `FAILED` after 4 tries; handler exceptions logged, never crash the poller
+- Audit writes are wrapped in try/except with `pass` (`eventbus.py:72`) — best-effort
+- Route-level 404/401/403 via FastAPI `HTTPException` (e.g. `incidents.py:56`, `auth.py:99-110`)
+- Sentinel defaults: `days_since()` returns `9999.0` on parse failure (`database.py:302`); stock freshness treats unknown as stale
+- Uploaded audio cleanup in `finally` blocks (`transcribe.py:84`)
 
 ## Cross-Cutting Concerns
 
-**Logging:** Process logs to `backend.log` / `dev.log` via `tee` in root npm scripts (`package.json`); structured domain events go to the `AuditEvent` table, inspectable at `GET /api/audit` (`backend/app/routes/ops.py:10`); `print()` in compliance/dispatch/RAG modules.
-**Validation:** Pydantic for API bodies (`backend/app/models.py`); typed query params with ranges on hospitals (`backend/app/routes/hospitals.py:13-18`); raw SQL row-mapping everywhere else. `risk.py` and `ops.py` still use untyped `float()`/`int()` casts on query params (see CONCERNS.md).
-**Authentication:** Minimal JWT role auth — `POST /api/auth/token` (rate-limited) issues role tokens; `require_role("system_admin")` guards stakeholder writes; everything else is open. Rate limiting via slowapi at 200/min default (`backend/app/main.py:29`).
-**Monitoring:** Sentry optional via `SENTRY_DSN`; `/api/health` returns service version.
+**Logging:** Plain `print()` to stdout/stderr (`[RAG]`, `[Eventbus]`, `[Dispatch]`, `[Compliance]`, `[Scheduler]` prefixes); dev launcher tees output to `backend.log`/`dev.log`. Sentry (`SENTRY_DSN`) captures errors with 0.2 trace sample rate.
+**Validation:** Pydantic request models in `backend/app/models.py`; FastAPI `Query(ge=..., le=...)` bounds; Twilio webhook signature validation when credentials configured.
+**Authentication:** JWT (HS256) role tokens from `/api/auth/token`; `require_role` / `require_role_if_enforced` dependency factories; demo secrets rejected in production.
+**Rate limiting:** slowapi global default 200/min; `/api/auth/token` limited to 10/min (`main.py:47,95`).
 
 ---
 
-*Architecture analysis: 2026-08-13*
+*Architecture analysis: 2026-08-14*
