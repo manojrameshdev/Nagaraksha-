@@ -55,7 +55,7 @@ Requirements for milestone v1.0. Each maps to roadmap phases.
 - [ ] **CI-04**: Dependency caching configured for both npm/bun and pip
 - [ ] **CI-05**: Path-based triggers skip irrelevant jobs (only frontend/only backend changes)
 - [ ] **CI-06**: Gatekeeper job aggregates results for branch protection
-- [ ] **CI-07**: CI blocks PRs with failing checks
+- [x] **CI-07**: CI blocks PRs with failing checks
 
 ### Developer Experience
 
@@ -66,15 +66,18 @@ Requirements for milestone v1.0. Each maps to roadmap phases.
 ## Future Requirements (v1.x)
 
 ### TypeScript
+
 - **TYPES-05**: Full TypeScript strict mode (`strict: true` with all sub-flags) — remaining flags after noImplicitAny and strictNullChecks
 
 ### Testing
+
 - **TEST-12**: Component tests for React components (with @testing-library/react)
 - **TEST-13**: Coverage thresholds set to block PRs (after baseline established)
 - **TEST-14**: Pre-commit hook runs `tsc --noEmit` in pre-push hook
 - **TEST-15**: E2E tests with Playwright
 
 ### CI
+
 - **CI-08**: Nightly workflow for real LLM API integration tests
 - **CI-09**: Performance regression detection
 - **CI-10**: Build artifact caching for Next.js
@@ -126,12 +129,13 @@ Requirements for milestone v1.0. Each maps to roadmap phases.
 | CI-04 | Phase 5 | Pending |
 | CI-05 | Phase 5 | Pending |
 | CI-06 | Phase 5 | Pending |
-| CI-07 | Phase 5 | Pending |
+| CI-07 | Phase 5 | Complete |
 | DX-01 | Phase 6 | Pending |
 | DX-02 | Phase 5 | Pending |
 | DX-03 | Phase 5 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 35 total
 - Mapped to phases: 35 ✓
 - Unmapped: 0 ✓

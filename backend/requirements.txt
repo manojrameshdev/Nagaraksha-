@@ -29,6 +29,11 @@ twilio>=9.0.0
 # Error monitoring
 sentry-sdk[fastapi]>=2.0.0
 
+# OPTIONAL — offline local GGUF inference (llm.py loads it lazily; a missing
+# install only disables local generation, cloud providers still work).
+# Manual install: pip install llama-cpp-python
+# (not in the default requirements because it compiles native code)
+
 # Dev / CI
 bandit>=1.8.0
 ruff>=0.5.0

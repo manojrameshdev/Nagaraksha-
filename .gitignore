@@ -63,4 +63,10 @@ __pycache__/
 /model/*.gguf
 
 # SQLite runtime database — never commit live data
-backend/db/
+backend/db/
+
+# ChromaDB vector index — runtime artifact rebuilt from the KB corpus
+backend/chroma_db/
+
+# Python virtualenv
+backend/.venv/

@@ -5,6 +5,7 @@ Server pushes events; client just listens. Reconnection handled client-side.
 """
 from __future__ import annotations
 
+import asyncio
 import json
 from collections import defaultdict
 
@@ -14,6 +15,26 @@ router = APIRouter()
 
 # incident_id → list of open WebSocket connections
 _connections: dict[str, list[WebSocket]] = defaultdict(list)
+
+# Main event loop (registered from the app lifespan) so the background outbox
+# worker thread can push events to connected WebSocket clients.
+_loop: asyncio.AbstractEventLoop | None = None
+
+
+def set_loop(loop) -> None:
+    global _loop
+    _loop = loop
+
+
+def broadcast_sync(incident_id: str, event: str, payload: dict) -> None:
+    """Thread-safe broadcast: schedule onto the app's event loop from any thread."""
+    loop = _loop
+    if loop is None or loop.is_closed():
+        return
+    try:
+        asyncio.run_coroutine_threadsafe(broadcast(incident_id, event, payload), loop)
+    except Exception:  # noqa: BLE001, S110 - best-effort push from a worker thread
+        pass
 
 
 @router.websocket("/ws/incidents/{incident_id}")

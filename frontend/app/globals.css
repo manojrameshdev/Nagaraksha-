@@ -1,0 +1,86 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+}
+
+:root {
+  color-scheme: light;
+  --forest: #184d36;
+  --deep-forest: #102a20;
+  --emergency-red: #b42318;
+  --antivenom-gold: #d69e2e;
+  --mist: #eaf3ed;
+  --paper: #f7f9f8;
+  --slate: #52605a;
+  --background: var(--paper);
+  --foreground: var(--deep-forest);
+  --card: #ffffff;
+  --card-foreground: var(--deep-forest);
+  --popover: #ffffff;
+  --popover-foreground: var(--deep-forest);
+  --primary: var(--forest);
+  --primary-foreground: #ffffff;
+  --secondary: var(--mist);
+  --secondary-foreground: var(--forest);
+  --muted: var(--mist);
+  --muted-foreground: var(--slate);
+  --accent: var(--antivenom-gold);
+  --accent-foreground: var(--deep-forest);
+  --destructive: var(--emergency-red);
+  --border: #d6e3da;
+  --input: #d6e3da;
+  --ring: var(--forest);
+  --radius: 0.75rem;
+}
+
+* {
+  @apply border-border outline-ring/50;
+}
+html {
+  background: var(--paper);
+  overflow-x: hidden;
+}
+body {
+  @apply bg-background text-foreground antialiased;
+  overflow-x: hidden;
+}
+button,
+select {
+  min-height: 44px;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

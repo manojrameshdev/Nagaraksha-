@@ -7,9 +7,10 @@ from __future__ import annotations
 
 import base64
 
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
 from .. import database as db
+from ..auth import require_role_if_enforced
 from ..llm import analyze_wound_image
 from ..routes.ws import broadcast
 
@@ -21,6 +22,7 @@ async def submit_wound_reading(
     incident_id: str,
     image: UploadFile = File(...),
     swelling_area_px: int = Form(0),
+    _role: str = Depends(require_role_if_enforced("victim", "hospital_admin", "system_admin")),
 ):
     """
     Receive a wound photo + pixel measurement, call Gemini Vision for severity score,
@@ -40,17 +42,20 @@ async def submit_wound_reading(
     reading_id = db.new_id()
     now = db.now_iso()
     with db.get_conn() as conn:
+        # The photo is analyzed in-memory but deliberately NOT persisted:
+        # storing full base64 wound photos bloats the SQLite file and keeps
+        # sensitive imagery at rest without encryption.
         conn.execute(
             "INSERT INTO WoundReading "
             "(id, incidentId, timestamp, swellingAreaPx, severityScore, progression, "
             "estimatedVenomSpreadCm, recommendedAntivenomVials, aiNotes, imageB64) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)",
             (
                 reading_id, incident_id, now, swelling_area_px,
                 analysis["severity_score"], analysis["progression"],
                 analysis.get("estimated_venom_spread_cm"),
                 analysis.get("recommended_antivenom_vials"),
-                analysis.get("notes"), img_b64,
+                analysis.get("notes"),
             ),
         )
 

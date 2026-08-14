@@ -47,9 +47,37 @@ class TestSOS:
 class TestIncidents:
     async def test_get_nonexistent(self, async_client):
         resp = await async_client.get("/api/incidents/does-not-exist")
-        assert resp.status_code == 200
-        data = resp.json()
-        assert data["incident"] is None
+        assert resp.status_code == 404
+
+    async def test_get_audit_nonexistent(self, async_client):
+        resp = await async_client.get("/api/incidents/does-not-exist/audit")
+        assert resp.status_code == 404
+
+    async def test_stream_nonexistent_is_404(self, async_client):
+        resp = await async_client.get("/api/incidents/does-not-exist/stream")
+        assert resp.status_code == 404
+
+    async def test_accept_missing_incident_404(self, async_client):
+        resp = await async_client.patch("/api/incidents/does-not-exist/accept")
+        assert resp.status_code == 404
+
+    async def test_decline_missing_incident_404(self, async_client):
+        resp = await async_client.patch("/api/incidents/does-not-exist/decline")
+        assert resp.status_code == 404
+
+    async def test_accept_no_pending_attempt_409(self, async_client):
+        create = await async_client.post("/api/sos", json={"lat": 12.0, "lng": 77.0})
+        inc_id = create.json()["incident"]["id"]
+        resp = await async_client.patch(f"/api/incidents/{inc_id}/accept")
+        # no DispatchAttempt rows exist yet (worker is mocked in tests)
+        assert resp.status_code == 409
+
+    async def test_symptom_missing_incident_404(self, async_client):
+        resp = await async_client.post(
+            "/api/incidents/does-not-exist/symptoms",
+            json={"label": "Swelling", "severity": "MODERATE"},
+        )
+        assert resp.status_code == 404
 
     async def test_get_incident(self, async_client):
         create = await async_client.post("/api/sos", json={"lat": 12.34, "lng": 56.78})
@@ -117,7 +145,57 @@ class TestHospitals:
             "/api/hospitals/nonexistent/stock",
             json={"status": "OUT"},
         )
+        assert resp.status_code == 404
+
+
+class TestTwilioWebhook:
+    async def test_unknown_sender_returns_twiml(self, async_client):
+        resp = await async_client.post(
+            "/webhook/twilio",
+            data={"Body": "ACCEPT", "From": "+919999999999"},
+        )
+        assert resp.status_code == 200
+        assert b"<Response>" in resp.content
+
+    async def test_signature_required_when_token_set(self, async_client, monkeypatch):
+        monkeypatch.setenv("TWILIO_AUTH_TOKEN", "test-auth-token")
+        resp = await async_client.post(
+            "/webhook/twilio",
+            data={"Body": "ACCEPT", "From": "+919999999999"},
+        )
+        # No X-Twilio-Signature header -> rejected
+        assert resp.status_code == 403
+
+    async def test_register_responder(self, async_client):
+        resp = await async_client.post(
+            "/api/responders",
+            data={
+                "name": "Test Responder", "phone": "+919876543210",
+                "role": "first_aider", "lat": "12.8", "lng": "77.6",
+            },
+        )
         assert resp.status_code == 200
         data = resp.json()
-        assert "error" in data
-        assert data["error"] == "Hospital not found"
+        assert data["id"]
+
+
+class TestQueryParamValidation:
+    async def test_knowledge_base_non_numeric_k(self, async_client):
+        resp = await async_client.get("/api/knowledge-base?k=abc")
+        assert resp.status_code == 422
+
+    async def test_knowledge_base_k_bounded(self, async_client):
+        resp = await async_client.get("/api/knowledge-base?k=9999")
+        assert resp.status_code == 422
+
+    async def test_risk_non_numeric_lat(self, async_client):
+        resp = await async_client.get("/api/risk?lat=foo")
+        assert resp.status_code == 422
+
+    async def test_risk_lat_out_of_range(self, async_client):
+        resp = await async_client.get("/api/risk?lat=200")
+        assert resp.status_code == 422
+
+    async def test_risk_valid_query(self, async_client):
+        resp = await async_client.get("/api/risk?lat=12.8&lng=77.6")
+        assert resp.status_code == 200

@@ -11,13 +11,21 @@ import json
 import threading
 import time
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 
 from . import database as db
-from .domain import simulate_dispatch
+from .dispatch import do_dispatch
+from .routes.ws import broadcast_sync
 
 _bus_lock = threading.Lock()
 _subscribers: dict[str, list] = defaultdict(list)
 _worker_started = False
+# Bound the number of incidents processed concurrently so one slow incident
+# (e.g. a simulated accept delay) no longer blocks the rest of the queue.
+_executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="outbox")
+# Outbox events currently being processed off-thread — skipped by the poller
+# until they finish, preserving per-event retry/FAILED semantics.
+_inflight: set[str] = set()
 
 
 def subscribe(event_type: str, callback):
@@ -70,12 +78,14 @@ def _handle_incident_created(incident_id, payload):
     audit(incident_id=incident_id, actor="system", action="DISPATCH_FANOUT",
           entity="Incident", metadata={"lanes": ["TRAINED", "RESCUE", "AMBULANCE"]})
 
-    sim = simulate_dispatch({"lat": payload["lat"], "lng": payload["lng"]})
+    # Real responders (with Twilio SMS) when registered, else simulation.
+    sim = do_dispatch(payload)
     lanes = [
         ("TRAINED", sim["trained"]),
         ("RESCUE", sim["rescue"]),
         ("AMBULANCE", sim["ambulance"]),
     ]
+    real_dispatch = any("responderId" in a for _, attempts in lanes for a in attempts)
 
     for category, attempts in lanes:
         for i, a in enumerate(attempts):
@@ -83,9 +93,10 @@ def _handle_incident_created(incident_id, payload):
             with db.get_conn() as conn:
                 conn.execute(
                     "INSERT INTO DispatchAttempt (id, incidentId, category, candidateName, candidateRole, "
-                    "distanceKm, etaMin, sentAt, outcome, sequence) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    "distanceKm, etaMin, sentAt, outcome, sequence, responderId, smsSid) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'PENDING', ?, ?, ?)",
                     (attempt_id, incident_id, category, a["name"], a["role"], a["distanceKm"],
-                     a["etaMin"], db.now_iso(), "PENDING", i + 1),
+                     a["etaMin"], db.now_iso(), i + 1, a.get("responderId"), a.get("smsSid")),
                 )
             _emit("DispatchAttempted", incident_id, {
                 "attemptId": attempt_id, "category": category,
@@ -93,8 +104,15 @@ def _handle_incident_created(incident_id, payload):
                 "distanceKm": a["distanceKm"], "etaMin": a["etaMin"],
                 "sequence": i + 1, "state": "ALERTED",
             })
-            # first candidate accepts after its simulated delay
-            if i == 0 and a.get("accept"):
+            broadcast_sync(incident_id, "dispatch_attempted", {
+                "attemptId": attempt_id, "category": category,
+                "candidateName": a["name"], "candidateRole": a["role"],
+                "distanceKm": a["distanceKm"], "etaMin": a["etaMin"],
+                "sequence": i + 1, "state": "ALERTED",
+            })
+            # Simulated lanes auto-accept the first candidate after a delay.
+            # Real lanes wait for the responder's SMS reply / UI button instead.
+            if not real_dispatch and i == 0 and a.get("accept"):
                 delay = max(0.4, (a["acceptAt"] - time.time() * 1000) / 1000)
                 time.sleep(delay)
                 with db.get_conn() as conn:
@@ -108,16 +126,67 @@ def _handle_incident_created(incident_id, payload):
                     "distanceKm": a["distanceKm"], "etaMin": a["etaMin"],
                     "acceptedAt": db.now_iso(), "sequence": i + 1,
                 })
+                broadcast_sync(incident_id, "dispatch_accepted", {
+                    "attemptId": attempt_id, "category": category,
+                    "candidateName": a["name"], "candidateRole": a["role"],
+                    "distanceKm": a["distanceKm"], "etaMin": a["etaMin"],
+                    "acceptedAt": db.now_iso(), "sequence": i + 1,
+                })
 
-    # advance incident state
-    time.sleep(0.6)
-    _set_state(incident_id, "ACCEPTED")
-    time.sleep(1.6)
-    _set_state(incident_id, "TRANSPORTING")
-    time.sleep(2.0)
-    _set_state(incident_id, "HANDED_OFF")
-    audit(incident_id=incident_id, actor="hospital", action="HANDOFF",
-          entity="Incident", metadata={"state": "HANDED_OFF"})
+    if real_dispatch:
+        # Real flow: advance the state machine once a responder accepts
+        # (SMS webhook / UI PATCH). Poll until then, with a hard timeout.
+        _wait_for_accept_then_advance(incident_id)
+    else:
+        # advance incident state (demo pacing)
+        time.sleep(0.6)
+        _set_state(incident_id, "ACCEPTED")
+        time.sleep(1.6)
+        _set_state(incident_id, "TRANSPORTING")
+        time.sleep(2.0)
+        _set_state(incident_id, "HANDED_OFF")
+        audit(incident_id=incident_id, actor="hospital", action="HANDOFF",
+              entity="Incident", metadata={"state": "HANDED_OFF"})
+
+
+def _run_incident_job(event_id, incident_id, payload):
+    """Executor task: run the dispatch job, then mark the outbox event done.
+
+    Failures are attributed to the event (attempts/FAILED) instead of being
+    lost, preserving the outbox retry contract while keeping the poller fast.
+    """
+    try:
+        _handle_incident_created(incident_id, payload)
+        _mark_processed(event_id)
+    except Exception as e:  # noqa: BLE001 - guard rail; failures are logged, never crash the poller
+        print(f"[Eventbus] IncidentCreated handler failed for {incident_id}: {e}")
+        _mark_failed_or_retry(event_id)
+    finally:
+        _inflight.discard(event_id)
+
+
+def _wait_for_accept_then_advance(incident_id, timeout_s: int = 300):
+    """Poll for an ACCEPTED DispatchAttempt, then run the state machine."""
+    deadline = time.time() + timeout_s
+    while time.time() < deadline:
+        with db.get_conn() as conn:
+            accepted = conn.execute(
+                "SELECT COUNT(*) as c FROM DispatchAttempt WHERE incidentId=? AND outcome='ACCEPTED'",
+                (incident_id,),
+            ).fetchone()["c"]
+        if accepted:
+            time.sleep(0.6)
+            _set_state(incident_id, "ACCEPTED")
+            time.sleep(1.6)
+            _set_state(incident_id, "TRANSPORTING")
+            time.sleep(2.0)
+            _set_state(incident_id, "HANDED_OFF")
+            audit(incident_id=incident_id, actor="hospital", action="HANDOFF",
+                  entity="Incident", metadata={"state": "HANDED_OFF"})
+            return
+        time.sleep(2.0)
+    # Timeout with no accept — leave the incident DISPATCHING for a re-dispatch.
+    print(f"[Eventbus] No responder accepted incident {incident_id} within {timeout_s}s")
 
 
 def _set_state(incident_id, state):
@@ -125,6 +194,7 @@ def _set_state(incident_id, state):
         conn.execute("UPDATE Incident SET state=?, updatedAt=? WHERE id=?",
                      (state, db.now_iso(), incident_id))
     _emit("IncidentStateChanged", incident_id, {"state": state})
+    broadcast_sync(incident_id, "incident_state", {"state": state})
 
 
 def _worker_tick():
@@ -135,32 +205,46 @@ def _worker_tick():
                 "SELECT * FROM OutboxEvent WHERE state='PENDING' ORDER BY createdAt ASC LIMIT 25"
             ).fetchall()
         for ev in pending:
+            if ev["id"] in _inflight:
+                continue  # still running on the executor — retry accounting stays intact
             try:
                 payload = json.loads(ev["payload"])
                 etype = ev["type"]
                 if etype == "IncidentCreated":
-                    _handle_incident_created(ev["aggregateId"], payload)
-                _emit(etype, ev["aggregateId"], payload)
-                with db.get_conn() as conn:
-                    conn.execute(
-                        "UPDATE OutboxEvent SET state='PROCESSED', processedAt=?, attempts=attempts+1 WHERE id=?",
-                        (db.now_iso(), ev["id"]),
-                    )
+                    # Long-running simulated dispatch runs off the poller thread
+                    # so incidents process in parallel (bounded pool).
+                    _inflight.add(ev["id"])
+                    _executor.submit(_run_incident_job, ev["id"], ev["aggregateId"], payload)
+                else:
+                    _emit(etype, ev["aggregateId"], payload)
+                    _mark_processed(ev["id"])
             except Exception:
-                with db.get_conn() as conn:
-                    conn.execute(
-                        "UPDATE OutboxEvent SET attempts=attempts+1 WHERE id=?", (ev["id"],)
-                    )
-                    fail = conn.execute(
-                        "SELECT attempts as a FROM OutboxEvent WHERE id=?", (ev["id"],)
-                    ).fetchone()
-                    if fail and fail["a"] >= 4:
-                        conn.execute(
-                            "UPDATE OutboxEvent SET state='FAILED', processedAt=? WHERE id=?",
-                            (db.now_iso(), ev["id"]),
-                        )
+                _mark_failed_or_retry(ev["id"])
     except Exception:
         pass
+
+
+def _mark_processed(event_id: str):
+    with db.get_conn() as conn:
+        conn.execute(
+            "UPDATE OutboxEvent SET state='PROCESSED', processedAt=?, attempts=attempts+1 WHERE id=?",
+            (db.now_iso(), event_id),
+        )
+
+
+def _mark_failed_or_retry(event_id: str):
+    with db.get_conn() as conn:
+        conn.execute(
+            "UPDATE OutboxEvent SET attempts=attempts+1 WHERE id=?", (event_id,)
+        )
+        fail = conn.execute(
+            "SELECT attempts as a FROM OutboxEvent WHERE id=?", (event_id,)
+        ).fetchone()
+        if fail and fail["a"] >= 4:
+            conn.execute(
+                "UPDATE OutboxEvent SET state='FAILED', processedAt=? WHERE id=?",
+                (db.now_iso(), event_id),
+            )
 
 
 def start_worker():
@@ -180,25 +264,36 @@ def start_worker():
 
 
 def get_ranked_hospitals(lat, lng):
+    """Rank hospitals, joining the freshest AntivenomStock per hospital in one query."""
     with db.get_conn() as conn:
-        hospitals = conn.execute(
-            "SELECT * FROM Hospital WHERE active=1"
+        rows = conn.execute(
+            """
+            SELECT h.id, h.name, h.lat, h.lng, h.address, h.contact, h.complianceScore,
+                   s.product AS stock_product, s.status AS stock_status,
+                   s.quantityBand AS stock_quantityBand, s.verifiedAt AS stock_verifiedAt,
+                   s.verifiedBy AS stock_verifiedBy
+            FROM Hospital h
+            LEFT JOIN (
+                SELECT hs.*, ROW_NUMBER() OVER (
+                    PARTITION BY hs.hospitalId ORDER BY hs.verifiedAt DESC
+                ) AS rn
+                FROM AntivenomStock hs
+            ) s ON s.hospitalId = h.id AND s.rn = 1
+            WHERE h.active = 1
+            """
         ).fetchall()
         result = []
-        for h in hospitals:
-            stock = conn.execute(
-                "SELECT * FROM AntivenomStock WHERE hospitalId=? ORDER BY verifiedAt DESC LIMIT 1",
-                (h["id"],),
-            ).fetchone()
+        for r in rows:
             result.append({
-                "id": h["id"], "name": h["name"], "lat": h["lat"], "lng": h["lng"],
-                "address": h["address"], "contact": h["contact"],
+                "id": r["id"], "name": r["name"], "lat": r["lat"], "lng": r["lng"],
+                "address": r["address"], "contact": r["contact"],
+                "complianceScore": r["complianceScore"] if r["complianceScore"] is not None else 50.0,
                 "stock": {
-                    "product": stock["product"] if stock else "Polyvalent ASV",
-                    "status": stock["status"] if stock else "UNKNOWN",
-                    "quantityBand": stock["quantityBand"] if stock else None,
-                    "verifiedAt": stock["verifiedAt"] if stock else "1970-01-01T00:00:00Z",
-                    "verifiedBy": stock["verifiedBy"] if stock else None,
+                    "product": r["stock_product"] or "Polyvalent ASV",
+                    "status": r["stock_status"] or "UNKNOWN",
+                    "quantityBand": r["stock_quantityBand"],
+                    "verifiedAt": r["stock_verifiedAt"] or "1970-01-01T00:00:00Z",
+                    "verifiedBy": r["stock_verifiedBy"],
                 },
             })
     from .domain import rank_hospitals

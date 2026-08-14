@@ -3,6 +3,8 @@
     "nyquist_validation": false,
     "ui_phase": false,
     "ui_safety_gate": false,
-    "auto_advance": false
+    "auto_advance": false,
+    "ai_integration_phase": true,
+    "_auto_chain_active": false
   }
 }

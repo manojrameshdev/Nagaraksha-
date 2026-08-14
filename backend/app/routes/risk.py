@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import math
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Query
 from .. import database as db
 
 router = APIRouter()
@@ -16,13 +16,22 @@ ADVISORIES = {
 
 
 @router.get("/api/risk")
-def get_risk(request: Request):
-    lat = float(request.query_params.get("lat", 12.8003))
-    lng = float(request.query_params.get("lng", 77.5954))
+def get_risk(
+    lat: float = Query(12.8003, ge=-90, le=90, description="Latitude of origin"),
+    lng: float = Query(77.5954, ge=-180, le=180, description="Longitude of origin"),
+):
+    # Narrow the scan with a bounding box around the origin; fall back to the
+    # full table only when nothing is nearby.
     with db.get_conn() as conn:
         reports = conn.execute(
-            "SELECT * FROM RiskReport ORDER BY createdAt DESC"
+            "SELECT * FROM RiskReport WHERE lat BETWEEN ? AND ? AND lng BETWEEN ? AND ? "
+            "ORDER BY createdAt DESC",
+            (lat - 2.0, lat + 2.0, lng - 2.0, lng + 2.0),
         ).fetchall()
+        if not reports:
+            reports = conn.execute(
+                "SELECT * FROM RiskReport ORDER BY createdAt DESC"
+            ).fetchall()
     if not reports:
         return {"level": "UNKNOWN", "score": 0, "advisory": "No risk data available."}
     nearest = min(reports, key=lambda r: math.hypot(r["lat"] - lat, r["lng"] - lng))

@@ -5,6 +5,7 @@ Frontend calls these endpoints via NEXT_PUBLIC_BACKEND_URL env var.
 """
 from __future__ import annotations
 
+import asyncio
 import os
 from contextlib import asynccontextmanager
 
@@ -50,6 +51,8 @@ limiter = Limiter(key_func=get_remote_address, default_limits=["200/minute"])
 async def lifespan(app: FastAPI):
     db.init_db()
     ensure_kb_seeded()
+    # Let the background outbox worker push events over WebSocket.
+    ws.set_loop(asyncio.get_running_loop())
     start_worker()
     start_scheduler()
     yield

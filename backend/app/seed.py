@@ -26,15 +26,25 @@ def run():
          "Polyvalent ASV", "OUT", "0 vials", now - timedelta(hours=3), "Pharmacy"),
     ]
     with db.get_conn() as conn:
-        for t in ("AntivenomStock", "Hospital", "RiskReport"):
-            conn.execute(f"DELETE FROM {t}")  # nosec B608 – table name from hardcoded tuple, no user input
+        # Idempotent upsert: match hospitals by name and risks by area so
+        # re-running the seed keeps stable ids and never wipes stock history.
         for h in hospitals:
-            hid = db.new_id()
-            conn.execute(
-                "INSERT INTO Hospital (id, name, lat, lng, address, contact, active, createdAt, updatedAt) "
-                "VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)",
-                (hid, h[0], h[1], h[2], h[3], h[4], _iso(now), _iso(now)),
-            )
+            existing = conn.execute(
+                "SELECT id FROM Hospital WHERE name=?", (h[0],)
+            ).fetchone()
+            if existing:
+                hid = existing["id"]
+                conn.execute(
+                    "UPDATE Hospital SET lat=?, lng=?, address=?, contact=?, active=1, updatedAt=? WHERE id=?",
+                    (h[1], h[2], h[3], h[4], _iso(now), hid),
+                )
+            else:
+                hid = db.new_id()
+                conn.execute(
+                    "INSERT INTO Hospital (id, name, lat, lng, address, contact, active, createdAt, updatedAt) "
+                    "VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)",
+                    (hid, h[0], h[1], h[2], h[3], h[4], _iso(now), _iso(now)),
+                )
             conn.execute(
                 "INSERT INTO AntivenomStock (id, hospitalId, product, status, quantityBand, verifiedAt, verifiedBy) "
                 "VALUES (?, ?, ?, ?, ?, ?, ?)",
@@ -52,11 +62,21 @@ def run():
              "Russell's viper, Saw-scaled viper, Common krait"),
         ]
         for r in risks:
-            conn.execute(
-                "INSERT INTO RiskReport (id, area, lat, lng, level, score, weather, season, likelySnakes, createdAt) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (db.new_id(), r[0], r[1], r[2], r[3], r[4], r[5], r[6], r[7], _iso(now)),
-            )
+            existing = conn.execute(
+                "SELECT id FROM RiskReport WHERE area=?", (r[0],)
+            ).fetchone()
+            if existing:
+                conn.execute(
+                    "UPDATE RiskReport SET lat=?, lng=?, level=?, score=?, weather=?, season=?, "
+                    "likelySnakes=?, createdAt=? WHERE id=?",
+                    (r[1], r[2], r[3], r[4], r[5], r[6], r[7], _iso(now), existing["id"]),
+                )
+            else:
+                conn.execute(
+                    "INSERT INTO RiskReport (id, area, lat, lng, level, score, weather, season, likelySnakes, createdAt) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    (db.new_id(), r[0], r[1], r[2], r[3], r[4], r[5], r[6], r[7], _iso(now)),
+                )
     ensure_kb_seeded()
     with db.get_conn() as conn:
         kb = conn.execute("SELECT COUNT(*) as c FROM KnowledgeChunk").fetchone()["c"]

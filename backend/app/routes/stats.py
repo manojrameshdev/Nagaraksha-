@@ -21,26 +21,44 @@ def stats():
     by_state: dict = {}
     for i in incidents:
         by_state[i["state"]] = by_state.get(i["state"], 0) + 1
-    stock_counts: dict = {}
-    # only the freshest stock per hospital counts
-    seen = set()
-    # re-query freshest
-    with db.get_conn() as conn:
-        hs = conn.execute("SELECT id FROM Hospital WHERE active=1").fetchall()
-        for h in hs:
-            s = conn.execute(
-                "SELECT status FROM AntivenomStock WHERE hospitalId=? ORDER BY verifiedAt DESC LIMIT 1",
-                (h["id"],),
-            ).fetchone()
-            st = s["status"] if s else "UNKNOWN"
-            stock_counts[st] = stock_counts.get(st, 0) + 1
 
-    # 14-day trend
+    # only the freshest stock per hospital counts — single JOIN, no N+1
+    stock_counts: dict = {}
+    with db.get_conn() as conn:
+        hs = conn.execute(
+            """
+            SELECT h.id, s.status AS stock_status
+            FROM Hospital h
+            LEFT JOIN (
+                SELECT hs.*, ROW_NUMBER() OVER (
+                    PARTITION BY hs.hospitalId ORDER BY hs.verifiedAt DESC
+                ) AS rn
+                FROM AntivenomStock hs
+            ) s ON s.hospitalId = h.id AND s.rn = 1
+            WHERE h.active = 1
+            """
+        ).fetchall()
+    for h in hs:
+        st = h["stock_status"] or "UNKNOWN"
+        stock_counts[st] = stock_counts.get(st, 0) + 1
+
+    # 14-day trend — compare tz-aware datetimes, never raw ISO strings.
+    # Stored timestamps use a 'Z' suffix (db.now_iso); fromisoformat needs
+    # '+00:00', so normalize first (see db.days_since).
+    def _parse(ts):
+        if not ts:
+            return None
+        try:
+            return datetime.fromisoformat(ts.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+
+    parsed_created = [(i, _parse(i["createdAt"])) for i in incidents]
     days = []
     for d in range(13, -1, -1):
         day = (datetime.now(timezone.utc) - timedelta(days=d)).replace(hour=0, minute=0, second=0, microsecond=0)
         nxt = day + timedelta(days=1)
-        count = sum(1 for i in incidents if day.isoformat() <= (i["createdAt"] or "") < nxt.isoformat())
+        count = sum(1 for _, ts in parsed_created if ts is not None and day <= ts < nxt)
         days.append({"date": day.strftime("%Y-%m-%d"), "count": count})
 
     return {

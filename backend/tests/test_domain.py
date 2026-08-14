@@ -89,12 +89,14 @@ class TestStockFreshness:
 
 class TestRankHospitals:
     def test_confirmed_ranked_first(self):
+        # Composite ranking: distance 40% / freshness 30% / compliance 30%.
+        # Equidistant hospitals isolate the stock-freshness factor.
         recent = datetime.now(timezone.utc).isoformat()
         origin = {"lat": 12.8, "lng": 77.6}
         hospitals = [
-            {"id": "a", "name": "Far Confirmed", "lat": 13.0, "lng": 77.8,
+            {"id": "a", "name": "Confirmed", "lat": 12.9, "lng": 77.7,
              "stock": {"status": "CONFIRMED", "verifiedAt": recent}},
-            {"id": "b", "name": "Close Unknown", "lat": 12.81, "lng": 77.61,
+            {"id": "b", "name": "Unknown", "lat": 12.9, "lng": 77.7,
              "stock": {"status": "UNKNOWN", "verifiedAt": recent}},
         ]
         ranked = rank_hospitals(origin, hospitals)
@@ -106,9 +108,9 @@ class TestRankHospitals:
         recent = datetime.now(timezone.utc).isoformat()
         origin = {"lat": 12.8, "lng": 77.6}
         hospitals = [
-            {"id": "a", "name": "Out", "lat": 12.81, "lng": 77.61,
+            {"id": "a", "name": "Out", "lat": 12.9, "lng": 77.7,
              "stock": {"status": "OUT", "verifiedAt": recent}},
-            {"id": "b", "name": "Confirmed", "lat": 13.0, "lng": 77.8,
+            {"id": "b", "name": "Confirmed", "lat": 12.9, "lng": 77.7,
              "stock": {"status": "CONFIRMED", "verifiedAt": recent}},
         ]
         ranked = rank_hospitals(origin, hospitals)

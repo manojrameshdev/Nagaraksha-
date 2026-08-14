@@ -25,6 +25,17 @@ def _twilio_client():
 TWILIO_FROM = os.environ.get("TWILIO_PHONE_NUMBER", "")
 
 
+def _load_incident(incident: dict) -> dict:
+    """Enrich the outbox payload with the persisted Incident row (for SMS context)."""
+    inc_id = incident.get("incidentId")
+    if inc_id:
+        with db.get_conn() as conn:
+            row = conn.execute("SELECT * FROM Incident WHERE id=?", (inc_id,)).fetchone()
+            if row:
+                return {**incident, **dict(row)}
+    return incident
+
+
 def _build_message(lane: str, incident: dict, responder: dict) -> str:
     templates = {
         "first_aider": (
@@ -82,10 +93,16 @@ def get_nearest_responders(lat: float, lng: float, role: str, limit: int = 2) ->
 
 def do_dispatch(incident: dict) -> dict:
     """
-    Main dispatch function. Uses Twilio if available, else simulate_dispatch().
-    Returns the same structure as simulate_dispatch() for compatibility.
+    Main dispatch function. Uses real registered responders (Twilio SMS when
+    credentials exist), else falls back to simulate_dispatch().
+
+    Returns the same lane structure as simulate_dispatch() so callers are
+    agnostic; real-responder entries additionally carry `responderId`, `phone`
+    and `smsSid` so the outbox worker can persist them in DispatchAttempt.
     """
+    incident = _load_incident(incident)
     lat, lng = incident.get("lat", 12.8), incident.get("lng", 77.6)
+    inc_id = incident.get("incidentId")
 
     # Check if real responders exist
     first_aiders = get_nearest_responders(lat, lng, "first_aider")
@@ -95,32 +112,37 @@ def do_dispatch(incident: dict) -> dict:
     use_twilio = bool(_twilio_client() and TWILIO_FROM)
 
     if first_aiders or rescuers or coordinators:
-        # Send real SMS via Twilio (if available)
-        for r in first_aiders:
-            msg = _build_message("first_aider", incident, r)
-            sid = dispatch_sms(r["phone"], msg) if use_twilio else None
-            print(f"[Dispatch] {'SMS sent' if sid else 'Simulated'} → {r['name']} ({r['phone']})")
+        # Bind the incident to the responders we are actually dispatching to,
+        # so their SMS reply (accept/decline) resolves to this incident.
+        if inc_id:
+            selected = first_aiders + rescuers + coordinators
+            with db.get_conn() as conn:
+                for r in selected:
+                    conn.execute(
+                        "UPDATE Responder SET activeIncidentId=? WHERE id=?",
+                        (inc_id, r["id"]),
+                    )
 
-        for r in rescuers:
-            msg = _build_message("snake_rescue", incident, r)
-            sid = dispatch_sms(r["phone"], msg) if use_twilio else None
-            print(f"[Dispatch] {'SMS sent' if sid else 'Simulated'} → {r['name']} ({r['phone']})")
-
-        for r in coordinators:
-            msg = _build_message("hospital_coordinator", incident, r)
-            sid = dispatch_sms(r["phone"], msg) if use_twilio else None
-            print(f"[Dispatch] {'SMS sent' if sid else 'Simulated'} → {r['name']} ({r['phone']})")
+        def _lane(role_lane: str, responders: list[dict]) -> list[dict]:
+            out = []
+            for r in responders:
+                msg = _build_message(role_lane, incident, r)
+                sid = dispatch_sms(r["phone"], msg) if use_twilio else None
+                # ASCII-only prints: non-ASCII arrows crash workers on
+                # Windows consoles (cp1252 cannot encode '→').
+                print(f"[Dispatch] {'SMS sent' if sid else 'Simulated'} -> {r['name']} ({r['phone']})")
+                out.append({
+                    "name": r["name"], "role": r["role"],
+                    "distanceKm": r["distanceKm"], "etaMin": r["etaMin"],
+                    "phone": r["phone"], "responderId": r["id"],
+                    "smsSid": sid,
+                })
+            return out
 
         return {
-            "trained": [{"name": r["name"], "role": r["role"], "distanceKm": r["distanceKm"],
-                          "etaMin": r["etaMin"], "phone": r["phone"], "accept": True,
-                          "acceptAt": 0} for r in first_aiders],
-            "rescue": [{"name": r["name"], "role": r["role"], "distanceKm": r["distanceKm"],
-                         "etaMin": r["etaMin"], "phone": r["phone"], "accept": True,
-                         "acceptAt": 0} for r in rescuers],
-            "ambulance": [{"name": r["name"], "role": r["role"], "distanceKm": r["distanceKm"],
-                            "etaMin": r["etaMin"], "phone": r["phone"], "accept": True,
-                            "acceptAt": 0} for r in coordinators],
+            "trained": _lane("first_aider", first_aiders),
+            "rescue": _lane("snake_rescue", rescuers),
+            "ambulance": _lane("hospital_coordinator", coordinators),
         }
 
     # No real responders registered — fall back to simulated data

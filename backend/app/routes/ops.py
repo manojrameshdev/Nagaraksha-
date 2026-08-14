@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import json
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Query
 from .. import database as db
 from ..rag import retrieve
 
@@ -46,9 +46,10 @@ def outbox_state():
 
 
 @router.get("/api/knowledge-base")
-def knowledge_base(request: Request):
-    q = request.query_params.get("q", "")
-    k = int(request.query_params.get("k", 4))
+def knowledge_base(
+    q: str = Query("", description="Search query"),
+    k: int = Query(4, ge=1, le=50, description="Number of results"),
+):
     if q.strip():
         return {"query": q, "results": retrieve(q, k)}
     with db.get_conn() as conn:

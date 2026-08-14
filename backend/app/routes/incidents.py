@@ -4,10 +4,11 @@ from __future__ import annotations
 import asyncio
 import json
 import time
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 from ..models import SymptomRequest
 from .. import database as db
+from ..auth import require_role_if_enforced
 from ..eventbus import subscribe, unsubscribe, start_worker
 
 router = APIRouter()
@@ -37,15 +38,32 @@ def _load_incident(inc_id):
     return inc
 
 
+@router.get("/api/incidents")
+def list_incidents(limit: int = Query(5, ge=1, le=50)):
+    """List recent incidents (responder dashboard picks a real id from here)."""
+    with db.get_conn() as conn:
+        rows = conn.execute(
+            "SELECT id, state, lat, lng, address, createdAt, updatedAt "
+            "FROM Incident ORDER BY createdAt DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+    return {"incidents": [dict(r) for r in rows]}
+
+
 @router.get("/api/incidents/{inc_id}")
 def get_incident(inc_id: str):
-    return {"incident": _load_incident(inc_id)}
+    incident = _load_incident(inc_id)
+    if not incident:
+        raise HTTPException(status_code=404, detail="Incident not found")
+    return {"incident": incident}
 
 
 @router.get("/api/incidents/{inc_id}/audit")
 def get_audit(inc_id: str):
+    incident = _load_incident(inc_id)
+    if not incident:
+        raise HTTPException(status_code=404, detail="Incident not found")
     with db.get_conn() as conn:
-        incident = _load_incident(inc_id)
         audit = [dict(r) for r in conn.execute(
             "SELECT * FROM AuditEvent WHERE incidentId=? ORDER BY timestamp ASC", (inc_id,)
         ).fetchall()]
@@ -62,12 +80,16 @@ def get_audit(inc_id: str):
 
 
 @router.post("/api/incidents/{inc_id}/symptoms")
-def log_symptom(inc_id: str, body: SymptomRequest):
-    """Log a symptom observation for an incident (was 404 before)."""
+def log_symptom(
+    inc_id: str,
+    body: SymptomRequest,
+    role: str = Depends(require_role_if_enforced("victim", "hospital_admin", "system_admin")),
+):
+    """Log a symptom observation for an incident."""
     with db.get_conn() as conn:
         inc = conn.execute("SELECT id FROM Incident WHERE id=?", (inc_id,)).fetchone()
         if not inc:
-            return {"error": "Incident not found"}
+            raise HTTPException(status_code=404, detail="Incident not found")
         sid = db.new_id()
         conn.execute(
             "INSERT INTO SymptomObservation "
@@ -80,16 +102,22 @@ def log_symptom(inc_id: str, body: SymptomRequest):
 
 
 @router.patch("/api/incidents/{inc_id}/accept")
-def accept_dispatch(inc_id: str):
+def accept_dispatch(
+    inc_id: str,
+    role: str = Depends(require_role_if_enforced("victim", "hospital_admin", "system_admin")),
+):
     """Responder accepts dispatch — updates first PENDING attempt to ACCEPTED."""
     with db.get_conn() as conn:
+        inc = conn.execute("SELECT id FROM Incident WHERE id=?", (inc_id,)).fetchone()
+        if not inc:
+            raise HTTPException(status_code=404, detail="Incident not found")
         attempt = conn.execute(
             "SELECT id FROM DispatchAttempt WHERE incidentId=? AND outcome='PENDING' "
             "ORDER BY sequence ASC LIMIT 1",
             (inc_id,),
         ).fetchone()
         if not attempt:
-            return {"error": "No pending dispatch attempt"}
+            raise HTTPException(status_code=409, detail="No pending dispatch attempt")
         conn.execute(
             "UPDATE DispatchAttempt SET outcome='ACCEPTED', acceptedAt=? WHERE id=?",
             (db.now_iso(), attempt["id"]),
@@ -98,16 +126,22 @@ def accept_dispatch(inc_id: str):
 
 
 @router.patch("/api/incidents/{inc_id}/decline")
-def decline_dispatch(inc_id: str):
+def decline_dispatch(
+    inc_id: str,
+    role: str = Depends(require_role_if_enforced("victim", "hospital_admin", "system_admin")),
+):
     """Responder declines — marks first PENDING attempt DECLINED, escalates to next."""
     with db.get_conn() as conn:
+        inc = conn.execute("SELECT id FROM Incident WHERE id=?", (inc_id,)).fetchone()
+        if not inc:
+            raise HTTPException(status_code=404, detail="Incident not found")
         attempt = conn.execute(
             "SELECT id FROM DispatchAttempt WHERE incidentId=? AND outcome='PENDING' "
             "ORDER BY sequence ASC LIMIT 1",
             (inc_id,),
         ).fetchone()
         if not attempt:
-            return {"error": "No pending dispatch attempt"}
+            raise HTTPException(status_code=409, detail="No pending dispatch attempt")
         conn.execute(
             "UPDATE DispatchAttempt SET outcome='DECLINED' WHERE id=?",
             (attempt["id"],),
@@ -120,7 +154,7 @@ async def stream_incident(inc_id: str, request: Request):
     """SSE stream of live incident state (kept for backward compat; WebSocket preferred)."""
     incident = _load_incident(inc_id)
     if not incident:
-        return {"error": "Not found"}
+        raise HTTPException(status_code=404, detail="Incident not found")
 
     start_worker()
     queue: asyncio.Queue = asyncio.Queue()

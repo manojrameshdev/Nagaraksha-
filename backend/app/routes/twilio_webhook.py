@@ -5,27 +5,41 @@ Updates the DispatchAttempt and broadcasts via WebSocket.
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, Form
+import os
+
+from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import Response
 
 from .. import database as db
+from ..auth import require_role_if_enforced
 from ..routes.ws import broadcast
 
 router = APIRouter()
 
 
 @router.post("/webhook/twilio")
-async def twilio_sms_reply(
-    Body: str = Form(default=""),
-    From: str = Form(default=""),
-):
+async def twilio_sms_reply(request: Request):
     """Handles ACCEPT/READY/DECLINE replies from responders via Twilio."""
-    reply = Body.strip().upper()
+    form = await request.form()
+
+    # Validate the Twilio signature when credentials are configured, so a
+    # spoofed sender can't accept/decline dispatches.
+    token = os.environ.get("TWILIO_AUTH_TOKEN")
+    if token:
+        from twilio.request_validator import RequestValidator
+
+        signature = request.headers.get("X-Twilio-Signature", "")
+        if not RequestValidator(token).validate(str(request.url), form, signature):
+            return Response(status_code=403, content="Invalid Twilio signature")
+
+    body = str(form.get("Body", "") or "")
+    sender = str(form.get("From", "") or "")
+    reply = body.strip().upper()
 
     # Find the responder by phone number
     with db.get_conn() as conn:
         responder = conn.execute(
-            "SELECT * FROM Responder WHERE phone=?", (From,)
+            "SELECT * FROM Responder WHERE phone=?", (sender,)
         ).fetchone()
 
     if not responder:
@@ -54,7 +68,7 @@ async def twilio_sms_reply(
         await broadcast(incident_id, "dispatch_accepted", {
             "attemptId": attempt["id"] if attempt else None,
             "responderName": responder["name"],
-            "responderPhone": From,
+            "responderPhone": sender,
             "response": reply,
             "acceptedAt": db.now_iso(),
         })
@@ -74,7 +88,7 @@ async def twilio_sms_reply(
                 )
 
         await broadcast(incident_id, "dispatch_declined", {
-            "responderPhone": From,
+            "responderPhone": sender,
             "response": reply,
         })
         return _twiml_response("Understood. We will contact the next available responder.")
@@ -97,8 +111,9 @@ def register_responder(
     lat: float = Form(...),
     lng: float = Form(...),
     skills: str = Form(default=""),
+    _role: str = Depends(require_role_if_enforced("system_admin")),
 ):
-    """Register a real responder in the database."""
+    """Register a real responder in the database (system_admin when enforced)."""
     rid = db.new_id()
     with db.get_conn() as conn:
         conn.execute(

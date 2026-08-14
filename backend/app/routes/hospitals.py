@@ -1,9 +1,10 @@
 """Hospital routes — list (ranked) + stock update."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from ..models import StockUpdate
 from .. import database as db
+from ..auth import require_role_if_enforced
 from ..eventbus import audit, get_ranked_hospitals
 
 router = APIRouter()
@@ -18,11 +19,15 @@ def list_hospitals(
 
 
 @router.patch("/api/hospitals/{hid}/stock")
-def update_stock(hid: str, body: StockUpdate):
+def update_stock(
+    hid: str,
+    body: StockUpdate,
+    role: str = Depends(require_role_if_enforced("hospital_admin", "system_admin")),
+):
     with db.get_conn() as conn:
         h = conn.execute("SELECT id FROM Hospital WHERE id=?", (hid,)).fetchone()
         if not h:
-            return {"error": "Hospital not found"}
+            raise HTTPException(status_code=404, detail="Hospital not found")
         stock_id = db.new_id()
         conn.execute(
             "INSERT INTO AntivenomStock (id, hospitalId, product, status, quantityBand, verifiedAt, verifiedBy) "

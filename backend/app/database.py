@@ -45,6 +45,8 @@ CREATE TABLE IF NOT EXISTS DispatchAttempt (
     acceptedAt TEXT,
     outcome TEXT DEFAULT 'PENDING',
     sequence INTEGER DEFAULT 1,
+    responderId TEXT,
+    smsSid TEXT,
     FOREIGN KEY (incidentId) REFERENCES Incident(id) ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_dispatch_incident ON DispatchAttempt(incidentId);
@@ -250,10 +252,19 @@ def migrate_db():
         ]:
             if not _column_exists(conn, "Hospital", col):
                 conn.execute(f"ALTER TABLE Hospital ADD COLUMN {col} {defn}")
+        # DispatchAttempt real-SMS columns (added when Twilio dispatch was wired in)
+        for col, defn in [
+            ("responderId", "TEXT"),
+            ("smsSid", "TEXT"),
+        ]:
+            if not _column_exists(conn, "DispatchAttempt", col):
+                conn.execute(f"ALTER TABLE DispatchAttempt ADD COLUMN {col} {defn}")
 
 
 def init_db():
     conn = sqlite3.connect(DB_PATH)
+    conn.execute("PRAGMA journal_mode = WAL")  # concurrent readers + single writer
+    conn.execute("PRAGMA synchronous = NORMAL")
     conn.executescript(SCHEMA)
     conn.commit()
     conn.close()
@@ -265,6 +276,8 @@ def get_conn():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
+    conn.execute("PRAGMA journal_mode = WAL")
+    conn.execute("PRAGMA synchronous = NORMAL")
     try:
         yield conn
         conn.commit()

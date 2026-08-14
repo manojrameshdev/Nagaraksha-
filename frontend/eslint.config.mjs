@@ -13,8 +13,14 @@ const eslintConfig = [
     },
     rules: {
       'prefer-const': 'error',
-      'no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' }],
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' }],
+      'no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
+      ],
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
+      ],
       'no-console': 'error',
       'no-debugger': 'error',
       'no-empty': 'error',
@@ -37,10 +43,10 @@ const eslintConfig = [
       '**/next-env.d.ts',
       '**/examples/**',
       '**/skills',
-      '**/src/components/ui/**',
+      '**/components/ui/**',
       '**/*.test.ts',
       '**/*.test.tsx',
-      '**/src/test/**',
+      '**/test/**',
     ],
   },
 ];
