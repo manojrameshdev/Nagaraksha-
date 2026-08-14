@@ -135,11 +135,11 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
   4. All API calls are fully TypeScript-typed with no `any` types
   5. CI `frontend-build` job passes: `npx vitest run` (≥6 tests), `npm run lint`, `next build`
 
-**Plans:** 4 plans
+**Plans:** 1/4 plans executed
 
 Plans:
 
-- [ ] 07-01-PLAN.md — API Client & Auth Layer (apiFetch, nagraksha.ts types, realtime.ts WebSocket, use-auth, use-geolocation)
+- [x] 07-01-PLAN.md — API Client & Auth Layer (apiFetch, nagraksha.ts types, realtime.ts WebSocket, use-auth, use-geolocation)
 - [ ] 07-02-PLAN.md — SOS Flow & Real-Time WebSocket (Zustand store, useIncidentSocket, incident tracking page)
 - [ ] 07-03-PLAN.md — Remaining Feature Pages (hospitals, dashboard, myth-buster, risk, symptom logger, dispatch actions, stock update)
 - [ ] 07-04-PLAN.md — CI Pipeline Sync & Integration Tests (MSW handlers, Vitest integration tests, ci.yml update)
