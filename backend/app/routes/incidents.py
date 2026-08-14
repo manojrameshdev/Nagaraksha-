@@ -104,18 +104,26 @@ def log_symptom(
 @router.patch("/api/incidents/{inc_id}/accept")
 def accept_dispatch(
     inc_id: str,
+    category: str = Query(None, description="Lane category to accept (e.g. TRAINED, RESCUE, AMBULANCE)"),
     role: str = Depends(require_role_if_enforced("victim", "hospital_admin", "system_admin")),
 ):
-    """Responder accepts dispatch — updates first PENDING attempt to ACCEPTED."""
+    """Responder accepts dispatch — updates PENDING attempt (optionally scoped to a lane) to ACCEPTED."""
     with db.get_conn() as conn:
         inc = conn.execute("SELECT id FROM Incident WHERE id=?", (inc_id,)).fetchone()
         if not inc:
             raise HTTPException(status_code=404, detail="Incident not found")
-        attempt = conn.execute(
-            "SELECT id FROM DispatchAttempt WHERE incidentId=? AND outcome='PENDING' "
-            "ORDER BY sequence ASC LIMIT 1",
-            (inc_id,),
-        ).fetchone()
+        if category:
+            attempt = conn.execute(
+                "SELECT id FROM DispatchAttempt WHERE incidentId=? AND category=? AND outcome='PENDING' "
+                "ORDER BY sequence ASC LIMIT 1",
+                (inc_id, category),
+            ).fetchone()
+        else:
+            attempt = conn.execute(
+                "SELECT id FROM DispatchAttempt WHERE incidentId=? AND outcome='PENDING' "
+                "ORDER BY sequence ASC LIMIT 1",
+                (inc_id,),
+            ).fetchone()
         if not attempt:
             raise HTTPException(status_code=409, detail="No pending dispatch attempt")
         conn.execute(
@@ -128,18 +136,26 @@ def accept_dispatch(
 @router.patch("/api/incidents/{inc_id}/decline")
 def decline_dispatch(
     inc_id: str,
+    category: str = Query(None, description="Lane category to decline (e.g. TRAINED, RESCUE, AMBULANCE)"),
     role: str = Depends(require_role_if_enforced("victim", "hospital_admin", "system_admin")),
 ):
-    """Responder declines — marks first PENDING attempt DECLINED, escalates to next."""
+    """Responder declines — marks PENDING attempt (optionally scoped to a lane) DECLINED."""
     with db.get_conn() as conn:
         inc = conn.execute("SELECT id FROM Incident WHERE id=?", (inc_id,)).fetchone()
         if not inc:
             raise HTTPException(status_code=404, detail="Incident not found")
-        attempt = conn.execute(
-            "SELECT id FROM DispatchAttempt WHERE incidentId=? AND outcome='PENDING' "
-            "ORDER BY sequence ASC LIMIT 1",
-            (inc_id,),
-        ).fetchone()
+        if category:
+            attempt = conn.execute(
+                "SELECT id FROM DispatchAttempt WHERE incidentId=? AND category=? AND outcome='PENDING' "
+                "ORDER BY sequence ASC LIMIT 1",
+                (inc_id, category),
+            ).fetchone()
+        else:
+            attempt = conn.execute(
+                "SELECT id FROM DispatchAttempt WHERE incidentId=? AND outcome='PENDING' "
+                "ORDER BY sequence ASC LIMIT 1",
+                (inc_id,),
+            ).fetchone()
         if not attempt:
             raise HTTPException(status_code=409, detail="No pending dispatch attempt")
         conn.execute(

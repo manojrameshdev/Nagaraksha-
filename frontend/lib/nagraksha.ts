@@ -21,7 +21,10 @@ export interface DispatchAttempt {
   id: string;
   incidentId: string;
   category: string;
-  target: string;
+  candidateName: string;
+  candidateRole: string;
+  distanceKm?: number;
+  etaMin?: number;
   sequence: number;
   outcome: 'PENDING' | 'ACCEPTED' | 'DECLINED';
   acceptedAt: string | null;
@@ -52,9 +55,13 @@ export interface Incident {
 }
 
 export interface SosResponse {
-  incidentId: string;
-  lanes: DispatchAttempt[];
-  hospitals: Hospital[];
+  incident: Incident;
+  ref: string;
+  rankedHospitals: Hospital[];
+  dispatchedAt: string;
+  streamUrl: string;
+  wsUrl: string;
+  auditUrl: string;
 }
 
 export interface StatsResponse {
@@ -143,16 +150,16 @@ export const logSymptom = (id: string, body: SymptomRequest) =>
     method: 'POST',
     body: JSON.stringify(body),
   });
-export const acceptDispatch = (id: string) =>
-  apiFetch<{ acceptedAttemptId: string }>(`/api/incidents/${id}/accept`, {
-    method: 'PATCH',
-    body: '{}',
-  });
-export const declineDispatch = (id: string) =>
-  apiFetch<{ declinedAttemptId: string }>(`/api/incidents/${id}/decline`, {
-    method: 'PATCH',
-    body: '{}',
-  });
+export const acceptDispatch = (id: string, category?: string) =>
+  apiFetch<{ acceptedAttemptId: string }>(
+    `/api/incidents/${id}/accept${category ? `?category=${encodeURIComponent(category)}` : ''}`,
+    { method: 'PATCH', body: '{}' },
+  );
+export const declineDispatch = (id: string, category?: string) =>
+  apiFetch<{ declinedAttemptId: string }>(
+    `/api/incidents/${id}/decline${category ? `?category=${encodeURIComponent(category)}` : ''}`,
+    { method: 'PATCH', body: '{}' },
+  );
 
 // Hospitals
 export const getHospitals = (lat: number, lng: number) =>

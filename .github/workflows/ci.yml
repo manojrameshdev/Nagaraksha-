@@ -65,6 +65,11 @@ jobs:
           cd frontend
           pnpm run lint
 
+      - name: Typecheck
+        run: |
+          cd frontend
+          npx tsc --noEmit
+
       - name: Build Next.js
         run: |
           cd frontend

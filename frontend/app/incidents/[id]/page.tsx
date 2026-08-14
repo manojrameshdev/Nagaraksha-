@@ -4,6 +4,8 @@ import { useParams } from 'next/navigation';
 import { useIncidentSocket } from '@/hooks/use-incident-socket';
 import { useSosStore } from '@/store/sos-store';
 import { getIncident } from '@/lib/nagraksha';
+import { DispatchActions } from '@/components/dispatch-actions';
+import { SymptomLogger } from '@/components/symptom-logger';
 
 export default function IncidentPage() {
   const params = useParams<{ id: string }>();
@@ -36,6 +38,15 @@ export default function IncidentPage() {
       cancelled = true;
     };
   }, [id, setIncident]);
+
+  function refreshIncident() {
+    if (!id) return;
+    getIncident(id)
+      .then(({ incident: fetched }) => setIncident(fetched))
+      .catch(() => {
+        /* store keeps last known state */
+      });
+  }
 
   if (error) {
     return (
@@ -87,7 +98,9 @@ export default function IncidentPage() {
             <div key={lane.id} className="rounded-lg border p-4 flex items-center justify-between">
               <div>
                 <p className="font-medium">{lane.category}</p>
-                <p className="text-sm text-muted-foreground">{lane.target}</p>
+                <p className="text-sm text-muted-foreground">
+                  {lane.candidateName || 'Responder pending'}
+                </p>
               </div>
               <span
                 className={`text-sm font-semibold px-3 py-1 rounded-full ${
@@ -104,6 +117,9 @@ export default function IncidentPage() {
           ))}
         </div>
       </section>
+
+      <DispatchActions incidentId={id} onAction={refreshIncident} />
+      <SymptomLogger incidentId={id} onLogged={refreshIncident} />
     </main>
   );
 }

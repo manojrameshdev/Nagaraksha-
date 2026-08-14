@@ -72,6 +72,41 @@ class TestIncidents:
         # no DispatchAttempt rows exist yet (worker is mocked in tests)
         assert resp.status_code == 409
 
+    async def test_accept_scoped_to_category(self, async_client):
+        """Accept with ?category= only flips that lane's pending attempt (WR-03)."""
+        from app import database as db
+
+        create = await async_client.post("/api/sos", json={"lat": 12.0, "lng": 77.0})
+        inc_id = create.json()["incident"]["id"]
+        now = db.now_iso()
+        trained_id = db.new_id()
+        rescue_id = db.new_id()
+        with db.get_conn() as conn:
+            conn.execute(
+                "INSERT INTO DispatchAttempt (id, incidentId, category, candidateName, candidateRole, "
+                "distanceKm, etaMin, sentAt, outcome, sequence) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'PENDING', 1)",
+                (trained_id, inc_id, "TRAINED", "Alice", "first_aider", 1.2, 7, now),
+            )
+            conn.execute(
+                "INSERT INTO DispatchAttempt (id, incidentId, category, candidateName, candidateRole, "
+                "distanceKm, etaMin, sentAt, outcome, sequence) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'PENDING', 1)",
+                (rescue_id, inc_id, "RESCUE", "Bob", "snake_rescue", 2.0, 9, now),
+            )
+
+        resp = await async_client.patch(f"/api/incidents/{inc_id}/accept?category=RESCUE")
+        assert resp.status_code == 200
+        assert resp.json()["acceptedAttemptId"] == rescue_id
+
+        with db.get_conn() as conn:
+            trained = conn.execute(
+                "SELECT outcome FROM DispatchAttempt WHERE id=?", (trained_id,)
+            ).fetchone()
+            rescue = conn.execute(
+                "SELECT outcome FROM DispatchAttempt WHERE id=?", (rescue_id,)
+            ).fetchone()
+        assert trained["outcome"] == "PENDING"
+        assert rescue["outcome"] == "ACCEPTED"
+
     async def test_symptom_missing_incident_404(self, async_client):
         resp = await async_client.post(
             "/api/incidents/does-not-exist/symptoms",

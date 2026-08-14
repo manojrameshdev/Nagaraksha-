@@ -36,8 +36,12 @@ export const useSosStore = create<SosState & SosActions>((set, get) => ({
     set({ sosLoading: true, sosError: null });
     try {
       const res: SosResponse = await apiTriggerSos({ lat, lng, address });
-      set({ incidentId: res.incidentId, dispatchLanes: res.lanes, sosLoading: false });
-      return res.incidentId;
+      set({
+        incidentId: res.incident.id,
+        dispatchLanes: res.incident.dispatchAttempts,
+        sosLoading: false,
+      });
+      return res.incident.id;
     } catch (e) {
       set({ sosError: e instanceof Error ? e.message : 'SOS failed', sosLoading: false });
       return null;
@@ -48,8 +52,21 @@ export const useSosStore = create<SosState & SosActions>((set, get) => ({
 
   updateFromWsEvent: ({ event, data }) => {
     if (event === 'dispatch_attempted' || event === 'dispatch_accepted') {
-      // Reload dispatch attempts from the full incident or merge the incoming attempt
-      const attempt = data as unknown as DispatchAttempt;
+      // The WS payload uses attemptId (backend row id) and candidateName/candidateRole;
+      // map it onto the DispatchAttempt shape before merging.
+      const raw = data as Record<string, unknown>;
+      const attempt: DispatchAttempt = {
+        id: (raw.attemptId as string) ?? '',
+        incidentId: (raw.incidentId as string) ?? '',
+        category: (raw.category as string) ?? '',
+        candidateName: (raw.candidateName as string) ?? '',
+        candidateRole: (raw.candidateRole as string) ?? '',
+        distanceKm: (raw.distanceKm as number) ?? undefined,
+        etaMin: (raw.etaMin as number) ?? undefined,
+        sequence: (raw.sequence as number) ?? 0,
+        outcome: event === 'dispatch_accepted' ? 'ACCEPTED' : 'PENDING',
+        acceptedAt: (raw.acceptedAt as string) ?? null,
+      };
       set((state) => ({
         dispatchLanes: state.dispatchLanes.some((l) => l.id === attempt.id)
           ? state.dispatchLanes.map((l) => (l.id === attempt.id ? { ...l, ...attempt } : l))

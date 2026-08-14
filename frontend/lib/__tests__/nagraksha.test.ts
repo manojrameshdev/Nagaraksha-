@@ -8,11 +8,12 @@ describe('NagRaksha API Integration', () => {
     expect(result.service).toBe('nagraksha-backend');
   });
 
-  it('triggerSos returns incidentId and 3 lanes', async () => {
+  it('triggerSos returns the incident with 3 dispatch lanes', async () => {
     const result = await triggerSos({ lat: 12.8003, lng: 77.5954 });
-    expect(result.incidentId).toBe('mock-incident-id-123');
-    expect(result.lanes).toHaveLength(3);
-    expect(result.lanes[0].outcome).toBe('PENDING');
+    expect(result.incident.id).toBe('mock-incident-id-123');
+    expect(result.incident.dispatchAttempts).toHaveLength(3);
+    expect(result.incident.dispatchAttempts[0].outcome).toBe('PENDING');
+    expect(result.wsUrl).toBe('/ws/incidents/mock-incident-id-123');
   });
 
   it('getHospitals returns ranked hospital list', async () => {

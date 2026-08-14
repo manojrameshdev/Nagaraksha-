@@ -54,10 +54,13 @@ async def twilio_sms_reply(request: Request):
 
     if reply in ("ACCEPT", "READY"):
         with db.get_conn() as conn:
+            # Accept this responder's own pending attempt (scoped by responderId), so
+            # a first-aider ACCEPT never flips the ambulance lane's attempt.
             attempt = conn.execute(
                 "SELECT id, category FROM DispatchAttempt "
-                "WHERE incidentId=? AND outcome='PENDING' ORDER BY sequence ASC LIMIT 1",
-                (incident_id,),
+                "WHERE incidentId=? AND responderId=? AND outcome='PENDING' "
+                "ORDER BY sequence ASC LIMIT 1",
+                (incident_id, responder["id"]),
             ).fetchone()
             if attempt:
                 conn.execute(
@@ -78,8 +81,9 @@ async def twilio_sms_reply(request: Request):
         with db.get_conn() as conn:
             attempt = conn.execute(
                 "SELECT id FROM DispatchAttempt "
-                "WHERE incidentId=? AND outcome='PENDING' ORDER BY sequence ASC LIMIT 1",
-                (incident_id,),
+                "WHERE incidentId=? AND responderId=? AND outcome='PENDING' "
+                "ORDER BY sequence ASC LIMIT 1",
+                (incident_id, responder["id"]),
             ).fetchone()
             if attempt:
                 conn.execute(

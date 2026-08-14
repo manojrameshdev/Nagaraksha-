@@ -4,10 +4,11 @@ import { acceptDispatch, declineDispatch } from '@/lib/nagraksha';
 
 interface Props {
   incidentId: string;
+  category?: string;
   onAction?: () => void;
 }
 
-export function DispatchActions({ incidentId, onAction }: Props) {
+export function DispatchActions({ incidentId, category, onAction }: Props) {
   const [loading, setLoading] = useState<'accept' | 'decline' | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -15,8 +16,8 @@ export function DispatchActions({ incidentId, onAction }: Props) {
     setLoading(action);
     setMessage(null);
     try {
-      if (action === 'accept') await acceptDispatch(incidentId);
-      else await declineDispatch(incidentId);
+      if (action === 'accept') await acceptDispatch(incidentId, category);
+      else await declineDispatch(incidentId, category);
       setMessage(action === 'accept' ? 'Dispatch accepted.' : 'Dispatch declined.');
       onAction?.();
     } catch (e) {

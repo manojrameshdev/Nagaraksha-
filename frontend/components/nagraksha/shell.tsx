@@ -15,6 +15,7 @@ import {
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { ConnectivityIndicator, DemoModeBadge } from './shared';
+import { HealthIndicator } from '@/components/health-indicator';
 
 export type Role =
   'Victim' | 'Responder' | 'Rescue' | 'Ambulance' | 'Hospital' | 'ASHA' | 'Stakeholder' | 'Admin';
@@ -175,7 +176,7 @@ export function AppShell({
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <ConnectivityIndicator />
+              <HealthIndicator />
               <span className="hidden sm:inline-flex">
                 <DemoModeBadge />
               </span>

@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useGeolocation } from '@/hooks/use-geolocation';
 import { getHospitals, type Hospital } from '@/lib/nagraksha';
+import { StockUpdate } from '@/components/stock-update';
 
 const FALLBACK = { latitude: 12.8003, longitude: 77.5954 };
 
@@ -55,6 +56,7 @@ export default function HospitalsPage() {
               {h.phone}
             </a>
           )}
+          <StockUpdate hospitalId={h.id} />
         </div>
       ))}
     </main>
