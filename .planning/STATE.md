@@ -4,17 +4,17 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 08
 current_phase_name: venomscore-and-august-15-demo-execution
-current_plan: 3
+current_plan: 4
 status: executing
-stopped_at: Completed 08-02-PLAN.md (VenomScore backend engine)
-last_updated: "2026-08-15T17:59:30.949Z"
-last_activity: 2026-08-15
+stopped_at: Completed 08-03-PLAN.md (VenomScore frontend face tracking & hospital packet)
+last_updated: "2026-08-15T20:13:44.608Z"
+last_activity: 2026-08-16
 last_activity_desc: Created Phase 08 (VenomScore & Demo Execution) roadmap and plans from docs/AUGUST_15_EXECUTION_PLAN.md
 progress:
   total_phases: 8
   completed_phases: 2
   total_plans: 11
-  completed_plans: 9
+  completed_plans: 10
   percent: 25
 ---
 
@@ -32,8 +32,8 @@ See: .planning/PROJECT.md (updated 2026-07-26)
 Phase: 08 (venomscore-and-august-15-demo-execution) — EXECUTING
 Status: Executing Phase 08
 Last activity: 2026-08-15 — Phase 08 execution started
-Current Plan: 3
-Progress: [████████░░] 82%
+Current Plan: 4
+Progress: [█████████░] 91%
 
 ## Performance Metrics
 
@@ -63,6 +63,7 @@ Progress: [████████░░] 82%
 | Phase 07 P04 | 12min | 6 tasks | 6 files |
 | Phase 08-venomscore-and-august-15-demo-execution P08-01 | 8 | 3 tasks | 9 files |
 | Phase 08 P08-02 | 28 | 3 tasks | 8 files |
+| Phase 08 P08-03 | 100 | 4 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -86,6 +87,8 @@ Progress: [████████░░] 82%
 - [Phase ?]: Plan 08-02: PtosisReading created via CREATE TABLE IF NOT EXISTS inside SCHEMA (migrate_db untouched — ALTER-only helper); minutes_since_bite = round(db.days_since(biteTime) * 1440) since no db helper exists; GET endpoints written in the Task 1 file write with Task 2 carrying the proving edge tests; TEMP redirected to D:\opencode-tmp for pytest (C: drive at 0 free bytes)
 - [Phase ?]: Plan 08-02: PtosisReading table via CREATE TABLE IF NOT EXISTS inside SCHEMA; migrate_db untouched (ALTER-only helper)
 - [Phase ?]: Plan 08-02: minutes_since_bite = round(db.days_since(biteTime) * 1440); GET endpoints written in Task 1 file write, Task 2 carries proving edge tests
+- [Phase ?]: Plan 08-03: VENOM_SCORE_UPDATE added to closed IncidentSocketEvent union (uppercase broadcast, existing events lowercase kept); hospital packet built live on /incidents/[id]?role=hospital from store venomScore while workspaces.tsx HospitalWorkspace stays static (review-HIGH disposition, not omission); MediaPipe loaded via in-effect dynamic import with pinned CDN WASM/model URLs; first-frame baseline with avg<0.01 blink guard
+- [Phase ?]: Plan 08-03: plan committed in a prior session without SUMMARY.md (safe_resume_gate); closed out by verifying all acceptance gates on disk (vitest 19/19, eslint 0, next build 0, grep gates) and writing the missing SUMMARY
 
 ### Roadmap Evolution
 
@@ -93,8 +96,8 @@ Progress: [████████░░] 82%
 
 ## Session Continuity
 
-**Stopped at:** Completed 08-02-PLAN.md (VenomScore backend engine)
+**Stopped at:** Completed 08-03-PLAN.md (VenomScore frontend face tracking & hospital packet)
 **Resume file:** None
 
-Last session: 2026-08-15T17:59:29.586Z
-Resume: Phase 08 plan 08-02 complete (VenomScore backend engine). Next: 08-03 (TS types mirror flat VenomScoreResult).
+Last session: 2026-08-16T01:28:00+05:30 (08-03 commits) + 2026-08-16 close-out
+Resume: Phase 08 plan 08-03 complete (VenomScore frontend — tracker, chart, hospital packet, all gates green). Next: 08-04 (demo seed data & integration rehearsal).
