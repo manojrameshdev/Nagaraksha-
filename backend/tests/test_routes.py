@@ -1,5 +1,6 @@
 import pytest
 from app import database as db
+from app.routes import sos
 
 pytestmark = pytest.mark.asyncio
 
@@ -234,3 +235,58 @@ class TestQueryParamValidation:
     async def test_risk_valid_query(self, async_client):
         resp = await async_client.get("/api/risk?lat=12.8&lng=77.6")
         assert resp.status_code == 200
+
+
+class TestRateLimit:
+    async def test_trigger_sos_carries_rate_limit(self):
+        """Structural: trigger_sos must carry slowapi's 10/minute limit.
+
+        slowapi 0.1.9 registers limits on the Limiter keyed by module-qualified
+        function name (`limiter._route_limits`) rather than stamping a
+        `_rate_limits` attribute onto the function (pre-0.1.9 API). Check the
+        modern registry first, fall back to the legacy attribute.
+        """
+        from app.limiter import limiter
+
+        limits = getattr(sos.trigger_sos, "_rate_limits", None)
+        if not limits:
+            limits = limiter._route_limits.get("app.routes.sos.trigger_sos", [])
+        assert limits, "trigger_sos carries no @limiter.limit decorator"
+
+        first = limits[0]
+        amount = getattr(first, "amount", None)
+        if amount is None:
+            amount = first.limit.amount
+        assert amount == 10
+
+    async def test_rate_limit_returns_429_after_threshold(self):
+        """Behavioral: decorator + Request injection + exception handler wired.
+
+        Runs against an isolated throwaway app with a fresh Limiter so the
+        shared test-session limiter storage (used by other tests) is never
+        polluted. First 3 POSTs pass, the 4th is rejected with 429.
+        """
+        from fastapi import FastAPI, Request
+        from fastapi.testclient import TestClient
+        from slowapi import Limiter as IsolatedLimiter, _rate_limit_exceeded_handler
+        from slowapi.errors import RateLimitExceeded
+        from slowapi.util import get_remote_address
+
+        test_limiter = IsolatedLimiter(
+            key_func=get_remote_address, default_limits=["200/minute"]
+        )
+        app = FastAPI()
+        app.state.limiter = test_limiter
+        app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+        @app.post("/api/test-limit")
+        @test_limiter.limit("3/minute")
+        def test_limit(request: Request):
+            return {"ok": True}
+
+        client = TestClient(app)
+        for _ in range(3):
+            resp = client.post("/api/test-limit")
+            assert resp.status_code == 200
+        resp = client.post("/api/test-limit")
+        assert resp.status_code == 429

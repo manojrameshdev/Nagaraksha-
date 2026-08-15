@@ -3,7 +3,8 @@ to the outbox in the same transaction; the worker fans out 3 lanes."""
 from __future__ import annotations
 
 import json
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
+from ..limiter import limiter
 from ..models import SosRequest
 from .. import database as db
 from ..eventbus import append_outbox, audit, start_worker, get_ranked_hospitals
@@ -13,7 +14,8 @@ router = APIRouter()
 
 
 @router.post("/api/sos")
-def trigger_sos(req: SosRequest):
+@limiter.limit("10/minute")
+def trigger_sos(request: Request, req: SosRequest):
     start_worker()
     inc_id = db.new_id()
     token = db.new_id()

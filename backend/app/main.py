@@ -19,10 +19,10 @@ from sentry_sdk.integrations.starlette import StarletteIntegration
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
+from .limiter import limiter
 from . import database as db
 from .rag import ensure_kb_seeded
 from .eventbus import start_worker
@@ -44,7 +44,8 @@ if sentry_dsn:
     )
 
 # ── Rate limiter ─────────────────────────────────────────────────────
-limiter = Limiter(key_func=get_remote_address, default_limits=["200/minute"])
+# Shared limiter lives in app.limiter — imported above so both main.py and
+# route modules can apply @limiter.limit(...) without a circular import.
 
 
 @asynccontextmanager
