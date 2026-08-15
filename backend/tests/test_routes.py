@@ -407,3 +407,73 @@ class TestVenomScore:
         assert len(data["readings"]) == 2
         stamps = [r["timestamp"] for r in data["readings"]]
         assert stamps == sorted(stamps)
+
+
+class TestVenomScoreHospitalLoop:
+    """Two-session real-time proof: victim POST → backend broadcast → hospital-visible progression.
+
+    httpx ASGI transport cannot observe real WebSocket pushes, so broadcast is
+    monkeypatched with an async fake recording every (event, payload) call — the
+    same proof pattern as TestVenomScore::test_posting_reading_broadcasts, but
+    across TWO readings to show UNKNOWN → NEUROTOXIC progression.
+    """
+
+    async def test_victim_to_hospital_loop_progression(self, async_client, monkeypatch):
+        from app.routes import venom_score
+
+        # Session A: victim triggers SOS → incident created
+        create = await async_client.post("/api/sos", json={"lat": 12.52, "lng": 76.89})
+        assert create.status_code == 200
+        inc_id = create.json()["incident"]["id"]
+
+        # Record every broadcast push (the hospital session's WS feed)
+        broadcasts = []
+
+        async def fake_broadcast(incident_id, event, payload):
+            broadcasts.append((event, payload))
+
+        monkeypatch.setattr(venom_score, "broadcast", fake_broadcast)
+
+        # Baseline reading → UNKNOWN, no ptosis
+        baseline = await async_client.post(
+            f"/api/venom-score/{inc_id}/reading",
+            json={
+                "right_aperture": 0.025,
+                "left_aperture": 0.024,
+                "avg_aperture": 0.0245,
+                "ptosis_detected": False,
+                "severity": "none",
+                "asymmetric": False,
+            },
+        )
+        assert baseline.status_code == 200
+
+        # Ptosis reading → NEUROTOXIC
+        ptosis = await async_client.post(
+            f"/api/venom-score/{inc_id}/reading",
+            json={
+                "right_aperture": 0.010,
+                "left_aperture": 0.011,
+                "avg_aperture": 0.0105,
+                "percent_change": 57.1,
+                "ptosis_detected": True,
+                "severity": "moderate",
+                "asymmetric": False,
+                "minutes_since_bite": 18,
+            },
+        )
+        assert ptosis.status_code == 200
+
+        # Both pushes carry VENOM_SCORE_UPDATE with UNKNOWN → NEUROTOXIC progression
+        assert len(broadcasts) == 2
+        assert all(event == "VENOM_SCORE_UPDATE" for event, _ in broadcasts)
+        assert broadcasts[0][1]["venomScore"]["venomType"] == "UNKNOWN"
+        assert broadcasts[1][1]["venomScore"]["venomType"] == "NEUROTOXIC"
+
+        # Session B: hospital reads the persisted composite score
+        score_resp = await async_client.get(f"/api/venom-score/{inc_id}/score")
+        assert score_resp.status_code == 200
+        score = score_resp.json()["venomScore"]
+        assert score["venomType"] == "NEUROTOXIC"
+        assert 15 <= score["estimatedAntivenomVials"] <= 25  # NEUROTOXIC band given severity
+        assert score["ptosisReadingCount"] == 2
