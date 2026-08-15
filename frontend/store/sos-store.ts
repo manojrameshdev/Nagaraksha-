@@ -1,5 +1,11 @@
 import { create } from 'zustand';
-import type { Incident, DispatchAttempt, SosResponse } from '@/lib/nagraksha';
+import type {
+  Incident,
+  DispatchAttempt,
+  SosResponse,
+  PtosisReading,
+  VenomScoreResult,
+} from '@/lib/nagraksha';
 import { triggerSos as apiTriggerSos, getIncident } from '@/lib/nagraksha';
 import type { IncidentSocketEvent } from '@/lib/realtime';
 
@@ -10,6 +16,8 @@ interface SosState {
   wsConnected: boolean;
   sosLoading: boolean;
   sosError: string | null;
+  ptosisReadings: PtosisReading[];
+  venomScore: VenomScoreResult | null;
 }
 
 interface SosActions {
@@ -17,6 +25,8 @@ interface SosActions {
   setIncident: (_incident: Incident) => void;
   updateFromWsEvent: (_e: IncidentSocketEvent) => void;
   setWsConnected: (_connected: boolean) => void;
+  addPtosisReading: (_r: PtosisReading) => void;
+  setVenomScore: (_s: VenomScoreResult | null) => void;
   reset: () => void;
 }
 
@@ -27,6 +37,8 @@ const initialState: SosState = {
   wsConnected: false,
   sosLoading: false,
   sosError: null,
+  ptosisReadings: [],
+  venomScore: null,
 };
 
 export const useSosStore = create<SosState & SosActions>((set, get) => ({
@@ -79,6 +91,8 @@ export const useSosStore = create<SosState & SosActions>((set, get) => ({
           ? { incident: { ...state.incident, state: (data as { state: string }).state } }
           : {},
       );
+    } else if (event === 'VENOM_SCORE_UPDATE') {
+      set({ venomScore: (data as { venomScore: VenomScoreResult }).venomScore });
     }
     // Refresh full incident after any event for consistency
     const { incidentId } = get();
@@ -92,5 +106,8 @@ export const useSosStore = create<SosState & SosActions>((set, get) => ({
   },
 
   setWsConnected: (connected) => set({ wsConnected: connected }),
+  addPtosisReading: (reading) =>
+    set((state) => ({ ptosisReadings: [...state.ptosisReadings, reading] })),
+  setVenomScore: (score) => set({ venomScore: score }),
   reset: () => set(initialState),
 }));

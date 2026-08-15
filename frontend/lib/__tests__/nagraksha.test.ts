@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { getHealth, triggerSos, getHospitals, getAuthToken, getStats } from '../nagraksha';
+import {
+  getHealth,
+  triggerSos,
+  getHospitals,
+  getAuthToken,
+  getStats,
+  submitPtosisReading,
+  getVenomScore,
+} from '../nagraksha';
 
 describe('NagRaksha API Integration', () => {
   it('getHealth returns ok:true', async () => {
@@ -38,5 +46,34 @@ describe('NagRaksha API Integration', () => {
   it('getAuthToken throws ApiError for invalid credentials', async () => {
     const { ApiError } = await import('../api');
     await expect(getAuthToken('admin', 'wrong')).rejects.toThrow(ApiError);
+  });
+
+  it('submitPtosisReading resolves a typed SubmitPtosisResponse', async () => {
+    const result = await submitPtosisReading('mock-incident-id-123', {
+      id: 'local-1',
+      incidentId: 'mock-incident-id-123',
+      timestamp: new Date().toISOString(),
+      rightAperture: 0.1,
+      leftAperture: 0.12,
+      avgAperture: 0.11,
+      baselineAperture: 0.3,
+      percentChange: 63.3,
+      ptosisDetected: true,
+      severity: 'moderate',
+      asymmetric: false,
+      minutesSinceBite: 12,
+    });
+    expect(result.id).toBe('ptosis-reading-001');
+    expect(result.venomScore.venomType).toBe('UNKNOWN');
+    expect(result.venomScore.estimatedAntivenomVials).toBe(10);
+  });
+
+  it('getVenomScore resolves to a VenomScoreResult', async () => {
+    const result = await getVenomScore('mock-incident-id-123');
+    expect(result.venomType).toBe('UNKNOWN');
+    expect(result.overallSeverity).toBe(0);
+    expect(result.confidenceLevel).toBe('low');
+    expect(result.dryBiteProbability).toBe(0);
+    expect(result.disclaimer).toBe('Confirm with 20WBCT');
   });
 });

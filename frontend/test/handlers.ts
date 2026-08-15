@@ -2,10 +2,30 @@ import { http, HttpResponse } from 'msw';
 
 const BASE = 'http://localhost:8000';
 
+const mockVenomScore = {
+  venomType: 'UNKNOWN',
+  overallSeverity: 0,
+  dryBiteProbability: 0,
+  estimatedAntivenomVials: 10,
+  confidenceLevel: 'low',
+  clinicalBasis: 'WHO 2016 Table 3',
+  disclaimer: 'Confirm with 20WBCT',
+  criticalAlert: null,
+  ventilatorRequired: false,
+  ptosisReadingCount: 1,
+  woundReadingCount: 0,
+  minutesSinceBite: 0,
+};
+
 export const handlers = [
   // Health
   http.get(`${BASE}/api/health`, () =>
-    HttpResponse.json({ ok: true, service: 'nagraksha-backend', version: '2.0.0', language: 'python' }),
+    HttpResponse.json({
+      ok: true,
+      service: 'nagraksha-backend',
+      version: '2.0.0',
+      language: 'python',
+    }),
   ),
 
   // Auth
@@ -174,6 +194,15 @@ export const handlers = [
       advisory: 'Moderate encounter risk. Wear closed footwear.',
       origin: { lat: 12.8003, lng: 77.5954 },
     }),
+  ),
+
+  // VenomScore
+  http.post(`${BASE}/api/venom-score/:incidentId/reading`, () =>
+    HttpResponse.json({ id: 'ptosis-reading-001', venomScore: mockVenomScore }),
+  ),
+
+  http.get(`${BASE}/api/venom-score/:incidentId/score`, () =>
+    HttpResponse.json({ venomScore: mockVenomScore }),
   ),
 
   // Knowledge Base

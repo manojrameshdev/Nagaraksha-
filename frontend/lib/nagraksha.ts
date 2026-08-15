@@ -125,6 +125,68 @@ export interface StockUpdate {
   verifiedBy: string;
 }
 
+// VenomScore
+export interface PtosisReading {
+  id: string;
+  incidentId: string;
+  timestamp: string;
+  rightAperture: number;
+  leftAperture: number;
+  avgAperture: number;
+  baselineAperture: number | null;
+  percentChange: number | null;
+  ptosisDetected: boolean;
+  severity: 'none' | 'mild' | 'moderate' | 'severe';
+  asymmetric: boolean;
+  minutesSinceBite?: number;
+}
+
+export interface VenomScoreResult {
+  venomType: 'NEUROTOXIC' | 'HEMOTOXIC' | 'DRY_BITE' | 'UNKNOWN';
+  overallSeverity: number;
+  dryBiteProbability: number;
+  estimatedAntivenomVials: number;
+  confidenceLevel: 'low' | 'moderate' | 'high';
+  clinicalBasis: string;
+  disclaimer: string;
+  criticalAlert: string | null;
+  ventilatorRequired: boolean;
+  ptosisReadingCount: number;
+  woundReadingCount: number;
+  minutesSinceBite: number;
+}
+
+export interface SubmitPtosisResponse {
+  id: string;
+  venomScore: VenomScoreResult;
+}
+
+export const submitPtosisReading = (
+  incidentId: string,
+  reading: PtosisReading & { baselineAperture?: number },
+) =>
+  apiFetch<SubmitPtosisResponse>(`/api/venom-score/${incidentId}/reading`, {
+    method: 'POST',
+    body: JSON.stringify({
+      right_aperture: reading.rightAperture,
+      left_aperture: reading.leftAperture,
+      avg_aperture: reading.avgAperture,
+      baseline_aperture: reading.baselineAperture ?? null,
+      percent_change: reading.percentChange ?? null,
+      ptosis_detected: reading.ptosisDetected,
+      severity: reading.severity,
+      asymmetric: reading.asymmetric,
+      minutes_since_bite: reading.minutesSinceBite,
+    }),
+  });
+
+export const getVenomScore = async (incidentId: string) => {
+  const res = await apiFetch<{ venomScore: VenomScoreResult }>(
+    `/api/venom-score/${incidentId}/score`,
+  );
+  return res.venomScore;
+};
+
 // Health
 export const getHealth = () =>
   apiFetch<{ ok: boolean; service: string; version: string }>('/api/health');
