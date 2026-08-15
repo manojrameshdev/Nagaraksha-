@@ -164,9 +164,15 @@ Plans:
 **Plans:** 0/4 plans complete
 
 Plans:
+**Wave 1**
 
 - [ ] 08-01-PLAN.md — Hour 0 Cleanup & Deep Link Bug Fix (Reference: [docs/AUGUST_15_EXECUTION_PLAN.md](file:///c:/Users/OM%20Prakash/Documents/Nagaraksha-/docs/AUGUST_15_EXECUTION_PLAN.md#hour-0--cleanup-first-both-people-30-minutes))
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 08-02-PLAN.md — VenomScore Backend Engine (Reference: [docs/AUGUST_15_EXECUTION_PLAN.md](file:///c:/Users/OM%20Prakash/Documents/Nagaraksha-/docs/AUGUST_15_EXECUTION_PLAN.md#hours-13--venomscore-backend-person-b))
 - [ ] 08-03-PLAN.md — VenomScore Frontend Face Tracking & Hospital Packet (Reference: [docs/AUGUST_15_EXECUTION_PLAN.md](file:///c:/Users/OM%20Prakash/Documents/Nagaraksha-/docs/AUGUST_15_EXECUTION_PLAN.md#hours-15--venomscore-frontend-person-a))
-- [ ] 08-04-PLAN.md — Demo Seed Data & Integration Rehearsal (Reference: [docs/AUGUST_15_EXECUTION_PLAN.md](file:///c:/Users/OM%20Prakash/Documents/Nagaraksha-/docs/AUGUST_15_EXECUTION_PLAN.md#hour-5--demo-seed-data-person-b-while-person-a-polishes-ui))
 
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 08-04-PLAN.md — Demo Seed Data & Integration Rehearsal (Reference: [docs/AUGUST_15_EXECUTION_PLAN.md](file:///c:/Users/OM%20Prakash/Documents/Nagaraksha-/docs/AUGUST_15_EXECUTION_PLAN.md#hour-5--demo-seed-data-person-b-while-person-a-polishes-ui))
