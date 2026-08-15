@@ -82,3 +82,17 @@ class ResponderRequest(BaseModel):
     lat: float
     lng: float
     skills: Optional[str] = None
+
+
+class PtosisReadingRequest(BaseModel):
+    """Ptosis reading body — snake_case on the wire, camelCase in DB (pinned contract)."""
+
+    right_aperture: float = Field(..., ge=0.0, le=1.0)
+    left_aperture: float = Field(..., ge=0.0, le=1.0)
+    avg_aperture: float = Field(..., ge=0.0, le=1.0)
+    baseline_aperture: Optional[float] = None
+    percent_change: Optional[float] = None
+    ptosis_detected: bool = False
+    severity: str = Field("none", pattern="^(none|mild|moderate|severe)$")
+    asymmetric: bool = False
+    minutes_since_bite: Optional[int] = Field(None, ge=0)

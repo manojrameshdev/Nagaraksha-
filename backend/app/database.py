@@ -175,6 +175,24 @@ CREATE TABLE IF NOT EXISTS WoundReading (
 );
 CREATE INDEX IF NOT EXISTS idx_wound_incident ON WoundReading(incidentId);
 
+CREATE TABLE IF NOT EXISTS PtosisReading (
+    id TEXT PRIMARY KEY,
+    incidentId TEXT NOT NULL,
+    timestamp TEXT NOT NULL,
+    rightAperture REAL NOT NULL,
+    leftAperture REAL NOT NULL,
+    avgAperture REAL NOT NULL,
+    baselineAperture REAL,
+    percentChange REAL,
+    ptosisDetected INTEGER NOT NULL DEFAULT 0,
+    severity TEXT NOT NULL DEFAULT 'none',
+    asymmetric INTEGER NOT NULL DEFAULT 0,
+    minutesSinceBite INTEGER,
+    createdAt TEXT NOT NULL,
+    FOREIGN KEY (incidentId) REFERENCES Incident(id) ON DELETE CASCADE
+);
+CREATE INDEX IF NOT EXISTS idx_ptosis_incident ON PtosisReading(incidentId);
+
 CREATE TABLE IF NOT EXISTS Responder (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,

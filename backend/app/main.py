@@ -31,7 +31,7 @@ from .routes import (
     sos, incidents, hospitals, risk, snake_id,
     myth_buster, stats, architecture, ops, transcribe,
 )
-from .routes import ws, wound, audit, stakeholders, twilio_webhook
+from .routes import ws, wound, audit, stakeholders, twilio_webhook, venom_score
 
 # ── Sentry ──────────────────────────────────────────────────────────
 sentry_dsn = os.environ.get("SENTRY_DSN")
@@ -119,6 +119,7 @@ app.include_router(transcribe.router)
 # New in v2
 app.include_router(ws.router)
 app.include_router(wound.router)
+app.include_router(venom_score.router)
 app.include_router(audit.router)
 app.include_router(stakeholders.router)
 app.include_router(twilio_webhook.router)

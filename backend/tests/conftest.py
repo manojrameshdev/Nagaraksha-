@@ -56,6 +56,26 @@ def seeded_hospital():
         conn.execute("DELETE FROM Hospital WHERE id=?", (hid,))
 
 
+@pytest.fixture
+def seeded_incident():
+    """A real Incident row for VenomScore tests.
+
+    Inserts directly via db.get_conn() (no asyncio event-loop pattern —
+    pytest-asyncio incompatible) and cleans up in teardown.
+    """
+    inc_id = "test-inc-" + db.new_id()
+    now = db.now_iso()
+    with db.get_conn() as conn:
+        conn.execute(
+            "INSERT INTO Incident (id, lat, lng, state, createdAt, updatedAt) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (inc_id, 12.8, 77.6, "DISPATCHING", now, now),
+        )
+    yield inc_id
+    with db.get_conn() as conn:
+        conn.execute("DELETE FROM Incident WHERE id=?", (inc_id,))
+
+
 import atexit
 
 @atexit.register

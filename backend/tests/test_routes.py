@@ -290,3 +290,52 @@ class TestRateLimit:
             assert resp.status_code == 200
         resp = client.post("/api/test-limit")
         assert resp.status_code == 429
+
+
+_BASELINE_BODY = {
+    "right_aperture": 0.025,
+    "left_aperture": 0.024,
+    "avg_aperture": 0.0245,
+    "ptosis_detected": False,
+    "severity": "none",
+    "asymmetric": False,
+}
+
+
+class TestVenomScore:
+    async def test_posting_reading_broadcasts(self, async_client, seeded_incident, monkeypatch):
+        """POST persists + broadcasts VENOM_SCORE_UPDATE with venomScore payload.
+
+        httpx ASGI transport cannot observe real WebSocket pushes, so the
+        broadcast is monkeypatched with an async fake that records the call.
+        """
+        from app.routes import venom_score
+
+        recorded = {}
+
+        async def fake_broadcast(incident_id, event, payload):
+            recorded["incident_id"] = incident_id
+            recorded["event"] = event
+            recorded["payload"] = payload
+
+        monkeypatch.setattr(venom_score, "broadcast", fake_broadcast)
+
+        resp = await async_client.post(
+            f"/api/venom-score/{seeded_incident}/reading", json=_BASELINE_BODY
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "id" in data
+        assert recorded["incident_id"] == seeded_incident
+        assert recorded["event"] == "VENOM_SCORE_UPDATE"
+        assert "venomScore" in recorded["payload"]
+
+    async def test_submit_baseline_reading(self, async_client, seeded_incident):
+        """Baseline reading with no ptosis → UNKNOWN, dryBiteProbability 0.0."""
+        resp = await async_client.post(
+            f"/api/venom-score/{seeded_incident}/reading", json=_BASELINE_BODY
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["venomScore"]["venomType"] == "UNKNOWN"
+        assert data["venomScore"]["dryBiteProbability"] == 0.0
