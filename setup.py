@@ -31,14 +31,14 @@ def check_prerequisites():
     else:
         print(f"  [OK] Python {major}.{minor}")
 
-    # Node / npm
-    npm_path = shutil.which("npm")
+    # Node / pnpm
     node_path = shutil.which("node")
-    if not npm_path or not node_path:
-        print("  [!] Error: Node.js and npm are required. Please install Node.js 20+.")
+    pnpm_path = shutil.which("pnpm")
+    if not node_path or not pnpm_path:
+        print("  [!] Error: Node.js 20+ and pnpm are required. Please install Node.js 20+ and pnpm.")
         sys.exit(1)
     else:
-        print("  [OK] Node.js & npm detected")
+        print("  [OK] Node.js & pnpm detected")
 
 
 def setup_env():
@@ -80,13 +80,13 @@ def install_backend_deps():
 
 
 def install_frontend_deps():
-    print_step(4, "Installing Frontend Dependencies (Node.js)")
+    print_step(4, "Installing Frontend Dependencies (pnpm)")
     if not os.path.exists(os.path.join(FRONTEND_DIR, "package.json")):
         print("  [!] Warning: frontend/package.json not found")
         return
 
-    cmd = ["npm", "install"]
-    print("  Running: npm install in frontend/")
+    cmd = ["pnpm", "install"]
+    print("  Running: pnpm install in frontend/")
     res = subprocess.run(cmd, cwd=FRONTEND_DIR, shell=(sys.platform == "win32"))
     if res.returncode == 0:
         print("  [OK] Frontend dependencies installed successfully")

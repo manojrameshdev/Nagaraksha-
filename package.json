@@ -9,8 +9,6 @@
     "format:write": "prettier --write \"**/*.{ts,tsx,js,jsx,json,css,md,mjs}\" --ignore-path .prettierignore",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,css,md,mjs}\" --ignore-path .prettierignore",
     "lint": "cd frontend && eslint .",
-    "db:push": "cd frontend && prisma db push --accept-data-loss",
-    "db:generate": "cd frontend && prisma generate",
     "backend:seed": "cd backend && PYTHONPATH=. python3 -c 'from app.seed import run; run()'",
     "prepare": "husky"
   },
