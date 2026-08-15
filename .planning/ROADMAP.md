@@ -18,7 +18,7 @@ NagRaksha is a brownfield hackathon project with fully functional frontend and b
 - [x] **Phase 5: CI Pipeline** — All checks automated on push/PR, blocking broken code
 - [x] **Phase 6: Developer Experience** — Pre-commit hooks catch issues before committing
 - [x] **Phase 7: Connect Frontend & Backend** — Wire backend routes to frontend pages, real-time SOS, and integration tests
-- [ ] **Phase 8: VenomScore & August 15 Demo Execution** — MediaPipe ptosis tracking, venom classification, antivenom dose estimation, bug fixes, and Karnataka demo data
+- [x] **Phase 8: VenomScore & August 15 Demo Execution** — MediaPipe ptosis tracking, venom classification, antivenom dose estimation, bug fixes, and Karnataka demo data (completed 2026-08-16)
 
 ## Phase Details
 
@@ -124,7 +124,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 5. CI Pipeline | — | Complete | ✅ |
 | 6. Developer Experience | — | Complete | ✅ |
 | 7. Connect Frontend & Backend | 4/4 | Complete | ✅ |
-| 8. VenomScore & August 15 Demo Execution | 4/4 | In Progress|  |
+| 8. VenomScore & August 15 Demo Execution | 4/4 | Complete    | 2026-08-16 |
 
 ### Phase 7: Connect all the features of the frontend with the backend
 
@@ -161,7 +161,7 @@ Plans:
   4. Demo seed dataset in `backend/seed_demo.py` successfully populates real Karnataka hospitals, compliance scores, antivenom inventory, stakeholders (Gerry Martin, etc.), and ASHA village risk records.
   5. All backend pytest suites (including domain and route VenomScore tests) pass, all frontend vitest tests pass, and `pnpm run build` / `pnpm run lint` pass with 0 errors.
 
-**Plans:** 4/4 plans executed
+**Plans:** 4/4 plans complete
 
 Plans:
 **Wave 1**
