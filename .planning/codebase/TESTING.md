@@ -1,140 +1,89 @@
 # Testing Patterns
 
-**Analysis Date:** 2026-08-14
+**Analysis Date:** 2026-08-15
 
 ## Test Framework
 
-**Runner (backend):**
-- pytest (no version pinned; CI installs latest via `pip install pytest pytest-cov pytest-asyncio ruff` in `.github/workflows/ci.yml:25`)
-- Config: none — there is no `pytest.ini`, `pyproject.toml`, `setup.cfg`, or `tox.ini` anywhere in `backend/`. Async tests opt in explicitly (see below)
-
-**Runner (frontend):**
-- No frontend test framework is currently configured. No `vitest.config.*` exists, no `*.test.ts(x)`/`*.spec.ts(x)` files exist anywhere in `frontend/`
-- CI still attempts to run Vitest: `npx vitest run` in `.github/workflows/ci.yml:58` — this job will fail because the current frontend has no vitest config, no `src/test/setup.ts`, and no test files (the `frontend/src/` prototype that had them was replaced by the `frontend/app` + `frontend/components` structure). See `.planning/debug/ci-frontend-setup-missing.md` for the history of the previous vitest setup
+**Runner:**
+- Backend: Pytest + `pytest-asyncio` + `pytest-cov` (CI installs these); config: none (defaults, `pytest.ini` absent)
+- Frontend: Vitest 4.1.10; config: `frontend/vitest.config.ts` (jsdom, `globals: true`, `setupFiles: ./test/setup.ts`, `@` alias)
 
 **Assertion Library:**
-- Backend: plain Python `assert` (pytest style); no pytest.raises/approx/special assertion helpers in use
-- Frontend: none currently
+- Backend: pytest asserts + `httpx.AsyncClient` via `ASGITransport`
+- Frontend: Vitest built-in `expect` (toBe, toEqual, toMatchObject, toHaveBeenCalledWith)
 
 **Run Commands:**
 ```bash
-cd backend && pytest tests/ -v            # Run all backend tests (CI form)
-cd backend && pytest tests/test_domain.py # Single file
-cd backend && pytest tests/ -k hospital   # Filter by keyword
-cd backend && pytest --cov=app --cov-report=term-missing   # Coverage (pytest-cov installed in CI)
+cd backend && pytest tests/ -v          # Backend: all tests (61)
+cd frontend && npx vitest run           # Frontend: all tests (vitest config has no `test` script)
+cd frontend && npx vitest run src/lib   # Frontend: single file/path
 ```
-
-**CI lint/syntax gates (backend, `.github/workflows/ci.yml:27-37`):**
-```bash
-ruff check backend/app
-python -m py_compile backend/app/*.py backend/app/routes/*.py
-```
+Root has no unified test script; CI runs each separately (`.github/workflows/ci.yml`).
 
 ## Test File Organization
 
 **Location:**
-- Backend: all tests live in `backend/tests/` (not co-located) — `conftest.py` + `test_*.py`
-- Frontend: none
+- Backend: `backend/tests/` — one file per module (`test_domain.py`, `test_routes.py`, `test_compliance.py`, `test_rag.py`, `test_eventbus.py`)
+- Frontend: `frontend/lib/__tests__/` (`api.test.ts`, `nagraksha.test.ts`) + shared infra in `frontend/test/` (`handlers.ts`, `setup.ts`)
 
 **Naming:**
-- Files: `test_<module>.py` mirroring the `backend/app/` module under test — `test_domain.py`, `test_routes.py`, `test_eventbus.py`, `test_compliance.py`, `test_rag.py`
-- Classes: `Test<Thing>` (`TestHaversine`, `TestSOS`, `TestOutboxWorker`)
-- Methods: `test_<behavior>` (`test_confirmed_ranked_first`, `test_accept_no_pending_attempt_409`)
-- Helper functions for test setup are `_`-prefixed module-level functions: `_insert_incident_outbox()`, `_wait_until()` in `backend/tests/test_eventbus.py:15-64`, `_hospital()` in `backend/tests/test_compliance.py:7`
+- Backend: `test_<module>.py`; test functions `test_<scenario>`
+- Frontend: `<module>.test.ts`
 
 **Structure:**
 ```
 backend/tests/
-├── conftest.py          # shared fixtures + autouse background mocks
-├── test_domain.py       # pure unit tests (no DB, no fixtures)
-├── test_routes.py       # HTTP integration via ASGI transport (async)
-├── test_eventbus.py     # outbox worker state machine (polls DB)
-├── test_compliance.py   # DB-backed scoring tests
-├── test_rag.py          # RAG fallback tests (ChromaDB patched out)
-└── __init__.py          # empty package marker
+  conftest.py          # temp SQLite DB + background-worker mocks + fixtures
+  test_routes.py       # 27 route tests (SOS, incidents, hospitals, …)
+  test_domain.py       # 21 geo/dispatch/ETA/stock tests
+  test_compliance.py   # 6 compliance scoring tests
+  test_rag.py          # 5 retrieval tests
+  test_eventbus.py     # 2 outbox tests
+
+frontend/lib/__tests__/
+  api.test.ts          # apiFetch unit tests (error/status handling)
+  nagraksha.test.ts    # typed API layer vs MSW handlers
+frontend/test/
+  handlers.ts          # MSW request handlers mirroring the real backend
+  setup.ts             # setupServer lifecycle (beforeAll/afterEach/afterAll)
 ```
 
 ## Test Structure
 
-**Suite Organization:** Test classes group methods by domain area; class names read as nouns, methods as behavior:
-
-```python
-class TestStockFreshness:                                   # backend/tests/test_domain.py:65
-    def test_out_of_stock(self):
-        recent = datetime.now(timezone.utc).isoformat()
-        res = stock_freshness("OUT", recent)
-        assert res["stale"] is True
-        assert res["tone"] == "red"
-```
-
-**Async suites** declare the asyncio marker once per module, then use `async def` tests:
-
+**Backend suite organization:**
 ```python
 import pytest
 from app import database as db
 
-pytestmark = pytest.mark.asyncio                            # backend/tests/test_routes.py:4
+pytestmark = pytest.mark.asyncio
 
 class TestSOS:
     async def test_sos_creates_incident(self, async_client):
         resp = await async_client.post("/api/sos", json={"lat": 12.8, "lng": 77.6})
         assert resp.status_code == 200
+        data = resp.json()
+        assert data["incident"]["state"] == "DISPATCHING"
 ```
 
-Because there is no `pytest.ini`/`asyncio_mode = auto`, every async test file **must** include `pytestmark = pytest.mark.asyncio` (strict mode) or the async tests will be skipped.
+**Frontend suite organization:**
+```typescript
+import { describe, it, expect } from 'vitest';
+
+describe('apiFetch', () => {
+  it('throws ApiError with status on non-2xx', async () => {
+    // arrange / act / assert
+  });
+});
+```
 
 **Patterns:**
-- **Setup:** `conftest.py` runs module-level setup (temp DB + `db.init_db()`) before import of the app; fixtures do per-test data seeding
-- **Teardown:** data-seeding fixtures delete their rows after `yield`; DB-backed unit tests use `try/finally` cleanup inline (`backend/tests/test_compliance.py:33-53`)
-- **Assertion:** plain `assert` with `==`, `in`, `is True`, comparisons, and type checks (`isinstance(data["audit"], list)` in `backend/tests/test_routes.py:101`)
-
-## Fixtures and Factories
-
-**Test Data (conftest.py `backend/tests/conftest.py`):**
-
-```python
-@pytest.fixture
-def async_client():
-    transport = ASGITransport(app=app)          # httpx ASGI transport — no live server
-    client = AsyncClient(transport=transport, base_url="http://test")
-    return client
-
-@pytest.fixture
-def seeded_hospital():
-    hid = "test-hosp-001"
-    now = db.now_iso()
-    with db.get_conn() as conn:
-        conn.execute("INSERT INTO Hospital ...", (hid, ...))
-        conn.execute("INSERT INTO AntivenomStock ...", (...))
-    yield hid
-    with db.get_conn() as conn:                 # teardown deletes seeded rows
-        conn.execute("DELETE FROM AntivenomStock WHERE hospitalId=?", (hid,))
-        conn.execute("DELETE FROM Hospital WHERE id=?", (hid,))
-```
-
-**Critical setup ordering (`backend/tests/conftest.py:7-15`):** the test DB path must be assigned to `NAGRAKSHA_DB` *before* importing `app.database` / `app.main`, because `database.py:17` reads the env var at import time. `atexit` removes the temp file:
-
-```python
-_db_fd, _db_path = tempfile.mkstemp(suffix=".db")
-os.environ["NAGRAKSHA_DB"] = _db_path
-from app import database as db
-from app.main import app
-db.init_db()
-
-@atexit.register
-def cleanup():
-    os.close(_db_fd)
-    os.unlink(_db_path)
-```
-
-**Location:** Fixtures live only in `backend/tests/conftest.py` (shared) or are inlined as `_`-prefixed helpers in each test file. No factory-boy/faker-style factories; rows are inserted with raw SQL through `db.get_conn()`.
+- Backend: class-per-feature (`TestSOS`, `TestIncidents`) with `pytestmark = pytest.mark.asyncio`; fixtures `async_client`, `seeded_hospital`
+- Frontend: `describe`/`it`, async `await` for API calls; MSW server shared via `frontend/test/setup.ts`
 
 ## Mocking
 
-**Framework:** `unittest.mock` (`patch`, `patch.object`) and pytest's `monkeypatch`.
-
-**Autouse fixture** — the single most important mock: it patches the background worker + KB seeding for every test so the outbox thread and ChromaDB seeding never run during tests:
-
+**Backend:**
+- `conftest.py` autouse fixture patches background work so tests are deterministic and don't spawn threads/SMS:
 ```python
 @pytest.fixture(autouse=True)
 def mock_background():
@@ -145,126 +94,99 @@ def mock_background():
         patch("app.main.start_worker", return_value=None),
         patch("app.main.ensure_kb_seeded", return_value=None),
     ):
-        yield                                       # backend/tests/conftest.py:18-27
+        yield
 ```
+- DB isolation: `conftest.py` sets `NAGRAKSHA_DB` to a `tempfile.mkstemp` DB before importing `app`, so tests never touch the real DB
+- `httpx.ASGITransport(app=app)` + `AsyncClient(base_url="http://test")` — full in-process app, real routes
 
-**Patterns:**
-
-```python
-# patch.object for module internals (sleep no-op for fast worker tests)
-with patch.object(eventbus.time, "sleep", lambda *a, **k: None):
-    eventbus._worker_tick()                         # backend/tests/test_eventbus.py:69
-
-# patch.object with side_effect to force failure paths
-with patch.object(eventbus, "do_dispatch", side_effect=RuntimeError("boom")):
-    ...                                             # backend/tests/test_eventbus.py:96
-
-# monkeypatch.setattr to simulate unavailable external deps
-monkeypatch.setattr(rag, "_get_collection", lambda: None)   # backend/tests/test_rag.py:11
-
-# patch.object to stub return values
-with patch.object(rag, "retrieve", return_value=[chunk]):
-    ...                                             # backend/tests/test_rag.py:35
-
-# monkeypatch.setenv for env-dependent behavior
-monkeypatch.setenv("TWILIO_AUTH_TOKEN", "test-auth-token")  # backend/tests/test_routes.py:161
+**Frontend (MSW):**
+- `frontend/test/handlers.ts` mocks the HTTP layer with shapes that match the real backend (health, auth/token, sos, incidents, hospitals, …)
+- `frontend/test/setup.ts`:
+```typescript
+import { setupServer } from 'msw/node';
+import { handlers } from './handlers';
+export const server = setupServer(...handlers);
+beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }));
+afterEach(() => server.resetHandlers());
+afterAll(() => server.close());
 ```
+- Unit-level mocking: `vi` (Vitest) for functions/modules where needed
 
 **What to Mock:**
-- Background threads / schedulers (`start_worker`, `ensure_kb_seeded`) — always, via the autouse fixture
-- External providers that would make network calls or download models: ChromaDB collection (`_get_collection`), LLM availability (`is_available`)
-- Time (`time.sleep`) in worker tests to keep them fast
-- Env vars that gate behavior (`TWILIO_AUTH_TOKEN`)
+- Backend: background workers (start_worker, ensure_kb_seeded), external SMS/LLM providers (by not setting credentials)
+- Frontend: all HTTP via MSW; timers/geolocation not currently mocked
 
 **What NOT to Mock:**
-- The SQLite database — tests use the real DB layer (`db.get_conn()`) against a temp file, inserting/querying actual rows (asserts like `assert row["state"] == "DISPATCHING"` in `backend/tests/test_routes.py:32`)
-- The FastAPI app itself — routes are exercised through the real app via `ASGITransport`
+- Real route handlers in backend tests (ASGITransport hits actual endpoints)
+- Internal pure functions (`backend/app/domain.py` is tested directly, not mocked)
 
-**Known untestable path:** the SSE stream endpoint `GET /api/incidents/{id}/stream` is deliberately not tested via ASGI transport because infinite streaming responses deadlock; this is documented in `backend/tests/test_routes.py:104-106`.
+## Fixtures and Factories
 
-## Fixtures and Factories (frontend)
+**Backend fixtures (`backend/tests/conftest.py`):**
+```python
+@pytest.fixture
+def seeded_hospital():
+    hid = "test-hosp-001"
+    now = db.now_iso()
+    with db.get_conn() as conn:
+        conn.execute("INSERT INTO Hospital (id, name, lat, lng, address, contact, active, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)", ...)
+        conn.execute("INSERT INTO AntivenomStock (id, hospitalId, product, status, quantityBand, verifiedAt, verifiedBy) VALUES (?, ?, ?, ?, ?, ?, ?)", ...)
+    yield hid
+    # teardown deletes Hospital + AntivenomStock
+```
+- Temp DB cleaned up via `atexit`
 
-Not applicable — no frontend tests exist. If re-adding Vitest + Testing Library (as in the removed `frontend/src/` prototype), the prior setup required `frontend/src/test/setup.ts` with `import '@testing-library/jest-dom/vitest';` and a `jsdom` test environment (see `.planning/debug/ci-frontend-setup-missing.md`).
+**Frontend fixtures:**
+- MSW handler payloads inline in `frontend/test/handlers.ts` (e.g. SOS response with 3 dispatch lanes)
 
 ## Coverage
 
-**Requirements:** None enforced. `pytest-cov` is installed in CI (`.github/workflows/ci.yml:25`) but the CI test command is plain `pytest tests/ -v` with no `--cov` flag, so coverage is not gated.
+**Requirements:**
+- No enforced coverage target; no coverage thresholds in CI or config
+- `pytest-cov` installed in CI but not invoked with thresholds
 
-**View Coverage:**
-```bash
-cd backend && pytest tests/ --cov=app --cov-report=term-missing
-```
-
-**Coverage focus today:** `test_domain.py` (pure functions) and `test_routes.py` (integration) are the thickest suites. `test_rag.py` and `test_eventbus.py` cover fallback/failure paths. There is no coverage for `backend/app/routes/snake_id.py` (largest file, 378 lines), `backend/app/routes/wound.py`, `backend/app/routes/transcribe.py`, `backend/app/llm.py`'s cloud providers, or `backend/app/seed.py`.
+**Configuration:**
+- None (no coverage config in `vitest.config.ts` or pytest config)
 
 ## Test Types
 
 **Unit Tests:**
-- Pure-function tests with no fixtures/DB: `backend/tests/test_domain.py` (haversine, eta, freshness, ranking, ref generation, dispatch simulation)
-- Guard/factory logic: `backend/tests/test_compliance.py::TestComplianceBadge`, `backend/tests/test_rag.py` (emergency guard short-circuit, fallback answers)
+- Backend: `test_domain.py` (21 tests) — pure helpers (haversine, ETA, stock freshness, incident refs); `test_compliance.py` (6) — scoring formula
+- Frontend: `frontend/lib/__tests__/api.test.ts` — `apiFetch` behavior (headers, token, error handling)
 
 **Integration Tests:**
-- HTTP route tests through the ASGI app: `backend/tests/test_routes.py` (SOS creates incident + outbox event, incidents CRUD + 404/409 paths, hospital stock updates, Twilio webhook auth/signature, query-param validation 422s)
-- DB-backed state machine tests: `backend/tests/test_eventbus.py` (outbox → HANDED_OFF, retry → FAILED), `backend/tests/test_compliance.py::TestComputeComplianceScore/TestRunComplianceJob`
-- `backend/tests/test_routes.py::TestSOS::test_sos_persists_to_db` verifies rows in SQLite after an API call
+- Backend: `test_routes.py` (27) — full HTTP flow through real FastAPI app + real SQLite temp DB, background side-effects mocked
+- Frontend: `frontend/lib/__tests__/nagraksha.test.ts` — typed API functions against MSW-mocked endpoints; MSW handlers intentionally mirror backend response shapes (contract tests)
 
-**E2E Tests:** Not used. No Playwright/Cypress/selenium anywhere.
+**E2E Tests:**
+- None (no Playwright/Cypress)
 
 ## Common Patterns
 
-**Async Testing (HTTP):**
-```python
-pytestmark = pytest.mark.asyncio                    # required per async module
-
-async def test_sos_with_defaults(self, async_client):
-    resp = await async_client.post("/api/sos", json={})
-    assert resp.status_code == 200
-    assert data["incident"]["lat"] == 12.8003        # backend/tests/test_routes.py:19-24
+**Async API testing (frontend):**
+```typescript
+it('returns typed SOS response', async () => {
+  const res = await triggerSos({ lat: 12.8, lng: 77.6 });
+  expect(res.incident.state).toBe('DISPATCHING');
+});
 ```
 
-**Polling for async worker completion (no sleeps to wait out):**
-```python
-def _wait_until(predicate, timeout=15.0):
-    deadline = _time.time() + timeout
-    while _time.time() < deadline:
-        if predicate():
-            return True
-        _time.sleep(0.05)
-    return False                                     # backend/tests/test_eventbus.py:58-64
-
-assert _wait_until(lambda: _incident_state(inc_id) == "HANDED_OFF"
-                   and _outbox_state_for(inc_id) == "PROCESSED")
-```
-
-**Error-path Testing:**
+**Error Testing:**
 ```python
 async def test_get_nonexistent(self, async_client):
     resp = await async_client.get("/api/incidents/does-not-exist")
-    assert resp.status_code == 404                    # backend/tests/test_routes.py:48-50
-
-async def test_accept_no_pending_attempt_409(self, async_client):
-    ... # create incident first, then PATCH accept with no DispatchAttempt rows
-    assert resp.status_code == 409                    # backend/tests/test_routes.py:68-73
-
-async def test_signature_required_when_token_set(self, async_client, monkeypatch):
-    monkeypatch.setenv("TWILIO_AUTH_TOKEN", "test-auth-token")
-    ...
-    assert resp.status_code == 403                    # backend/tests/test_routes.py:160-167
+    assert resp.status_code == 404
+```
+```typescript
+it('throws ApiError on 401', async () => {
+  await expect(apiFetch('/api/auth/token', { method: 'POST', body: '{}' })).rejects.toMatchObject({ status: 401 });
+});
 ```
 
-**Validation Tests (422s from FastAPI):**
-```python
-async def test_knowledge_base_non_numeric_k(self, async_client):
-    resp = await async_client.get("/api/knowledge-base?k=abc")
-    assert resp.status_code == 422                    # backend/tests/test_routes.py:183-185
-```
-
-## Frontend Testing Status & Guidance
-
-- **Current state:** zero frontend tests, no runner config. The backend carries the entire test suite.
-- **CI gap:** the `frontend-build` job in `.github/workflows/ci.yml:38-67` will fail at the Vitest step (no config/files), at `npm run lint` (no `eslint.config.mjs`), and possibly at `npm ci --legacy-peer-deps` (it points `cache-dependency-path` at `frontend/package-lock.json`, which does not exist — the frontend uses `pnpm-lock.yaml`).
-- **If adding frontend tests:** use Vitest + @testing-library/react with a `jsdom` environment and a setup file importing `@testing-library/jest-dom/vitest` (matches the removed prototype and the CI step). Place tests co-located (`frontend/components/**/__tests__/` or `.test.tsx` siblings) and add `frontend/vitest.config.ts`. Update `.github/workflows/ci.yml` to `pnpm install`/`pnpm vitest run` and to a real eslint config path before relying on the CI gate.
+**Snapshot Testing:**
+- Not used; explicit assertions preferred
 
 ---
 
-*Testing analysis: 2026-08-14*
+*Testing analysis: 2026-08-15*
+*Update when test patterns change*
