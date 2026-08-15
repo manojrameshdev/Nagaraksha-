@@ -17,6 +17,8 @@ NagRaksha is a brownfield hackathon project with fully functional frontend and b
 - [x] **Phase 4: ESLint Hardening** — All ESLint rules enabled at full strictness, zero violations
 - [x] **Phase 5: CI Pipeline** — All checks automated on push/PR, blocking broken code
 - [x] **Phase 6: Developer Experience** — Pre-commit hooks catch issues before committing
+- [x] **Phase 7: Connect Frontend & Backend** — Wire backend routes to frontend pages, real-time SOS, and integration tests
+- [ ] **Phase 8: VenomScore & August 15 Demo Execution** — MediaPipe ptosis tracking, venom classification, antivenom dose estimation, bug fixes, and Karnataka demo data
 
 ## Phase Details
 
@@ -121,6 +123,8 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 4. ESLint Hardening | — | Complete | ✅ |
 | 5. CI Pipeline | — | Complete | ✅ |
 | 6. Developer Experience | — | Complete | ✅ |
+| 7. Connect Frontend & Backend | 4/4 | Complete | ✅ |
+| 8. VenomScore & August 15 Demo Execution | 0/4 | Not started | ⏳ |
 
 ### Phase 7: Connect all the features of the frontend with the backend
 
@@ -143,3 +147,26 @@ Plans:
 - [x] 07-02-PLAN.md — SOS Flow & Real-Time WebSocket (Zustand store, useIncidentSocket, incident tracking page)
 - [x] 07-03-PLAN.md — Remaining Feature Pages (hospitals, dashboard, myth-buster, risk, symptom logger, dispatch actions, stock update)
 - [x] 07-04-PLAN.md — CI Pipeline Sync & Integration Tests (MSW handlers, Vitest integration tests, ci.yml update)
+
+### Phase 8: VenomScore & August 15 Demo Execution Plan
+
+**Goal:** Implement real-time neurotoxic envenomation detection via MediaPipe eyelid ptosis tracking (VenomScore), pre-hospital antivenom estimation, live hospital broadcast, cleanup items, deep link bug fix, and Karnataka demo seed data for the IISc presentation.
+**Depends on:** Phase 7
+**Reference:** [docs/AUGUST_15_EXECUTION_PLAN.md](file:///c:/Users/OM%20Prakash/Documents/Nagaraksha-/docs/AUGUST_15_EXECUTION_PLAN.md)
+**Success Criteria** (what must be TRUE):
+
+  1. Repository cleanup completed: `nag-raksha.zip` removed, Prisma scripts pruned, `setup.py` uses `pnpm`, `.gitignore` fixed, package name set to `nagraksha-frontend`, `sos-store.ts` deep link bug fixed (`incidentId: incident.id`), and SOS rate limiting active.
+  2. Backend stores and computes `PtosisReading` records, runs pure domain classification (`classify_venom_type`, `compute_dry_bite_probability`, `estimate_antivenom_vials`, `compute_venom_score`), and broadcasts `VENOM_SCORE_UPDATE` via WebSocket.
+  3. Frontend runs MediaPipe Face Landmarker on-device to track normalized eyelid aperture (landmarks 159/145/386/374), computes personal baseline and percentage closure, visualizes trend in `VenomScoreChart`, and displays live pre-arrival packets in hospital view.
+  4. Demo seed dataset in `backend/seed_demo.py` successfully populates real Karnataka hospitals, compliance scores, antivenom inventory, stakeholders (Gerry Martin, etc.), and ASHA village risk records.
+  5. All backend pytest suites (including domain and route VenomScore tests) pass, all frontend vitest tests pass, and `pnpm run build` / `pnpm run lint` pass with 0 errors.
+
+**Plans:** 0/4 plans complete
+
+Plans:
+
+- [ ] 08-01-PLAN.md — Hour 0 Cleanup & Deep Link Bug Fix (Reference: [docs/AUGUST_15_EXECUTION_PLAN.md](file:///c:/Users/OM%20Prakash/Documents/Nagaraksha-/docs/AUGUST_15_EXECUTION_PLAN.md#hour-0--cleanup-first-both-people-30-minutes))
+- [ ] 08-02-PLAN.md — VenomScore Backend Engine (Reference: [docs/AUGUST_15_EXECUTION_PLAN.md](file:///c:/Users/OM%20Prakash/Documents/Nagaraksha-/docs/AUGUST_15_EXECUTION_PLAN.md#hours-13--venomscore-backend-person-b))
+- [ ] 08-03-PLAN.md — VenomScore Frontend Face Tracking & Hospital Packet (Reference: [docs/AUGUST_15_EXECUTION_PLAN.md](file:///c:/Users/OM%20Prakash/Documents/Nagaraksha-/docs/AUGUST_15_EXECUTION_PLAN.md#hours-15--venomscore-frontend-person-a))
+- [ ] 08-04-PLAN.md — Demo Seed Data & Integration Rehearsal (Reference: [docs/AUGUST_15_EXECUTION_PLAN.md](file:///c:/Users/OM%20Prakash/Documents/Nagaraksha-/docs/AUGUST_15_EXECUTION_PLAN.md#hour-5--demo-seed-data-person-b-while-person-a-polishes-ui))
+
