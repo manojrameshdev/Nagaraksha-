@@ -47,6 +47,7 @@ export interface Incident {
   lat: number;
   lng: number;
   address: string | null;
+  biteTime?: string | null;
   createdAt: string;
   updatedAt: string;
   dispatchAttempts: DispatchAttempt[];
@@ -163,7 +164,7 @@ export interface SubmitPtosisResponse {
 
 export const submitPtosisReading = (
   incidentId: string,
-  reading: PtosisReading & { baselineAperture?: number },
+  reading: PtosisReading & { baselineAperture?: number | null },
 ) =>
   apiFetch<SubmitPtosisResponse>(`/api/venom-score/${incidentId}/reading`, {
     method: 'POST',
