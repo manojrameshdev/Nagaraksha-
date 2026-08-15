@@ -339,3 +339,71 @@ class TestVenomScore:
         data = resp.json()
         assert data["venomScore"]["venomType"] == "UNKNOWN"
         assert data["venomScore"]["dryBiteProbability"] == 0.0
+
+    async def test_post_unknown_incident_404(self, async_client):
+        resp = await async_client.post(
+            "/api/venom-score/does-not-exist/reading", json=_BASELINE_BODY
+        )
+        assert resp.status_code == 404
+
+    async def test_get_score_unknown_incident_404(self, async_client):
+        resp = await async_client.get("/api/venom-score/does-not-exist/score")
+        assert resp.status_code == 404
+
+    async def test_get_readings_unknown_incident_404(self, async_client):
+        resp = await async_client.get("/api/venom-score/does-not-exist/readings")
+        assert resp.status_code == 404
+
+    async def test_invalid_aperture_422(self, async_client, seeded_incident):
+        """right_aperture 1.5 is out of the 0.0-1.0 bound → Pydantic 422 before any DB write."""
+        resp = await async_client.post(
+            f"/api/venom-score/{seeded_incident}/reading",
+            json={**_BASELINE_BODY, "right_aperture": 1.5},
+        )
+        assert resp.status_code == 422
+
+    async def test_ptosis_progression_neurotoxic(self, async_client, seeded_incident):
+        """Baseline then ptosis reading → GET /score reflects persistence + progression."""
+        await async_client.post(
+            f"/api/venom-score/{seeded_incident}/reading", json=_BASELINE_BODY
+        )
+        resp = await async_client.post(
+            f"/api/venom-score/{seeded_incident}/reading",
+            json={
+                "right_aperture": 0.010,
+                "left_aperture": 0.012,
+                "avg_aperture": 0.011,
+                "baseline_aperture": 0.0245,
+                "percent_change": 57.1,
+                "ptosis_detected": True,
+                "severity": "moderate",
+                "asymmetric": True,
+                "minutes_since_bite": 55,
+            },
+        )
+        assert resp.status_code == 200
+        score_resp = await async_client.get(f"/api/venom-score/{seeded_incident}/score")
+        assert score_resp.status_code == 200
+        score = score_resp.json()["venomScore"]
+        assert score["venomType"] == "NEUROTOXIC"
+        assert score["ptosisReadingCount"] == 2
+        assert score["ventilatorRequired"] is False  # 57.1 < 60
+
+    async def test_readings_ordered_by_timestamp(self, async_client, seeded_incident):
+        """Two POSTs → GET /readings returns 2 rows ordered by timestamp ASC."""
+        first = await async_client.post(
+            f"/api/venom-score/{seeded_incident}/reading", json=_BASELINE_BODY
+        )
+        second = await async_client.post(
+            f"/api/venom-score/{seeded_incident}/reading",
+            json={**_BASELINE_BODY, "avg_aperture": 0.02},
+        )
+        assert first.status_code == 200 and second.status_code == 200
+
+        resp = await async_client.get(f"/api/venom-score/{seeded_incident}/readings")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["incidentId"] == seeded_incident
+        assert len(data["readings"]) == 2
+        stamps = [r["timestamp"] for r in data["readings"]]
+        assert stamps == sorted(stamps)
