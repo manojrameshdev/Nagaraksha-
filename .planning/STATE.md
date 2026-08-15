@@ -3,19 +3,19 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 current_phase: 08
-current_plan: 08-01-PLAN.md
-status: in_progress
-stopped_at: Ready to execute 08-01-PLAN.md
-last_updated: "2026-08-15T10:27:21.791Z"
+current_phase_name: venomscore-and-august-15-demo-execution
+current_plan: 2
+status: executing
+stopped_at: Completed 08-01-PLAN.md (cleanup, deep-link fix, SOS rate limiting)
+last_updated: "2026-08-15T16:32:40.081Z"
 last_activity: 2026-08-15
 last_activity_desc: Created Phase 08 (VenomScore & Demo Execution) roadmap and plans from docs/AUGUST_15_EXECUTION_PLAN.md
 progress:
   total_phases: 8
-  completed_phases: 7
+  completed_phases: 2
   total_plans: 11
-  completed_plans: 4
+  completed_plans: 8
   percent: 25
-current_phase_name: venomscore-and-august-15-demo-execution
 ---
 
 # Project State
@@ -29,11 +29,11 @@ See: .planning/PROJECT.md (updated 2026-07-26)
 
 ## Current Position
 
-Phase: 08
-Status: Ready to execute 08-01-PLAN.md
-Last activity: 2026-08-15 — Created Phase 08 plans
-Current Plan: 08-01-PLAN.md
-Progress: [████████░░] 88%
+Phase: 08 (venomscore-and-august-15-demo-execution) — EXECUTING
+Status: Executing Phase 08
+Last activity: 2026-08-15 — Phase 08 execution started
+Current Plan: 2
+Progress: [███████░░░] 73%
 
 ## Performance Metrics
 
@@ -61,6 +61,7 @@ Progress: [████████░░] 88%
 | Phase 07-connect-all-the-features-of-the-frontend-with-the-backend P07-02 | 12 | 3 tasks | 3 files |
 | Phase 07 P07-03 | 8 | 8 tasks | 8 files |
 | Phase 07 P04 | 12min | 6 tasks | 6 files |
+| Phase 08-venomscore-and-august-15-demo-execution P08-01 | 8 | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -80,6 +81,7 @@ Progress: [████████░░] 88%
 - [Phase ?]: Plan 07-03: no synchronous setState in effects (react-hooks/set-state-in-effect); no console usage — error state UI instead
 - [Phase ?]: Plan 07-04: frontend test suite moved to migrated root-level paths (frontend/test, frontend/lib/__tests__) since the pre-existing migration deleted frontend/src/ — same adaptation as 07-01/02/03
 - [Phase ?]: Plan 07-04: CI frontend-build job synced to pnpm-based migrated frontend (corepack pnpm, pnpm-lock.yaml cache) with npx vitest run retained (migrated package.json has no test script); gatekeeper job added
+- [Phase ?]: Followed revised plan: shared slowapi Limiter extracted to backend/app/limiter.py (original main.py import is provably circular); trigger_sos stays sync with request: Request first param; structural rate-limit test adapted to slowapi 0.1.9 _route_limits registry with legacy _rate_limits fallback
 
 ### Roadmap Evolution
 
@@ -87,8 +89,8 @@ Progress: [████████░░] 88%
 
 ## Session Continuity
 
-**Stopped at:** Completed 07-04-PLAN.md (CI sync & integration tests) — Phase 07 complete
+**Stopped at:** Completed 08-01-PLAN.md (cleanup, deep-link fix, SOS rate limiting)
 **Resume file:** None
 
-Last session: 2026-08-14T21:22:02.714Z
+Last session: 2026-08-15T16:32:40.059Z
 Resume: Phase 7 added to roadmap. Ready to plan Phase 7.

@@ -124,7 +124,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 5. CI Pipeline | — | Complete | ✅ |
 | 6. Developer Experience | — | Complete | ✅ |
 | 7. Connect Frontend & Backend | 4/4 | Complete | ✅ |
-| 8. VenomScore & August 15 Demo Execution | 0/4 | Not started | ⏳ |
+| 8. VenomScore & August 15 Demo Execution | 1/4 | In Progress|  |
 
 ### Phase 7: Connect all the features of the frontend with the backend
 
@@ -161,12 +161,12 @@ Plans:
   4. Demo seed dataset in `backend/seed_demo.py` successfully populates real Karnataka hospitals, compliance scores, antivenom inventory, stakeholders (Gerry Martin, etc.), and ASHA village risk records.
   5. All backend pytest suites (including domain and route VenomScore tests) pass, all frontend vitest tests pass, and `pnpm run build` / `pnpm run lint` pass with 0 errors.
 
-**Plans:** 0/4 plans complete
+**Plans:** 1/4 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 08-01-PLAN.md — Hour 0 Cleanup & Deep Link Bug Fix (Reference: [docs/AUGUST_15_EXECUTION_PLAN.md](file:///c:/Users/OM%20Prakash/Documents/Nagaraksha-/docs/AUGUST_15_EXECUTION_PLAN.md#hour-0--cleanup-first-both-people-30-minutes))
+- [x] 08-01-PLAN.md — Hour 0 Cleanup & Deep Link Bug Fix (Reference: [docs/AUGUST_15_EXECUTION_PLAN.md](file:///c:/Users/OM%20Prakash/Documents/Nagaraksha-/docs/AUGUST_15_EXECUTION_PLAN.md#hour-0--cleanup-first-both-people-30-minutes))
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
