@@ -9,6 +9,10 @@ from app.domain import (
     rank_hospitals,
     gen_incident_ref,
     simulate_dispatch,
+    classify_venom_type,
+    compute_dry_bite_probability,
+    estimate_antivenom_vials,
+    compute_venom_score,
 )
 
 
@@ -149,3 +153,98 @@ class TestSimulateDispatch:
                 assert "role" in entry
                 assert "distanceKm" in entry
                 assert "etaMin" in entry
+
+
+class TestVenomScore:
+    """Unit coverage for the four VenomScore domain functions (uppercase vocab, advisory outputs)."""
+
+    # ── classify_venom_type ────────────────────────────────────────────────
+    def test_classify_neurotoxic_when_ptosis(self):
+        assert classify_venom_type(
+            [{"ptosisDetected": True, "percentChange": 57.1}], [], 10
+        ) == "NEUROTOXIC"
+
+    def test_classify_hemotoxic_when_wound_growth(self):
+        wounds = [
+            {"swellingAreaPx": 100, "severityScore": 10},
+            {"swellingAreaPx": 8500, "severityScore": 60},
+        ]
+        assert classify_venom_type([], wounds, 10) == "HEMOTOXIC"
+
+    def test_classify_dry_bite_after_45_min(self):
+        assert classify_venom_type([], [], 50) == "DRY_BITE"
+
+    def test_classify_unknown_early(self):
+        assert classify_venom_type([], [], 10) == "UNKNOWN"
+
+    # ── compute_dry_bite_probability ───────────────────────────────────────
+    def test_dry_bite_probability_zero_when_ptosis(self):
+        assert compute_dry_bite_probability(
+            [{"ptosisDetected": True}], [], 50
+        ) == 0.0
+
+    def test_dry_bite_probability_after_50_min(self):
+        p = compute_dry_bite_probability([], [], 50)
+        assert p > 0.60 and p <= 0.95
+
+    def test_dry_bite_probability_zero_before_20_min(self):
+        assert compute_dry_bite_probability([], [], 5) == 0.0
+
+    def test_dry_bite_probability_zero_on_fast_wound_growth(self):
+        wounds = [
+            {"swellingAreaPx": 100, "severityScore": 10},
+            {"swellingAreaPx": 9000, "severityScore": 60},
+        ]
+        assert compute_dry_bite_probability([], wounds, 50) == 0.0
+
+    # ── estimate_antivenom_vials ───────────────────────────────────────────
+    def test_vials_neurotoxic_high_severity(self):
+        res = estimate_antivenom_vials("NEUROTOXIC", 85.0)
+        assert res["estimatedVials"] == 25
+        assert res["confidenceLevel"] == "moderate"
+
+    def test_vials_dry_bite_zero_high_confidence(self):
+        res = estimate_antivenom_vials("DRY_BITE", 0.0)
+        assert res["estimatedVials"] == 0
+        assert res["confidenceLevel"] == "high"
+
+    def test_vials_unknown_conservative_ten(self):
+        res = estimate_antivenom_vials("UNKNOWN", 0.0)
+        assert res["estimatedVials"] == 10
+        assert res["confidenceLevel"] == "low"
+
+    def test_vials_every_result_has_disclaimer(self):
+        for vt in ("NEUROTOXIC", "HEMOTOXIC", "DRY_BITE", "UNKNOWN"):
+            res = estimate_antivenom_vials(vt, 30.0)
+            assert "disclaimer" in res
+            assert "Confirm with 20-minute whole blood clotting test" in res["disclaimer"]
+
+    # ── compute_venom_score composite ──────────────────────────────────────
+    def test_composite_empty_readings(self):
+        score = compute_venom_score([], [], 0)
+        assert score["venomType"] == "UNKNOWN"
+        assert score["overallSeverity"] == 0.0
+        assert score["ptosisReadingCount"] == 0
+        assert score["woundReadingCount"] == 0
+
+    def test_composite_neurotoxic_critical_alert(self):
+        score = compute_venom_score(
+            [{"ptosisDetected": True, "percentChange": 85.0}], [], 40
+        )
+        assert score["venomType"] == "NEUROTOXIC"
+        assert score["overallSeverity"] == 85.0
+        assert score["ventilatorRequired"] is True
+        assert score["criticalAlert"] is not None
+        assert score["minutesSinceBite"] == 40
+
+    def test_composite_echoes_minutes_since_bite(self):
+        score = compute_venom_score([], [], 120)
+        assert score["minutesSinceBite"] == 120
+
+    def test_composite_dual_key_tolerance(self):
+        camel = [{"ptosisDetected": True, "percentChange": 57.1}]
+        snake = [{"ptosis_detected": True, "percent_change": 57.1}]
+        a = compute_venom_score(camel, [], 30)
+        b = compute_venom_score(snake, [], 30)
+        assert a["venomType"] == b["venomType"] == "NEUROTOXIC"
+        assert a["overallSeverity"] == b["overallSeverity"] == 57.1
