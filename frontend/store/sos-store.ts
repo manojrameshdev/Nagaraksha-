@@ -48,7 +48,8 @@ export const useSosStore = create<SosState & SosActions>((set, get) => ({
     }
   },
 
-  setIncident: (incident) => set({ incident, dispatchLanes: incident.dispatchAttempts }),
+  setIncident: (incident) =>
+    set({ incident, incidentId: incident.id, dispatchLanes: incident.dispatchAttempts }),
 
   updateFromWsEvent: ({ event, data }) => {
     if (event === 'dispatch_attempted' || event === 'dispatch_accepted') {
