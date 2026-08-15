@@ -6,16 +6,16 @@ current_phase: 08
 current_phase_name: venomscore-and-august-15-demo-execution
 current_plan: 4
 status: executing
-stopped_at: Completed 08-03-PLAN.md (VenomScore frontend face tracking & hospital packet)
-last_updated: "2026-08-15T20:13:44.608Z"
+stopped_at: Completed 08-04-PLAN.md (demo seed data & integration rehearsal) — all 4 phase plans done, awaiting verification
+last_updated: "2026-08-15T20:20:25.972Z"
 last_activity: 2026-08-16
 last_activity_desc: Created Phase 08 (VenomScore & Demo Execution) roadmap and plans from docs/AUGUST_15_EXECUTION_PLAN.md
 progress:
   total_phases: 8
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 11
-  completed_plans: 10
-  percent: 25
+  completed_plans: 11
+  percent: 38
 ---
 
 # Project State
@@ -33,7 +33,7 @@ Phase: 08 (venomscore-and-august-15-demo-execution) — EXECUTING
 Status: Executing Phase 08
 Last activity: 2026-08-15 — Phase 08 execution started
 Current Plan: 4
-Progress: [█████████░] 91%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -64,6 +64,7 @@ Progress: [█████████░] 91%
 | Phase 08-venomscore-and-august-15-demo-execution P08-01 | 8 | 3 tasks | 9 files |
 | Phase 08 P08-02 | 28 | 3 tasks | 8 files |
 | Phase 08 P08-03 | 100 | 4 tasks | 13 files |
+| Phase 08 P08-04 | 22 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -89,6 +90,7 @@ Progress: [█████████░] 91%
 - [Phase ?]: Plan 08-02: minutes_since_bite = round(db.days_since(biteTime) * 1440); GET endpoints written in Task 1 file write, Task 2 carries proving edge tests
 - [Phase ?]: Plan 08-03: VENOM_SCORE_UPDATE added to closed IncidentSocketEvent union (uppercase broadcast, existing events lowercase kept); hospital packet built live on /incidents/[id]?role=hospital from store venomScore while workspaces.tsx HospitalWorkspace stays static (review-HIGH disposition, not omission); MediaPipe loaded via in-effect dynamic import with pinned CDN WASM/model URLs; first-frame baseline with avg<0.01 blink guard
 - [Phase ?]: Plan 08-03: plan committed in a prior session without SUMMARY.md (safe_resume_gate); closed out by verifying all acceptance gates on disk (vitest 19/19, eslint 0, next build 0, grep gates) and writing the missing SUMMARY
+- [Phase ?]: Plan 08-04: seed test isolation via monkeypatch on db.DB_PATH (conftest imports app.database at session start, so a module-scope NAGRAKSHA_DB env var binds nothing); live API inspection showed the compliance scheduler recalibrates hospital scores to 100.0 at server startup while stock mapping/ranking stay correct; manual two-browser rehearsal remains a human gate (coverage D4)
 
 ### Roadmap Evolution
 
@@ -96,8 +98,8 @@ Progress: [█████████░] 91%
 
 ## Session Continuity
 
-**Stopped at:** Completed 08-03-PLAN.md (VenomScore frontend face tracking & hospital packet)
+**Stopped at:** Completed 08-04-PLAN.md (demo seed data & integration rehearsal)
 **Resume file:** None
 
-Last session: 2026-08-16T01:28:00+05:30 (08-03 commits) + 2026-08-16 close-out
-Resume: Phase 08 plan 08-03 complete (VenomScore frontend — tracker, chart, hospital packet, all gates green). Next: 08-04 (demo seed data & integration rehearsal).
+Last session: 2026-08-16
+Resume: Phase 08 all 4 plans complete (cleanup, VenomScore backend, frontend tracker + hospital packet, demo seed + loop test). Backend 94 pytest, frontend 19 vitest, lint 0, build 0 all green. Next: phase verification (VERIFICATION.md).
