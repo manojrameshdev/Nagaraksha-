@@ -124,7 +124,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 5. CI Pipeline | — | Complete | ✅ |
 | 6. Developer Experience | — | Complete | ✅ |
 | 7. Connect Frontend & Backend | 4/4 | Complete | ✅ |
-| 8. VenomScore & August 15 Demo Execution | 1/4 | In Progress|  |
+| 8. VenomScore & August 15 Demo Execution | 2/4 | In Progress|  |
 
 ### Phase 7: Connect all the features of the frontend with the backend
 
@@ -161,7 +161,7 @@ Plans:
   4. Demo seed dataset in `backend/seed_demo.py` successfully populates real Karnataka hospitals, compliance scores, antivenom inventory, stakeholders (Gerry Martin, etc.), and ASHA village risk records.
   5. All backend pytest suites (including domain and route VenomScore tests) pass, all frontend vitest tests pass, and `pnpm run build` / `pnpm run lint` pass with 0 errors.
 
-**Plans:** 1/4 plans executed
+**Plans:** 2/4 plans executed
 
 Plans:
 **Wave 1**
@@ -170,7 +170,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 08-02-PLAN.md — VenomScore Backend Engine (Reference: [docs/AUGUST_15_EXECUTION_PLAN.md](file:///c:/Users/OM%20Prakash/Documents/Nagaraksha-/docs/AUGUST_15_EXECUTION_PLAN.md#hours-13--venomscore-backend-person-b))
+- [x] 08-02-PLAN.md — VenomScore Backend Engine (Reference: [docs/AUGUST_15_EXECUTION_PLAN.md](file:///c:/Users/OM%20Prakash/Documents/Nagaraksha-/docs/AUGUST_15_EXECUTION_PLAN.md#hours-13--venomscore-backend-person-b))
 - [ ] 08-03-PLAN.md — VenomScore Frontend Face Tracking & Hospital Packet (Reference: [docs/AUGUST_15_EXECUTION_PLAN.md](file:///c:/Users/OM%20Prakash/Documents/Nagaraksha-/docs/AUGUST_15_EXECUTION_PLAN.md#hours-15--venomscore-frontend-person-a))
 
 **Wave 3** *(blocked on Wave 2 completion)*
