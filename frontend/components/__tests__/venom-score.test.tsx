@@ -192,6 +192,67 @@ describe('VenomScore component', () => {
     expect(mocks.submitPtosisReading.mock.calls.length).toBe(submitCountBefore);
   });
 
+  it('skips a blink frame during tracking: no submit, LIVE status preserved, recovery still submits', async () => {
+    mocks.detectForVideo
+      .mockReturnValueOnce(makeFace(0.2)) // baseline
+      .mockReturnValueOnce(makeFace(0.005)) // blink mid-tracking (avg < 0.01)
+      .mockReturnValue(makeFace(0.1)); // recovered frame
+
+    render(<VenomScore incidentId="inc-1" biteTimestamp={BITE_TIME} />);
+    await flushMicrotasks();
+
+    fireEvent.click(startButton());
+    await flushMicrotasks();
+    expect(mocks.submitPtosisReading).toHaveBeenCalledTimes(1); // baseline
+
+    // Blink frame at t+10s: skipped entirely, still LIVE, no submit.
+    act(() => {
+      vi.advanceTimersByTime(10_000);
+    });
+    await flushMicrotasks();
+    expect(mocks.submitPtosisReading).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('LIVE')).toBeTruthy();
+
+    // Recovered frame at t+20s: submits normally.
+    act(() => {
+      vi.advanceTimersByTime(10_000);
+    });
+    await flushMicrotasks();
+    expect(mocks.submitPtosisReading).toHaveBeenCalledTimes(2);
+    const [, reading] = mocks.submitPtosisReading.mock.calls[1] as [string, PtosisReading];
+    expect(reading.percentChange).toBeCloseTo(50);
+  });
+
+  it('shows the error state when detectForVideo throws mid-tracking', async () => {
+    mocks.detectForVideo
+      .mockReturnValueOnce(makeFace(0.2)) // baseline
+      .mockImplementationOnce(() => {
+        throw new Error('WebGL context lost');
+      });
+
+    render(<VenomScore incidentId="inc-1" biteTimestamp={BITE_TIME} />);
+    await flushMicrotasks();
+
+    fireEvent.click(startButton());
+    await flushMicrotasks();
+    expect(mocks.submitPtosisReading).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      vi.advanceTimersByTime(10_000);
+    });
+    await flushMicrotasks();
+
+    expect(screen.getByText(/Tracking failed/)).toBeTruthy();
+    expect(screen.queryByText('LIVE')).toBeNull();
+
+    // Interval is cleared after the error — no further captures/submits.
+    act(() => {
+      vi.advanceTimersByTime(30_000);
+    });
+    await flushMicrotasks();
+    expect(mocks.submitPtosisReading).toHaveBeenCalledTimes(1);
+  });
+
   it('renders the camera-permission error state when getUserMedia rejects', async () => {
     mocks.getUserMedia.mockRejectedValue(new Error('Permission denied'));
 

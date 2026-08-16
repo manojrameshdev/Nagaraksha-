@@ -248,3 +248,22 @@ class TestVenomScore:
         b = compute_venom_score(snake, [], 30)
         assert a["venomType"] == b["venomType"] == "NEUROTOXIC"
         assert a["overallSeverity"] == b["overallSeverity"] == 57.1
+
+    def test_composite_severity_tracks_latest_not_max(self):
+        """A recovered aperture brings the score back down — no max-of-history pin.
+
+        Readings arrive timestamp ASC; a single blink/noise frame must not
+        permanently pin severity (and with it the vials band / critical alert).
+        """
+        score = compute_venom_score(
+            [
+                {"ptosisDetected": True, "percentChange": 85.0},
+                {"ptosisDetected": True, "percentChange": 20.0},
+            ],
+            [],
+            40,
+        )
+        assert score["overallSeverity"] == 20.0
+        assert score["venomType"] == "NEUROTOXIC"  # diagnosis persists
+        assert score["ventilatorRequired"] is False
+        assert score["criticalAlert"] is None

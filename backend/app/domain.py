@@ -256,7 +256,11 @@ def compute_venom_score(ptosis_readings, wound_readings, minutes_since_bite) -> 
         for r in ptosis_readings or []
         if _du(r, "percentChange", "percent_change") is not None
     ]
-    ptosis_severity = min(100.0, max(pcts)) if pcts else 0.0
+    # Severity tracks the LATEST reading (rows are persisted timestamp ASC), not
+    # the historical max: a recovered aperture must bring the score back down.
+    # max-of-history is monotonic-non-decreasing, so a single blink/noise frame
+    # would permanently pin the severity, vials estimate, and critical alert.
+    ptosis_severity = min(100.0, pcts[-1]) if pcts else 0.0
 
     wounds = wound_readings or []
     wound_severity = float(wounds[-1].get("severityScore", 0) or 0) if wounds else 0.0

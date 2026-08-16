@@ -155,11 +155,35 @@ export default function VenomScore({ incidentId, biteTimestamp }: VenomScoreProp
       });
   };
 
+  const stopTracking = () => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    if (videoRef.current) videoRef.current.srcObject = null;
+    baselineRef.current = null;
+    setStatus('idle');
+  };
+
   const capture = () => {
     const landmarker = landmarkerRef.current;
     const video = videoRef.current;
     if (!landmarker || !video) return;
-    const result = landmarker.detectForVideo(video, performance.now());
+    let result: FaceLandmarksResult;
+    try {
+      result = landmarker.detectForVideo(video, performance.now());
+    } catch {
+      // MediaPipe can throw if the video has no ready frame yet, the GPU/WebGL
+      // context is lost, or a frame decode fails. Surface it instead of dying
+      // silently inside the interval callback — otherwise the LIVE badge stays
+      // lit while tracking is dead.
+      stopTracking();
+      setStatus('error');
+      setInitError('Tracking failed — restart VenomScore.');
+      return;
+    }
     if (!result.faceLandmarks.length) {
       setStatus('no-face');
       return;
@@ -193,6 +217,14 @@ export default function VenomScore({ incidentId, biteTimestamp }: VenomScoreProp
       setReadings((prev) => [...prev, reading]);
       addPtosisReading(reading);
       submitReading(reading);
+      return;
+    }
+
+    // Blink guard during tracking too: a normal blink drives avgAperture toward
+    // 0, which would be scored as ~100% closure (percentChange spikes and the
+    // frame submits as severe ptosis). Skip the frame — do not submit — and keep
+    // the last status.
+    if (avgAperture < BLINK_AVG_THRESHOLD) {
       return;
     }
 
@@ -243,18 +275,6 @@ export default function VenomScore({ incidentId, biteTimestamp }: VenomScoreProp
       setStatus('error');
       setInitError('Camera access denied. Allow camera permission and try again.');
     }
-  };
-
-  const stopTracking = () => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-    streamRef.current?.getTracks().forEach((track) => track.stop());
-    streamRef.current = null;
-    if (videoRef.current) videoRef.current.srcObject = null;
-    baselineRef.current = null;
-    setStatus('idle');
   };
 
   const cameraActive = status === 'calibrating' || status === 'tracking' || status === 'no-face';
