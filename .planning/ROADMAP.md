@@ -197,24 +197,12 @@ Plans:
 
 **Plans:** 0/5 plans complete
 
-Plans:
-**Wave 1**
+Plans (Continuous Single-Pass Execution):
 
 - [ ] 09-01-PLAN.md — Facility Capability Model & SQLite Schema Migration (Reference: [docs/CARE_CORRIDOR_PLAN.md](file:///c:/Users/OM%20Prakash/Documents/Nagaraksha-/docs/CARE_CORRIDOR_PLAN.md#7-database-schema-extensions-backendappdatabasepy))
-
-**Wave 2** *(blocked on Wave 1 completion)*
-
 - [ ] 09-02-PLAN.md — Clinical Capability-Gap Evaluator & Recommendation Filter (Reference: [docs/CARE_CORRIDOR_PLAN.md](file:///c:/Users/OM%20Prakash/Documents/Nagaraksha-/docs/CARE_CORRIDOR_PLAN.md#5-capability-model--clinical-decision-rules))
-
-**Wave 3** *(blocked on Wave 2 completion)*
-
 - [ ] 09-03-PLAN.md — Referral Lifecycle, Hospital Acceptance & Realtime Outbox Events (Reference: [docs/CARE_CORRIDOR_PLAN.md](file:///c:/Users/OM%20Prakash/Documents/Nagaraksha-/docs/CARE_CORRIDOR_PLAN.md#8-api--real-time-specifications))
-
-**Wave 4** *(blocked on Wave 3 completion)*
-
 - [ ] 09-04-PLAN.md — Care Corridor Frontend UI & Closed-Loop Timeline Component (Reference: [docs/CARE_CORRIDOR_PLAN.md](file:///c:/Users/OM%20Prakash/Documents/Nagaraksha-/docs/CARE_CORRIDOR_PLAN.md#9-care-corridor-ui-design-frontend))
-
-**Wave 5** *(blocked on Wave 4 completion)*
-
 - [ ] 09-05-PLAN.md — Demo Corridor Seed, NAPSE RAG Grounding & E2E Verification (Reference: [docs/CARE_CORRIDOR_PLAN.md](file:///c:/Users/OM%20Prakash/Documents/Nagaraksha-/docs/CARE_CORRIDOR_PLAN.md#10-karnataka-deterministic-demo-corridor-scenario-nr-1042))
+
 

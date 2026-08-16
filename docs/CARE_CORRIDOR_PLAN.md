@@ -361,7 +361,7 @@ A reproducible, high-impact clinical presentation flow:
 
 ## 12. GSD Phase 9 Wave & Execution Plan Breakdown
 
-Phase 9 is decomposed into 5 executable plans designed to run in structured waves:
+Phase 9 is decomposed into 5 executable plans configured for continuous single-pass execution (all plans unblocked in Wave 1):
 
 ```
 Wave 1 (Foundation & Schema):
