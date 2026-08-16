@@ -52,6 +52,32 @@ function severityClasses(severity: PtosisReading['severity']): string {
   return 'bg-gray-100 text-gray-600';
 }
 
+// Suppress informational logs emitted to stderr (which Emscripten maps to console.error)
+// by TensorFlow Lite / MediaPipe WASM delegates during initialization or teardown.
+function patchTfliteConsoleLogs() {
+  if (typeof window === 'undefined') return;
+  const w = window as unknown as { __tfliteLogPatched?: boolean };
+  if (w.__tfliteLogPatched) return;
+  w.__tfliteLogPatched = true;
+
+  /* eslint-disable no-console */
+  const originalConsoleError = console.error;
+  console.error = (...args: unknown[]) => {
+    const first = args[0];
+    if (
+      typeof first === 'string' &&
+      (first.startsWith('INFO: Created TensorFlow Lite') ||
+        first.includes('TensorFlow Lite XNNPACK delegate') ||
+        (first.startsWith('INFO:') && first.includes('TensorFlow Lite')))
+    ) {
+      console.info(...args);
+      return;
+    }
+    originalConsoleError.apply(console, args);
+  };
+  /* eslint-enable no-console */
+}
+
 export default function VenomScore({ incidentId, biteTimestamp }: VenomScoreProps) {
   const venomScore = useSosStore((s) => s.venomScore);
   const addPtosisReading = useSosStore((s) => s.addPtosisReading);
@@ -75,6 +101,7 @@ export default function VenomScore({ incidentId, biteTimestamp }: VenomScoreProp
   // Cleanup closes the landmarker, stops the camera stream and clears the
   // interval; the cancelled flag prevents stale async writes after unmount.
   useEffect(() => {
+    patchTfliteConsoleLogs();
     let cancelled = false;
     (async () => {
       try {
@@ -87,7 +114,11 @@ export default function VenomScore({ incidentId, biteTimestamp }: VenomScoreProp
           numFaces: 1,
         });
         if (cancelled) {
-          landmarker.close();
+          try {
+            landmarker.close();
+          } catch {
+            // ignore cleanup errors on cancelled landmarker
+          }
           return;
         }
         landmarkerRef.current = landmarker;
@@ -105,7 +136,11 @@ export default function VenomScore({ incidentId, biteTimestamp }: VenomScoreProp
       if (intervalRef.current) clearInterval(intervalRef.current);
       streamRef.current?.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
-      landmarkerRef.current?.close();
+      try {
+        landmarkerRef.current?.close();
+      } catch {
+        // ignore cleanup errors
+      }
       landmarkerRef.current = null;
     };
   }, []);
