@@ -1,0 +1,396 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 960" width="100%" height="100%" style="background:#0b1311; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#07110d"/>
+      <stop offset="50%" stop-color="#0b1713"/>
+      <stop offset="100%" stop-color="#050d0a"/>
+    </linearGradient>
+
+    <!-- Card Gradients -->
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#14261f" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#0e1d17" stop-opacity="0.95"/>
+    </linearGradient>
+    <linearGradient id="cardGradHighlight" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#19382b"/>
+      <stop offset="100%" stop-color="#10261d"/>
+    </linearGradient>
+    <linearGradient id="aiCardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1d2b3a"/>
+      <stop offset="100%" stop-color="#111c27"/>
+    </linearGradient>
+
+    <!-- Flow Gradients -->
+    <linearGradient id="redFlow" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ef4444"/>
+      <stop offset="100%" stop-color="#f97316"/>
+    </linearGradient>
+    <linearGradient id="greenFlow" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#06b6d4"/>
+    </linearGradient>
+    <linearGradient id="blueFlow" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+
+    <!-- Filters for Glow & Shadows -->
+    <filter id="dropShadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000000" flood-opacity="0.6"/>
+    </filter>
+    <filter id="glowGreen" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <filter id="glowRed" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+
+    <!-- Arrow Markers -->
+    <marker id="arrow-red" markerWidth="10" markerHeight="10" refX="6" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L7,3 z" fill="#ef4444"/>
+    </marker>
+    <marker id="arrow-green" markerWidth="10" markerHeight="10" refX="6" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L7,3 z" fill="#10b981"/>
+    </marker>
+    <marker id="arrow-blue" markerWidth="10" markerHeight="10" refX="6" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L7,3 z" fill="#3b82f6"/>
+    </marker>
+    <marker id="arrow-purple" markerWidth="10" markerHeight="10" refX="6" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L7,3 z" fill="#a855f7"/>
+    </marker>
+  </defs>
+
+  <!-- Background Base -->
+  <rect width="1400" height="960" fill="url(#bgGrad)"/>
+  
+  <!-- Subtle Grid Pattern -->
+  <g opacity="0.07" stroke="#10b981" stroke-width="1">
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40"/>
+    </pattern>
+    <rect width="1400" height="960" fill="url(#grid)"/>
+  </g>
+
+  <!-- ==================== HEADER ==================== -->
+  <g transform="translate(60, 40)">
+    <!-- Logo Icon -->
+    <rect x="0" y="0" width="44" height="44" rx="10" fill="#10b981" fill-opacity="0.15" stroke="#10b981" stroke-width="1.5"/>
+    <path d="M14 28 C14 20, 30 24, 30 16 C30 13, 27 12, 22 14 M22 14 L20 10 M22 14 L24 10" fill="none" stroke="#34d399" stroke-width="2.5" stroke-linecap="round"/>
+    <circle cx="22" cy="22" r="3" fill="#ef4444"/>
+
+    <!-- Title & Subtitle -->
+    <text x="56" y="24" fill="#ffffff" font-size="22" font-weight="700" letter-spacing="0.5">NagRaksha · System Architecture &amp; Emergency Dataflow</text>
+    <text x="56" y="42" fill="#94a3b8" font-size="13">High-Resilience Emergency Coordination, Vision AI Triage &amp; Capability-Aware Care Corridor</text>
+
+    <!-- Legend Badges -->
+    <g transform="translate(760, 8)">
+      <rect x="0" y="0" width="520" height="32" rx="6" fill="#13231c" stroke="#1e3a2e" stroke-width="1"/>
+      
+      <circle cx="20" cy="16" r="4" fill="#ef4444"/>
+      <text x="30" y="20" fill="#cbd5e1" font-size="11" font-weight="500">1. SOS &amp; Telemetry</text>
+
+      <circle cx="140" cy="16" r="4" fill="#10b981"/>
+      <text x="150" y="20" fill="#cbd5e1" font-size="11" font-weight="500">2. Ptosis &amp; Vision Triage</text>
+
+      <circle cx="280" cy="16" r="4" fill="#3b82f6"/>
+      <text x="290" y="20" fill="#cbd5e1" font-size="11" font-weight="500">3. Care Corridor Routing</text>
+
+      <circle cx="420" cy="16" r="4" fill="#a855f7"/>
+      <text x="430" y="20" fill="#cbd5e1" font-size="11" font-weight="500">4. Fallback LLM</text>
+    </g>
+  </g>
+
+  <!-- ==================== COLUMN 1: CLIENT TIER (EDGE & FIELD) ==================== -->
+  <g transform="translate(60, 110)">
+    <!-- Container Box -->
+    <rect x="0" y="0" width="360" height="800" rx="14" fill="url(#cardGrad)" stroke="#1d4334" stroke-width="1.5" filter="url(#dropShadow)"/>
+    <rect x="0" y="0" width="360" height="42" rx="14" fill="#143325" stroke="#1d4334" stroke-width="1.5"/>
+    <text x="18" y="26" fill="#34d399" font-size="14" font-weight="700" letter-spacing="0.5">EDGE CLIENT TIER (Field &amp; First Responder)</text>
+
+    <!-- Component 1.1: PWA Shell -->
+    <g transform="translate(18, 60)">
+      <rect x="0" y="0" width="324" height="150" rx="10" fill="#10241b" stroke="#25533f" stroke-width="1.2"/>
+      <rect x="12" y="12" width="24" height="24" rx="6" fill="#ef4444" fill-opacity="0.2" stroke="#ef4444" stroke-width="1"/>
+      <text x="24" y="28" fill="#ef4444" font-size="12" font-weight="700" text-anchor="middle">!</text>
+      <text x="44" y="28" fill="#f8fafc" font-size="14" font-weight="600">Next.js 16 PWA Client App</text>
+      
+      <text x="14" y="58" fill="#94a3b8" font-size="12">• One-Click SOS Emergency Trigger</text>
+      <text x="14" y="78" fill="#94a3b8" font-size="12">• GPS Geolocation &amp; Incident Telemetry</text>
+      <text x="14" y="98" fill="#94a3b8" font-size="12">• Zustand Client Store (<tspan fill="#34d399">sos-store.ts</tspan>)</text>
+      <text x="14" y="118" fill="#94a3b8" font-size="12">• LocalStorage Offline Buffer (Zero Data Loss)</text>
+
+      <rect x="220" y="12" width="92" height="20" rx="4" fill="#0f3726" stroke="#10b981" stroke-width="0.8"/>
+      <text x="266" y="26" fill="#34d399" font-size="10" font-weight="600" text-anchor="middle">OFFLINE-FIRST</text>
+    </g>
+
+    <!-- Component 1.2: VenomScore & Edge Vision -->
+    <g transform="translate(18, 230)">
+      <rect x="0" y="0" width="324" height="190" rx="10" fill="url(#cardGradHighlight)" stroke="#10b981" stroke-width="1.5" filter="url(#glowGreen)"/>
+      <rect x="12" y="12" width="24" height="24" rx="6" fill="#10b981" fill-opacity="0.2" stroke="#10b981" stroke-width="1"/>
+      <circle cx="24" cy="24" r="5" fill="#10b981"/>
+      <text x="44" y="28" fill="#ffffff" font-size="14" font-weight="700">VenomScore · Client Vision</text>
+
+      <text x="14" y="58" fill="#e2e8f0" font-size="12" font-weight="600">MediaPipe FaceLandmarker (WASM)</text>
+      <text x="14" y="76" fill="#94a3b8" font-size="11">• 478 Facial Landmarks (Upper/Lower Eyelid)</text>
+      <text x="14" y="94" fill="#94a3b8" font-size="11">• Eyelid Palpebral Aperture Tracking</text>
+      <text x="14" y="112" fill="#94a3b8" font-size="11">• Real-Time Ptosis Progression Curve</text>
+      <text x="14" y="130" fill="#94a3b8" font-size="11">• Blink Filter &amp; XNNPACK Stderr Suppressor</text>
+      <text x="14" y="148" fill="#94a3b8" font-size="11">• Local Calibration Baseline (10s intervals)</text>
+
+      <!-- Severity Badge -->
+      <rect x="12" y="160" width="300" height="20" rx="4" fill="#0b1713" stroke="#1d4334" stroke-width="1"/>
+      <text x="162" y="174" fill="#34d399" font-size="10" font-weight="600" text-anchor="middle">Neurotoxic Envenomation Early Warning System</text>
+    </g>
+
+    <!-- Component 1.3: Camera Capture Tools -->
+    <g transform="translate(18, 440)">
+      <rect x="0" y="0" width="324" height="150" rx="10" fill="#10241b" stroke="#25533f" stroke-width="1.2"/>
+      <text x="14" y="28" fill="#f8fafc" font-size="14" font-weight="600">Camera Diagnostics &amp; Tools</text>
+
+      <text x="14" y="58" fill="#94a3b8" font-size="12">• <tspan fill="#e2e8f0" font-weight="600">Snake Photo Capture</tspan> (Dorsal/Head views)</text>
+      <text x="14" y="78" fill="#94a3b8" font-size="12">• <tspan fill="#e2e8f0" font-weight="600">Wound Swelling Monitor</tspan> (Bite mark area)</text>
+      <text x="14" y="98" fill="#94a3b8" font-size="12">• <tspan fill="#e2e8f0" font-weight="600">20WBCT Timer</tspan> (20-Min Blood Clot Test)</text>
+      <text x="14" y="118" fill="#94a3b8" font-size="12">• <tspan fill="#e2e8f0" font-weight="600">Myth-Buster &amp; First Aid</tspan> Safety Guidance</text>
+    </g>
+
+    <!-- Component 1.4: Realtime Corridor UI -->
+    <g transform="translate(18, 610)">
+      <rect x="0" y="0" width="324" height="160" rx="10" fill="#10241b" stroke="#3b82f6" stroke-width="1.2"/>
+      <text x="14" y="28" fill="#93c5fd" font-size="14" font-weight="600">Care Corridor Live Dashboard</text>
+
+      <text x="14" y="58" fill="#94a3b8" font-size="12">• Live Transit Milestone Timeline</text>
+      <text x="14" y="78" fill="#94a3b8" font-size="12">• Capability Match Ranking (Tier 1 vs 2 vs 3)</text>
+      <text x="14" y="98" fill="#94a3b8" font-size="12">• Real-time ASV Stock &amp; Bed Availability</text>
+      <text x="14" y="118" fill="#94a3b8" font-size="12">• Hospital Pre-Arrival Notification Status</text>
+
+      <rect x="236" y="12" width="76" height="20" rx="4" fill="#172554" stroke="#3b82f6" stroke-width="0.8"/>
+      <text x="274" y="26" fill="#60a5fa" font-size="10" font-weight="600" text-anchor="middle">LIVE SSE</text>
+    </g>
+  </g>
+
+  <!-- ==================== COLUMN 2: BACKEND ENGINE (FASTAPI) ==================== -->
+  <g transform="translate(470, 110)">
+    <!-- Container Box -->
+    <rect x="0" y="0" width="460" height="800" rx="14" fill="url(#cardGrad)" stroke="#1d4334" stroke-width="1.5" filter="url(#dropShadow)"/>
+    <rect x="0" y="0" width="460" height="42" rx="14" fill="#143325" stroke="#1d4334" stroke-width="1.5"/>
+    <text x="18" y="26" fill="#34d399" font-size="14" font-weight="700" letter-spacing="0.5">BACKEND SERVICES &amp; ORCHESTRATION (FastAPI)</text>
+
+    <!-- Component 2.1: Incident State Machine -->
+    <g transform="translate(18, 60)">
+      <rect x="0" y="0" width="424" height="150" rx="10" fill="#10241b" stroke="#25533f" stroke-width="1.2"/>
+      <text x="14" y="28" fill="#ffffff" font-size="14" font-weight="600">Incident State Machine &amp; EventBus</text>
+      
+      <!-- Lifecycle stages pill diagram -->
+      <g transform="translate(14, 46)">
+        <rect x="0" y="0" width="72" height="24" rx="4" fill="#7f1d1d" stroke="#ef4444" stroke-width="1"/>
+        <text x="36" y="16" fill="#fca5a5" font-size="9" font-weight="700" text-anchor="middle">REPORTED</text>
+
+        <path d="M 74 12 L 84 12" stroke="#ef4444" stroke-width="2" marker-end="url(#arrow-red)"/>
+
+        <rect x="88" y="0" width="76" height="24" rx="4" fill="#78350f" stroke="#f59e0b" stroke-width="1"/>
+        <text x="126" y="16" fill="#fde68a" font-size="9" font-weight="700" text-anchor="middle">TRIAGED</text>
+
+        <path d="M 166 12 L 176 12" stroke="#f59e0b" stroke-width="2" marker-end="url(#arrow-red)"/>
+
+        <rect x="180" y="0" width="76" height="24" rx="4" fill="#1e3a8a" stroke="#3b82f6" stroke-width="1"/>
+        <text x="218" y="16" fill="#bfdbfe" font-size="9" font-weight="700" text-anchor="middle">EN_ROUTE</text>
+
+        <path d="M 258 12 L 268 12" stroke="#3b82f6" stroke-width="2" marker-end="url(#arrow-blue)"/>
+
+        <rect x="272" y="0" width="60" height="24" rx="4" fill="#064e3b" stroke="#10b981" stroke-width="1"/>
+        <text x="302" y="16" fill="#a7f3d0" font-size="9" font-weight="700" text-anchor="middle">ARRIVED</text>
+
+        <path d="M 334 12 L 344 12" stroke="#10b981" stroke-width="2" marker-end="url(#arrow-green)"/>
+
+        <rect x="348" y="0" width="50" height="24" rx="4" fill="#134e4a" stroke="#14b8a6" stroke-width="1"/>
+        <text x="373" y="16" fill="#99f6e4" font-size="9" font-weight="700" text-anchor="middle">DONE</text>
+      </g>
+
+      <text x="14" y="100" fill="#94a3b8" font-size="11">• Real-Time Broadcast via Async in-memory EventBus</text>
+      <text x="14" y="118" fill="#94a3b8" font-size="11">• Atomic State Transitions with Hospital Pre-Alert Triggers</text>
+      <text x="14" y="136" fill="#94a3b8" font-size="11">• Telemetry Logging &amp; Bite Timeline Synchronization</text>
+    </g>
+
+    <!-- Component 2.2: Capability-Aware Referral Engine -->
+    <g transform="translate(18, 230)">
+      <rect x="0" y="0" width="424" height="210" rx="10" fill="url(#cardGradHighlight)" stroke="#3b82f6" stroke-width="1.5" filter="url(#dropShadow)"/>
+      <text x="14" y="28" fill="#60a5fa" font-size="14" font-weight="700">Capability-Aware Care Corridor Engine</text>
+
+      <g transform="translate(14, 46)">
+        <rect x="0" y="0" width="124" height="48" rx="6" fill="#0f1f2e" stroke="#1e40af" stroke-width="1"/>
+        <text x="62" y="20" fill="#93c5fd" font-size="11" font-weight="600" text-anchor="middle">ASV Stock Filter</text>
+        <text x="62" y="38" fill="#64748b" font-size="9" text-anchor="middle">&gt;= 10 Vials Available</text>
+
+        <rect x="134" y="0" width="124" height="48" rx="6" fill="#0f1f2e" stroke="#1e40af" stroke-width="1"/>
+        <text x="196" y="20" fill="#93c5fd" font-size="11" font-weight="600" text-anchor="middle">ICU &amp; Ventilator</text>
+        <text x="196" y="38" fill="#64748b" font-size="9" text-anchor="middle">Respiratory Support</text>
+
+        <rect x="268" y="0" width="124" height="48" rx="6" fill="#0f1f2e" stroke="#1e40af" stroke-width="1"/>
+        <text x="330" y="20" fill="#93c5fd" font-size="11" font-weight="600" text-anchor="middle">Cold-Chain Tier</text>
+        <text x="330" y="38" fill="#64748b" font-size="9" text-anchor="middle">WHO / District Hospital</text>
+      </g>
+
+      <text x="14" y="118" fill="#e2e8f0" font-size="12" font-weight="600">Smart Hospital Scoring Formula:</text>
+      <text x="14" y="136" fill="#93c5fd" font-size="11" font-family="monospace">Score = (ASV_Vials * 0.35) + (ICU_Ready * 0.25) - (ETA_min * 0.40)</text>
+      
+      <text x="14" y="162" fill="#94a3b8" font-size="11">• Proximity calculation via Haversine / Road Route metrics</text>
+      <text x="14" y="180" fill="#94a3b8" font-size="11">• Dynamic Re-routing if primary facility experiences stockout</text>
+      <text x="14" y="198" fill="#94a3b8" font-size="11">• Pre-arrival resource reserving (Antivenom reconstitution alert)</text>
+    </g>
+
+    <!-- Component 2.3: Clinical Protocols & Venom Scorer -->
+    <g transform="translate(18, 460)">
+      <rect x="0" y="0" width="424" height="160" rx="10" fill="#10241b" stroke="#25533f" stroke-width="1.2"/>
+      <text x="14" y="28" fill="#ffffff" font-size="14" font-weight="600">Clinical Protocol &amp; Venom Aggregator</text>
+
+      <text x="14" y="58" fill="#94a3b8" font-size="12">• <tspan fill="#e2e8f0" font-weight="600">WHO 2016 Table 3 Rules</tspan> for Neurotoxic vs Haemotoxic</text>
+      <text x="14" y="78" fill="#94a3b8" font-size="12">• <tspan fill="#e2e8f0" font-weight="600">Ptosis Severity Estimator</tspan> (Mild &gt;20%, Mod &gt;40%, Severe &gt;70%)</text>
+      <text x="14" y="98" fill="#94a3b8" font-size="12">• <tspan fill="#e2e8f0" font-weight="600">20WBCT Coagulation Assessment</tspan> (Incoagulable blood flag)</text>
+      <text x="14" y="118" fill="#94a3b8" font-size="12">• <tspan fill="#e2e8f0" font-weight="600">Dry Bite Probability</tspan> Calculator &amp; Antivenom Vial Estimator</text>
+      <text x="14" y="138" fill="#94a3b8" font-size="12">• <tspan fill="#e2e8f0" font-weight="600">Clinical Basis Disclaimer</tspan> &amp; Mandatory 20WBCT Verification</text>
+    </g>
+
+    <!-- Component 2.4: Storage & RAG Vector DB -->
+    <g transform="translate(18, 640)">
+      <rect x="0" y="0" width="424" height="130" rx="10" fill="#10241b" stroke="#25533f" stroke-width="1.2"/>
+      <text x="14" y="28" fill="#ffffff" font-size="14" font-weight="600">Knowledge Retrieval &amp; Vector Index (RAG)</text>
+
+      <text x="14" y="56" fill="#94a3b8" font-size="12">• Pre-Indexed WHO &amp; National Snakebite Management Guidelines</text>
+      <text x="14" y="76" fill="#94a3b8" font-size="12">• BM25 + Dense Semantic Chunk Search</text>
+      <text x="14" y="96" fill="#94a3b8" font-size="12">• Seed Hospital Facilities &amp; Regional Antivenom Depots</text>
+    </g>
+  </g>
+
+  <!-- ==================== COLUMN 3: MULTI-AI RESILIENCE & HOSPITALS ==================== -->
+  <g transform="translate(980, 110)">
+    <!-- Container Box -->
+    <rect x="0" y="0" width="360" height="800" rx="14" fill="url(#cardGrad)" stroke="#1d4334" stroke-width="1.5" filter="url(#dropShadow)"/>
+    <rect x="0" y="0" width="360" height="42" rx="14" fill="#143325" stroke="#1d4334" stroke-width="1.5"/>
+    <text x="18" y="26" fill="#34d399" font-size="14" font-weight="700" letter-spacing="0.5">MULTI-AI RESILIENCE &amp; DESTINATIONS</text>
+
+    <!-- Component 3.1: Multi-Provider LLM & Vision Tier -->
+    <g transform="translate(18, 60)">
+      <rect x="0" y="0" width="324" height="360" rx="10" fill="url(#aiCardGrad)" stroke="#38bdf8" stroke-width="1.2" filter="url(#dropShadow)"/>
+      <text x="14" y="28" fill="#38bdf8" font-size="14" font-weight="700">Multi-Tier AI Fallback Chain</text>
+      <text x="14" y="46" fill="#94a3b8" font-size="11">Zero-downtime field resilience architecture</text>
+
+      <!-- Tier 1: Local Model -->
+      <g transform="translate(12, 60)">
+        <rect x="0" y="0" width="300" height="52" rx="6" fill="#0d1b2a" stroke="#10b981" stroke-width="1"/>
+        <text x="12" y="22" fill="#34d399" font-size="12" font-weight="700">Tier 1 · Local GGUF (llama-cpp)</text>
+        <text x="12" y="40" fill="#94a3b8" font-size="10">100% Offline · Zero Internet Dependency</text>
+        <rect x="236" y="8" width="56" height="18" rx="4" fill="#064e3b"/>
+        <text x="264" y="21" fill="#6ee7b7" font-size="9" font-weight="700" text-anchor="middle">OFFLINE</text>
+      </g>
+
+      <!-- Tier 2: Groq Cloud -->
+      <g transform="translate(12, 120)">
+        <rect x="0" y="0" width="300" height="52" rx="6" fill="#0d1b2a" stroke="#f59e0b" stroke-width="1"/>
+        <text x="12" y="22" fill="#fbbf24" font-size="12" font-weight="700">Tier 2 · Groq Cloud (Ultra-Fast)</text>
+        <text x="12" y="40" fill="#94a3b8" font-size="10">llama-3.3-70b &amp; llama-3.2-11b-vision</text>
+        <rect x="236" y="8" width="56" height="18" rx="4" fill="#78350f"/>
+        <text x="264" y="21" fill="#fde68a" font-size="9" font-weight="700" text-anchor="middle">&lt;500ms</text>
+      </g>
+
+      <!-- Tier 3: Grok (xAI) -->
+      <g transform="translate(12, 180)">
+        <rect x="0" y="0" width="300" height="52" rx="6" fill="#0d1b2a" stroke="#ec4899" stroke-width="1"/>
+        <text x="12" y="22" fill="#f472b6" font-size="12" font-weight="700">Tier 3 · Grok (xAI API)</text>
+        <text x="12" y="40" fill="#94a3b8" font-size="10">grok-2-latest &amp; grok-2-vision-latest</text>
+        <rect x="236" y="8" width="56" height="18" rx="4" fill="#831843"/>
+        <text x="264" y="21" fill="#fbcfe8" font-size="9" font-weight="700" text-anchor="middle">xAI API</text>
+      </g>
+
+      <!-- Tier 4: Gemini 2.5 Flash -->
+      <g transform="translate(12, 240)">
+        <rect x="0" y="0" width="300" height="52" rx="6" fill="#0d1b2a" stroke="#3b82f6" stroke-width="1"/>
+        <text x="12" y="22" fill="#60a5fa" font-size="12" font-weight="700">Tier 4 · Google Gemini 2.5 Flash</text>
+        <text x="12" y="40" fill="#94a3b8" font-size="10">Multimodal Wound Swelling Vision</text>
+        <rect x="236" y="8" width="56" height="18" rx="4" fill="#1e3a8a"/>
+        <text x="264" y="21" fill="#bfdbfe" font-size="9" font-weight="700" text-anchor="middle">GOOGLE</text>
+      </g>
+
+      <!-- Tier 5: Rule-Based Catalog -->
+      <g transform="translate(12, 300)">
+        <rect x="0" y="0" width="300" height="48" rx="6" fill="#0d1b2a" stroke="#64748b" stroke-width="1"/>
+        <text x="12" y="20" fill="#94a3b8" font-size="11" font-weight="700">Tier 5 · Deterministic Species Catalog</text>
+        <text x="12" y="36" fill="#64748b" font-size="10">15+ South Asian Species &amp; WHO Matrix</text>
+        <rect x="236" y="8" width="56" height="18" rx="4" fill="#334155"/>
+        <text x="264" y="21" fill="#cbd5e1" font-size="9" font-weight="700" text-anchor="middle">RULES</text>
+      </g>
+    </g>
+
+    <!-- Component 3.2: Care Corridor Destinations -->
+    <g transform="translate(18, 440)">
+      <rect x="0" y="0" width="324" height="330" rx="10" fill="#10241b" stroke="#10b981" stroke-width="1.2"/>
+      <text x="14" y="28" fill="#34d399" font-size="14" font-weight="700">Care Corridor Hospital Network</text>
+
+      <!-- Primary Health Centre -->
+      <g transform="translate(12, 50)">
+        <rect x="0" y="0" width="300" height="60" rx="6" fill="#0b1713" stroke="#25533f" stroke-width="1"/>
+        <text x="12" y="20" fill="#e2e8f0" font-size="11" font-weight="600">PHC / Community Health Centre (Tier 1)</text>
+        <text x="12" y="36" fill="#94a3b8" font-size="10">Initial 20WBCT, First Aid &amp; ASV Cold-Chain Depot</text>
+        <text x="12" y="50" fill="#34d399" font-size="10">Auto-Alert: ASV Preparation Triggered</text>
+      </g>
+
+      <!-- District Hospital -->
+      <g transform="translate(12, 120)">
+        <rect x="0" y="0" width="300" height="60" rx="6" fill="#0b1713" stroke="#25533f" stroke-width="1"/>
+        <text x="12" y="20" fill="#e2e8f0" font-size="11" font-weight="600">District Hospital (Tier 2)</text>
+        <text x="12" y="36" fill="#94a3b8" font-size="10">Ventilator Beds, Polyvalent ASV, Dialysis unit</text>
+        <text x="12" y="50" fill="#60a5fa" font-size="10">Auto-Alert: ICU Team Standing By</text>
+      </g>
+
+      <!-- Tertiary Medical College -->
+      <g transform="translate(12, 190)">
+        <rect x="0" y="0" width="300" height="60" rx="6" fill="#0b1713" stroke="#25533f" stroke-width="1"/>
+        <text x="12" y="20" fill="#e2e8f0" font-size="11" font-weight="600">Tertiary Medical College (Tier 3)</text>
+        <text x="12" y="36" fill="#94a3b8" font-size="10">Complex Haemotoxicity, Fasciotomy, Toxicology</text>
+        <text x="12" y="50" fill="#a855f7" font-size="10">Auto-Alert: Critical Care Referral</text>
+      </g>
+
+      <!-- Live Corridor Link -->
+      <g transform="translate(12, 260)">
+        <rect x="0" y="0" width="300" height="56" rx="6" fill="#172554" stroke="#3b82f6" stroke-width="1"/>
+        <text x="12" y="22" fill="#93c5fd" font-size="11" font-weight="700">Ambulance &amp; Transit Coordination</text>
+        <text x="12" y="42" fill="#cbd5e1" font-size="10">Dynamic ETA sync &amp; Pre-Arrival Handshake</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- ==================== FLOW CONNECTIONS (INTERACTIVE PIPELINES) ==================== -->
+  
+  <!-- Flow 1: SOS & Telemetry (Client -> Backend) -->
+  <path d="M 390 230 C 430 230, 430 230, 470 230" fill="none" stroke="#ef4444" stroke-width="2.5" stroke-dasharray="6,4" marker-end="url(#arrow-red)"/>
+  <rect x="398" y="208" width="64" height="18" rx="4" fill="#7f1d1d"/>
+  <text x="430" y="221" fill="#fca5a5" font-size="9" font-weight="700" text-anchor="middle">SOS Trigger</text>
+
+  <!-- Flow 2: Ptosis & VenomScore Stream (Client -> Backend Protocols) -->
+  <path d="M 390 380 C 430 380, 430 480, 470 480" fill="none" stroke="#10b981" stroke-width="2.5" marker-end="url(#arrow-green)"/>
+  <rect x="395" y="408" width="70" height="18" rx="4" fill="#064e3b"/>
+  <text x="430" y="421" fill="#a7f3d0" font-size="9" font-weight="700" text-anchor="middle">Ptosis Stream</text>
+
+  <!-- Flow 3: AI Classification (Backend -> AI Fallback Chain) -->
+  <path d="M 900 280 C 940 280, 940 280, 980 280" fill="none" stroke="#f59e0b" stroke-width="2.5" marker-end="url(#arrow-red)"/>
+  <rect x="908" y="258" width="64" height="18" rx="4" fill="#78350f"/>
+  <text x="940" y="271" fill="#fde68a" font-size="9" font-weight="700" text-anchor="middle">AI Vision/RAG</text>
+
+  <!-- Flow 4: Hospital Referral (Backend -> Hospital Network) -->
+  <path d="M 900 500 C 940 500, 940 540, 980 540" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-dasharray="6,4" marker-end="url(#arrow-blue)"/>
+  <rect x="906" y="508" width="68" height="18" rx="4" fill="#1e3a8a"/>
+  <text x="940" y="521" fill="#bfdbfe" font-size="9" font-weight="700" text-anchor="middle">Care Corridor</text>
+
+  <!-- Flow 5: Live SSE Feedback (Backend -> Client Dashboard) -->
+  <path d="M 470 740 C 430 740, 430 740, 390 740" fill="none" stroke="#3b82f6" stroke-width="2.5" marker-end="url(#arrow-blue)"/>
+  <rect x="400" y="748" width="60" height="18" rx="4" fill="#1e3a8a"/>
+  <text x="430" y="761" fill="#bfdbfe" font-size="9" font-weight="700" text-anchor="middle">Live Status</text>
+
+  <!-- ==================== FOOTER ==================== -->
+  <g transform="translate(60, 925)">
+    <text x="0" y="0" fill="#64748b" font-size="11">NagRaksha Field Emergency Dataflow · Designed for Low-Connectivity &amp; Critical Care Resilience · WHO 2016 Guidelines Compliant</text>
+    <text x="1280" y="0" fill="#34d399" font-size="11" font-weight="600" text-anchor="end">v1.0 Architecture · Verified</text>
+  </g>
+</svg>
