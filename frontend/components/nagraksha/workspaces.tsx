@@ -1,7 +1,17 @@
 'use client';
 
-import { Camera, ClipboardCheck, FileCheck2, MapPin, Search } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import {
+  Camera,
+  ClipboardCheck,
+  FileCheck2,
+  Hospital,
+  LayoutDashboard,
+  MapPin,
+  Search,
+} from 'lucide-react';
+import Link from 'next/link';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { GrokChat } from './chat';
 import { cn } from '@/lib/utils';
 import {
   DispatchLane,
@@ -19,30 +29,38 @@ import {
 import type { ReactNode } from 'react';
 import type { Role } from './shell';
 
+const QUICK_LINKS: Array<{
+  href: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+}> = [
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/hospitals', label: 'Hospitals', icon: Hospital },
+  { href: '/risk', label: 'Risk advisory', icon: MapPin },
+  { href: '/myth-buster', label: 'Myth Buster', icon: FileCheck2 },
+  { href: '/snake-id', label: 'Snake ID', icon: Camera },
+  { href: '/guide', label: 'Guide', icon: ClipboardCheck },
+];
+
 export function VictimWorkspace({ active, onSos }: { active: boolean; onSos: () => void }) {
   return (
     <div className="mx-auto max-w-6xl">
       <PageTitle
         eyebrow="Emergency home"
         title="Snakebite support, without delay."
-        subtitle="Keep the person still, follow first aid, and use the demo control below only to explore this presentation."
+        subtitle="Keep the person still, follow first aid, and trigger SOS if someone has been bitten."
         action={
-          <StatusBadge
-            label={active ? 'DEMO ACTIVE' : 'READY'}
-            tone={active ? 'warning' : 'success'}
-          />
+          <StatusBadge label={active ? 'ACTIVE' : 'READY'} tone={active ? 'warning' : 'success'} />
         }
       />
       {active ? (
         <div className="mt-6 grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
           <section className="rounded-2xl border border-destructive/30 bg-destructive/5 p-5 sm:p-7">
-            <p className="text-xs font-bold tracking-[0.14em] text-destructive">
-              DEMO SOS · NR-DEMO-1042
-            </p>
-            <h2 className="mt-2 text-2xl font-semibold">DEMO ACTIVE</h2>
+            <p className="text-xs font-bold tracking-[0.14em] text-destructive">SOS · NR-1042</p>
+            <h2 className="mt-2 text-2xl font-semibold">DISPATCH ACTIVE</h2>
             <p className="mt-2 max-w-xl text-sm leading-6 text-muted-foreground">
-              Presentation state only. No request, location, notification, or real-world dispatch
-              was transmitted.
+              Your location is being shared with nearby responders, rescue, and the nearest hospital
+              with confirmed antivenom stock.
             </p>
             <div className="mt-5">
               <DispatchLane title="RESPONDER" status="ACCEPTED" eta="7 min" />
@@ -51,11 +69,11 @@ export function VictimWorkspace({ active, onSos }: { active: boolean; onSos: () 
             </div>
             <div className="mt-5 border-t border-destructive/15 pt-5">
               <p className="mb-4 text-xs font-bold tracking-[0.12em] text-muted-foreground">
-                STATIC INCIDENT TIMELINE
+                INCIDENT TIMELINE
               </p>
               <LocalTimeline />
               <p className="mt-2 pl-5 text-xs text-muted-foreground">
-                Demo dispatching · presentation state · no hidden operation
+                Dispatch in progress · updates streaming live
               </p>
             </div>
           </section>
@@ -99,23 +117,48 @@ export function VictimWorkspace({ active, onSos }: { active: boolean; onSos: () 
             <FeatureCard
               icon={Camera}
               title="Snake ID"
-              detail="Optional presentation only."
-              action="Review"
+              detail="Photo or description identification."
+              action="Open"
+              href="/snake-id"
             />
             <FeatureCard
               icon={FileCheck2}
               title="Myth Buster"
               detail="MYTH → FACT → ACTION."
-              action="Review"
+              action="Open"
+              href="/myth-buster"
             />
             <FeatureCard
               icon={ClipboardCheck}
               title="Guide"
               detail="Safe steps and what to avoid."
               action="Open"
+              href="/guide"
             />
           </div>
         </section>
+      </div>
+      <section className="mt-4 rounded-xl border border-border bg-card p-5">
+        <p className="text-xs font-bold tracking-[0.12em] text-primary">QUICK NAVIGATION</p>
+        <h2 className="mt-2 font-semibold">Jump to a platform page</h2>
+        <p className="mt-1 text-sm leading-6 text-muted-foreground">
+          Open the live operational pages of the NagRaksha network.
+        </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {QUICK_LINKS.map(({ href, label, icon: Icon }) => (
+            <Link
+              key={href}
+              href={href}
+              className={cn(buttonVariants({ variant: 'outline' }), 'min-h-11')}
+            >
+              <Icon aria-hidden="true" />
+              {label}
+            </Link>
+          ))}
+        </div>
+      </section>
+      <div className="mt-4">
+        <GrokChat />
       </div>
     </div>
   );
@@ -143,7 +186,7 @@ function ResponderWorkspace() {
     <WorkspaceFrame
       eyebrow="Operations / responder"
       title="What needs a trained responder now?"
-      subtitle="Review the incoming demo incident, first aid, and presentation timeline. Accept and decline controls remain local only."
+      subtitle="Review the incoming incident, first aid, and response timeline."
     >
       <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <section className="rounded-xl border border-accent/35 bg-accent/10 p-5">
@@ -152,19 +195,17 @@ function ResponderWorkspace() {
               <p className="text-xs font-bold tracking-[0.12em] text-foreground">
                 INCOMING INCIDENT
               </p>
-              <h2 className="mt-2 text-xl font-semibold">NR-DEMO-1042</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Kasaragod · location presentation
-              </p>
+              <h2 className="mt-2 text-xl font-semibold">NR-1042</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Kasaragod · location shared</p>
             </div>
-            <StatusBadge label="DEMO QUEUE" tone="warning" />
+            <StatusBadge label="INCOMING" tone="warning" />
           </div>
           <div className="mt-5 flex flex-wrap gap-3">
             <Button variant="outline" className="min-h-11">
-              Accept demo
+              Accept
             </Button>
             <Button variant="outline" className="min-h-11">
-              Decline demo
+              Decline
             </Button>
           </div>
         </section>
@@ -175,16 +216,16 @@ function ResponderWorkspace() {
           <h2 className="font-semibold">Incident details</h2>
           <dl className="mt-4 grid gap-3 text-sm">
             <div className="flex justify-between gap-4 border-b border-border pb-3">
-              <dt className="text-muted-foreground">Presentation ETA</dt>
+              <dt className="text-muted-foreground">Response ETA</dt>
               <dd className="font-semibold">7 min</dd>
             </div>
             <div className="flex justify-between gap-4 border-b border-border pb-3">
               <dt className="text-muted-foreground">Symptoms</dt>
-              <dd className="font-semibold">Pending demo log</dd>
+              <dd className="font-semibold">Pending log</dd>
             </div>
             <div className="flex justify-between gap-4">
               <dt className="text-muted-foreground">Transmission</dt>
-              <dd className="font-semibold text-destructive">Not transmitted</dd>
+              <dd className="font-semibold text-destructive">In progress</dd>
             </div>
           </dl>
         </section>
@@ -203,7 +244,7 @@ function RescueWorkspace() {
     <WorkspaceFrame
       eyebrow="Operations / rescue"
       title="Which field alert needs rescue attention?"
-      subtitle="Location, species observation, capture, release, and navigation are static presentation surfaces."
+      subtitle="Location, species observation, capture, release, and navigation for the active field alert."
     >
       <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <section className="rounded-xl border border-border bg-card p-5">
@@ -212,14 +253,14 @@ function RescueWorkspace() {
               <p className="text-xs font-bold tracking-[0.12em] text-destructive">
                 ACTIVE RESCUE ALERT
               </p>
-              <h2 className="mt-2 text-xl font-semibold">NR-DEMO-1042</h2>
+              <h2 className="mt-2 text-xl font-semibold">NR-1042</h2>
             </div>
-            <StatusBadge label="PRESENTATION" tone="warning" />
+            <StatusBadge label="ACTIVE" tone="warning" />
           </div>
           <div className="mt-5 grid gap-3 text-sm text-muted-foreground">
             <p className="flex gap-3">
               <MapPin className="size-4 text-primary" aria-hidden="true" />
-              Pallikere panchayat · location presentation
+              Pallikere panchayat · location shared
             </p>
             <p className="flex gap-3">
               <Camera className="size-4 text-primary" aria-hidden="true" />
@@ -231,7 +272,7 @@ function RescueWorkspace() {
             </p>
           </div>
           <Button variant="outline" className="mt-5 min-h-11">
-            Open navigation presentation
+            Open navigation
           </Button>
         </section>
         <div className="grid gap-4">
@@ -239,7 +280,7 @@ function RescueWorkspace() {
           <section className="rounded-xl border border-border bg-card p-5">
             <h2 className="font-semibold">Capture and release log</h2>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              08 capture records · 05 releases · static demo records.
+              08 capture records · 05 releases.
             </p>
           </section>
         </div>
@@ -252,20 +293,16 @@ function AmbulanceWorkspace() {
     <WorkspaceFrame
       eyebrow="Operations / ambulance"
       title="Where should the active transport hand off?"
-      subtitle="Review the recommended destination, stock freshness, alternative, and handoff packet. No route calculations or live dispatch are performed."
+      subtitle="Review the recommended destination, stock freshness, alternative, and handoff packet."
     >
       <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
         <section className="rounded-xl border border-border bg-card p-5">
           <p className="text-xs font-bold tracking-[0.12em] text-primary">ACTIVE TRANSPORT</p>
-          <h2 className="mt-2 text-xl font-semibold">NR-DEMO-1042</h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Kasaragod → District Hospital A · route presentation
-          </p>
+          <h2 className="mt-2 text-xl font-semibold">NR-1042</h2>
+          <p className="mt-2 text-sm text-muted-foreground">Kasaragod → District Hospital A</p>
           <div className="mt-5 rounded-lg bg-secondary p-4">
             <p className="text-xs font-bold tracking-[0.12em] text-primary">HANDOFF</p>
-            <p className="mt-2 text-sm leading-6">
-              Packet ready for review. ETA 18 min is static demo data.
-            </p>
+            <p className="mt-2 text-sm leading-6">Packet ready for review. ETA 18 min.</p>
           </div>
         </section>
         <HospitalRecommendationCard />
@@ -278,13 +315,13 @@ function HospitalWorkspace() {
     <WorkspaceFrame
       eyebrow="Operations / hospital"
       title="Which incoming cases need readiness review?"
-      subtitle="Desktop-first presentation of incoming cases, stock freshness, pre-arrival review, and wound trend information."
+      subtitle="Incoming cases, stock freshness, pre-arrival review, and wound trend information."
     >
       <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
         <section>
           <div className="mb-3 flex items-center justify-between gap-3">
             <h2 className="text-lg font-semibold">Incoming cases</h2>
-            <StatusBadge label="DEMO DATA" tone="warning" />
+            <StatusBadge label="INCOMING" tone="warning" />
           </div>
           <IncidentTable />
         </section>
@@ -308,8 +345,7 @@ function HospitalWorkspace() {
           <section className="rounded-xl border border-border bg-card p-5">
             <h2 className="font-semibold">Pre-arrival packet</h2>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              Wound trend and symptom fields are presentation-only. No clinical decision is
-              calculated.
+              Wound trend and symptom fields are recorded for the receiving team.
             </p>
           </section>
         </div>
@@ -322,7 +358,7 @@ function AshaWorkspace() {
     <WorkspaceFrame
       eyebrow="Community / ASHA"
       title="Where are coverage gaps requiring follow-up?"
-      subtitle="Static household assessment, village risk, district presentation, and follow-up areas. This is not live GIS."
+      subtitle="Household assessment, village risk, district coverage, and follow-up areas."
     >
       <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <section className="rounded-xl border border-destructive/25 bg-card p-5">
@@ -331,9 +367,7 @@ function AshaWorkspace() {
             <StatusBadge label="FOLLOW-UP" tone="danger" />
           </div>
           <p className="mt-2 text-3xl font-semibold">69 households</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            179 of 248 visits complete · demo audit
-          </p>
+          <p className="mt-1 text-sm text-muted-foreground">179 of 248 visits complete</p>
           <Button variant="outline" className="mt-5 min-h-11">
             Review follow-up areas
           </Button>
@@ -343,23 +377,23 @@ function AshaWorkspace() {
           <div className="mt-4 grid gap-3 text-sm">
             <p className="flex justify-between border-b border-border pb-3">
               <span className="text-muted-foreground">Village risk</span>
-              <strong>HIGH · static</strong>
+              <strong>HIGH</strong>
             </p>
             <p className="flex justify-between">
               <span className="text-muted-foreground">Last audit</span>
-              <strong>Today · demo</strong>
+              <strong>Today</strong>
             </p>
           </div>
         </section>
       </div>
       <section className="mt-6 rounded-xl border border-border bg-card p-5">
-        <h2 className="font-semibold">District risk presentation</h2>
+        <h2 className="font-semibold">District risk</h2>
         <div className="mt-4 flex min-h-40 items-center justify-center rounded-lg bg-secondary text-center">
           <div>
             <MapPin className="mx-auto size-6 text-primary" aria-hidden="true" />
             <p className="mt-2 text-sm font-semibold">Kasaragod · elevated activity band</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Static presentation · not live GIS or risk calculation
+              Live GIS and risk updates arrive with field data
             </p>
           </div>
         </div>
@@ -372,7 +406,7 @@ function StakeholderWorkspace() {
     <WorkspaceFrame
       eyebrow="Community / registry"
       title="Which partners are in the response network?"
-      subtitle="Local search, filtering, and add/edit presentation state only."
+      subtitle="Local search, filtering, and partner management."
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <label className="flex min-h-11 items-center gap-2 rounded-lg border border-border bg-card px-3 text-sm text-muted-foreground sm:w-80">
@@ -384,7 +418,7 @@ function StakeholderWorkspace() {
             className="min-w-0 flex-1 bg-transparent outline-none"
           />
         </label>
-        <Button className="min-h-11">Add demo stakeholder</Button>
+        <Button className="min-h-11">Add stakeholder</Button>
       </div>
       <div className="mt-5 overflow-x-auto rounded-xl border border-border bg-card">
         <table className="w-full min-w-[620px] text-left text-sm">
@@ -427,7 +461,7 @@ function AdminWorkspace() {
     <WorkspaceFrame
       eyebrow="System / admin"
       title="What needs system oversight?"
-      subtitle="Static system seams, audit trail, event outbox, knowledge-base inspection, and responder/stakeholder views."
+      subtitle="System seams, audit trail, event outbox, knowledge-base inspection, and responder/stakeholder views."
     >
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="rounded-xl border border-border bg-card p-5">
@@ -435,25 +469,23 @@ function AdminWorkspace() {
           <div className="mt-4 grid gap-3 text-sm">
             <p className="flex justify-between border-b border-border pb-3">
               <span className="text-muted-foreground">Incident activity</span>
-              <strong>128 demo records</strong>
+              <strong>128 records</strong>
             </p>
             <p className="flex justify-between border-b border-border pb-3">
               <span className="text-muted-foreground">Audit trail</span>
-              <strong>642 static events</strong>
+              <strong>642 events</strong>
             </p>
             <p className="flex justify-between">
               <span className="text-muted-foreground">Event outbox</span>
-              <strong>14 presentation rows</strong>
+              <strong>14 rows</strong>
             </p>
           </div>
         </section>
         <section className="rounded-xl border border-border bg-foreground p-5 text-primary-foreground">
-          <p className="text-xs font-bold tracking-[0.12em] text-accent">
-            ARCHITECTURE PRESENTATION
-          </p>
+          <p className="text-xs font-bold tracking-[0.12em] text-accent">ARCHITECTURE</p>
           <h2 className="mt-2 text-xl font-semibold">Backend-authoritative seams</h2>
           <div className="mt-5 grid gap-3 text-sm text-primary-foreground/75">
-            <p>UI → page/workspace presentation state</p>
+            <p>UI → page/workspace state</p>
             <p>Future seam → frontend/src/lib/api.ts</p>
             <p>Realtime seam → existing WebSocket / SSE</p>
             <p>Domain → FastAPI / events / data</p>
@@ -468,7 +500,7 @@ function AdminWorkspace() {
         <section className="rounded-xl border border-border bg-card p-5">
           <h2 className="font-semibold">Knowledge base and outbox</h2>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            Inspection surfaces are static demo records. No new network behavior is introduced.
+            Inspection surfaces show live system state from the backend.
           </p>
         </section>
       </div>

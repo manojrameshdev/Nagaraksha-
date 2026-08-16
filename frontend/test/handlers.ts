@@ -221,6 +221,87 @@ export const handlers = [
     }),
   ),
 
+  // Chat (Grok)
+  http.post(`${BASE}/api/chat`, async ({ request }) => {
+    const body = (await request.json()) as {
+      messages: { role: string; content: string }[];
+      incident_id?: string | null;
+      language?: string | null;
+    };
+    const latest = body.messages?.at(-1)?.content ?? '';
+    const language = body.language ?? 'en';
+    if (/bitten|emergency/i.test(latest)) {
+      return HttpResponse.json({
+        reply:
+          'This sounds like an emergency. Tap SOS now and get to a hospital — do not wait. Keep the person still.',
+        emergency: true,
+        source: 'guard',
+        language,
+        sources: [],
+      });
+    }
+    if (/ambulance/i.test(latest)) {
+      return HttpResponse.json({
+        reply: `The ambulance is on its way and is about 9 minutes out, heading to the nearest hospital with antivenom stock (incident ${body.incident_id ?? 'NR-1042'}).`,
+        emergency: false,
+        source: 'grok',
+        language,
+        sources: [],
+      });
+    }
+    return HttpResponse.json({
+      reply:
+        'Never apply a tourniquet. Keep the person still, immobilise the limb, and get to a hospital immediately.',
+      emergency: false,
+      source: 'grok',
+      language,
+      sources: [],
+    });
+  }),
+
+  // Voice transcription (Groq Whisper)
+  http.post(`${BASE}/api/transcribe-b64`, () =>
+    HttpResponse.json({
+      text: 'Where is the ambulance?',
+      language: 'en',
+      duration: 2.1,
+      source: 'groq-whisper',
+    }),
+  ),
+
+  // Snake ID
+  http.post(`${BASE}/api/snake-id`, async ({ request }) => {
+    const body = (await request.json()) as { text?: string; image?: string };
+    if (!body.text && !body.image) {
+      return HttpResponse.json({
+        species: null,
+        venom: null,
+        confidence: null,
+        firstAid: null,
+        danger: null,
+        source: 'none',
+        vision_attempted: false,
+        vision_provider: null,
+        note: 'Please upload a photo or describe the snake.',
+        disclaimer: 'Assistive visual identification by AI. This is NOT a medical diagnosis.',
+      });
+    }
+    return HttpResponse.json({
+      species: 'Bungarus caeruleus (Common Krait)',
+      venom: 'NEUROTOXIC',
+      confidence: 0.84,
+      habitat: 'Nocturnal, hides in brick piles and human dwellings at night',
+      firstAid: 'Emergency hospitalization mandatory. Transport immediately.',
+      danger: 'Critical — highest toxicity in India.',
+      mimicWarning: 'Frequently confused with the harmless Common Wolf Snake.',
+      source: 'morphology-text-matcher',
+      vision_attempted: false,
+      vision_provider: null,
+      note: 'Assistive identification complete. NEVER delay emergency medical care.',
+      disclaimer: 'Assistive visual identification by AI. This is NOT a medical diagnosis.',
+    });
+  }),
+
   // Care Corridor / Referrals
   http.get(`${BASE}/api/incidents/:incidentId/corridor`, ({ params }) =>
     HttpResponse.json({

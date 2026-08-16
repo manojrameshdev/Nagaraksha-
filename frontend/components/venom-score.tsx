@@ -44,6 +44,40 @@ const MODEL_URL =
 
 const CAPTURE_INTERVAL_MS = 10_000;
 const BLINK_AVG_THRESHOLD = 0.01;
+const VIDEO_READY_TIMEOUT_MS = 5_000;
+
+// MediaPipe's ImageToTensorCalculator fails with "ROI width and height must be
+// > 0" when detectForVideo() is called before the camera stream has produced a
+// decoded frame with real dimensions (videoWidth/Height still 0). Guard every
+// capture with this check and wait for readiness before the first one.
+function isVideoReady(video: HTMLVideoElement): boolean {
+  return video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0;
+}
+
+function waitForVideoReady(
+  video: HTMLVideoElement,
+  timeoutMs = VIDEO_READY_TIMEOUT_MS,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (isVideoReady(video)) {
+      resolve();
+      return;
+    }
+    const started = Date.now();
+    const check = () => {
+      if (isVideoReady(video)) {
+        resolve();
+        return;
+      }
+      if (Date.now() - started > timeoutMs) {
+        reject(new Error('Camera frame never became ready'));
+        return;
+      }
+      requestAnimationFrame(check);
+    };
+    check();
+  });
+}
 
 function severityClasses(severity: PtosisReading['severity']): string {
   if (severity === 'severe') return 'bg-red-100 text-red-700';
@@ -206,14 +240,23 @@ export default function VenomScore({ incidentId, biteTimestamp }: VenomScoreProp
     const landmarker = landmarkerRef.current;
     const video = videoRef.current;
     if (!landmarker || !video) return;
+    // Skip until the camera stream has a decoded frame — MediaPipe throws
+    // "ROI width and height must be > 0" on zero-size frames.
+    if (!isVideoReady(video)) return;
     let result: FaceLandmarksResult;
     try {
       result = landmarker.detectForVideo(video, performance.now());
-    } catch {
-      // MediaPipe can throw if the video has no ready frame yet, the GPU/WebGL
-      // context is lost, or a frame decode fails. Surface it instead of dying
-      // silently inside the interval callback — otherwise the LIVE badge stays
-      // lit while tracking is dead.
+    } catch (e) {
+      // MediaPipe can throw if the video has no ready frame yet ("ROI width and
+      // height must be > 0"), the GPU/WebGL context is lost, or a frame decode
+      // fails. A zero-size frame is transient — skip the tick and let the next
+      // interval retry. Anything else surfaces instead of dying silently inside
+      // the interval callback — otherwise the LIVE badge stays lit while
+      // tracking is dead.
+      const msg = e instanceof Error ? e.message : String(e);
+      if (/ROI width and height|must be > 0/.test(msg) && !isVideoReady(video)) {
+        return;
+      }
       stopTracking();
       setStatus('error');
       setInitError('Tracking failed — restart VenomScore.');
@@ -300,6 +343,19 @@ export default function VenomScore({ incidentId, biteTimestamp }: VenomScoreProp
       streamRef.current = stream;
       video.srcObject = stream;
       await video.play();
+      // Wait for the first decoded frame before running detection — calling
+      // detectForVideo() on a zero-size frame makes MediaPipe fail with
+      // "ROI width and height must be > 0".
+      try {
+        await waitForVideoReady(video);
+      } catch {
+        stream.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+        video.srcObject = null;
+        setStatus('error');
+        setInitError('Camera did not start — check the camera and try again.');
+        return;
+      }
       setInitError(null);
       setSubmitError(null);
       baselineRef.current = null;

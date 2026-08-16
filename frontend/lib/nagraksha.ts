@@ -243,6 +243,72 @@ export const getKnowledgeBase = (q: string, k = 4) =>
     `/api/knowledge-base?q=${encodeURIComponent(q)}&k=${k}`,
   );
 
+// Chat (Grok)
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface ChatResponse {
+  reply: string;
+  emergency: boolean;
+  source: string;
+  language: string;
+  sources?: { docId: string; title: string; category: string }[];
+}
+
+export const sendChat = (
+  messages: ChatMessage[],
+  opts?: { incidentId?: string; language?: string },
+) =>
+  apiFetch<ChatResponse>('/api/chat', {
+    method: 'POST',
+    body: JSON.stringify({
+      messages,
+      incident_id: opts?.incidentId ?? null,
+      language: opts?.language ?? null,
+    }),
+  });
+
+// Voice transcription (Groq Whisper) — returns detected language + text
+export interface TranscribeResponse {
+  text: string | null;
+  language?: string;
+  duration?: number;
+  source: string;
+  error?: string;
+}
+
+export const transcribeAudio = (audioB64: string, language?: string) =>
+  apiFetch<TranscribeResponse>('/api/transcribe-b64', {
+    method: 'POST',
+    body: JSON.stringify({ audio_b64: audioB64, language: language ?? null }),
+  });
+
+// Snake ID
+export interface SnakeIdResult {
+  species: string | null;
+  venom: string | null;
+  confidence: number | null;
+  habitat?: string | null;
+  firstAid?: string | null;
+  danger?: string | null;
+  mimicWarning?: string | null;
+  headShape?: string | null;
+  markings?: string | null;
+  source: string;
+  vision_attempted: boolean;
+  vision_provider: string | null;
+  note?: string;
+  disclaimer?: string;
+}
+
+export const identifySnake = (body: { image?: string; text?: string }) =>
+  apiFetch<SnakeIdResult>('/api/snake-id', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+
 // Auth
 export const getAuthToken = (role: string, secret: string) =>
   apiFetch<{ token: string; role: string }>('/api/auth/token', {

@@ -138,6 +138,48 @@ def _generate_grok(system: str, user: str, max_tokens: int, temperature: float) 
         return None
 
 
+def grok_chat(
+    messages: list[dict],
+    max_tokens: int = 512,
+    temperature: float = 0.7,
+    *,
+    system_prompt: str = "",
+) -> str | None:
+    """Conversational completion via Grok (xAI) only.
+
+    ``messages`` is a list of ``{"role": "user"|"assistant", "content": str}``
+    dicts representing prior turns. Returns None when the API key is
+    missing or the call fails — callers fall back gracefully.
+    """
+    key = _env("GROK_API_KEY")
+    if not key:
+        return None
+    try:
+        payload: list[dict] = []
+        if system_prompt:
+            payload.append({"role": "system", "content": system_prompt})
+        for m in messages[-12:]:  # keep long conversations bounded
+            payload.append({"role": m.get("role", "user"), "content": m.get("content", "")})
+        resp = httpx.post(
+            "https://api.x.ai/v1/chat/completions",
+            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+            json={
+                "model": "grok-2-latest",
+                "messages": payload,
+                "max_tokens": max_tokens,
+                "temperature": temperature,
+            },
+            timeout=60,
+        )
+        if resp.status_code != 200:
+            return None
+        data = resp.json()
+        text = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+        return _trim(text) if text else None
+    except (httpx.HTTPError, ValueError, KeyError, IndexError):
+        return None
+
+
 # ── Gemini (Google) ──────────────────────────────────────────────────
 
 def _generate_gemini(system: str, user: str, max_tokens: int, temperature: float) -> str | None:

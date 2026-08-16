@@ -26,6 +26,17 @@ class MythRequest(BaseModel):
     question: str = Field(..., min_length=1)
 
 
+class ChatMessage(BaseModel):
+    role: Literal["user", "assistant"] = "user"
+    content: str = Field(..., min_length=1)
+
+
+class ChatRequest(BaseModel):
+    messages: list[ChatMessage] = Field(..., min_length=1)
+    incident_id: Optional[str] = None
+    language: Optional[str] = None  # ISO 639-1 code from voice transcription or user selection
+
+
 class SnakeIdRequest(BaseModel):
     image: Optional[str] = None
     text: Optional[str] = None

@@ -14,7 +14,7 @@ export default function Page() {
   const triggerSos = useSosStore((s) => s.triggerSos);
 
   async function handleSos() {
-    // Fall back to Bengaluru demo coordinates when geolocation is denied/unavailable
+    // Fall back to Bengaluru coordinates when geolocation is denied/unavailable
     const lat = coords?.latitude ?? 12.8003;
     const lng = coords?.longitude ?? 77.5954;
     const incidentId = await triggerSos(lat, lng);

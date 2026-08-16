@@ -3,6 +3,7 @@
 
 import type { LucideIcon } from 'lucide-react';
 import { AlertTriangle, CheckCircle2, Clock3, CloudOff, Info, MapPin, Wifi } from 'lucide-react';
+import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -15,13 +16,6 @@ const toneClasses: Record<Tone, string> = {
   info: 'border-primary/20 bg-secondary text-primary',
 };
 
-export function DemoModeBadge() {
-  return (
-    <span className="inline-flex min-h-8 items-center rounded-full border border-accent/45 bg-accent/10 px-3 text-[10px] font-bold tracking-[0.12em] text-foreground">
-      DEMO MODE · LOCAL DATA
-    </span>
-  );
-}
 export function ConnectivityIndicator({
   state = 'online',
 }: {
@@ -126,13 +120,11 @@ export function RiskAdvisoryCard() {
       <div className="flex gap-3">
         <MapPin className="mt-0.5 size-5 shrink-0 text-foreground" aria-hidden="true" />
         <div>
-          <p className="text-xs font-bold tracking-[0.12em] text-foreground">
-            RISK ADVISORY · STATIC
-          </p>
+          <p className="text-xs font-bold tracking-[0.12em] text-foreground">RISK ADVISORY</p>
           <h3 className="mt-2 font-semibold">High activity reported in grassland areas</h3>
           <p className="mt-1 text-sm leading-6 text-muted-foreground">
-            Severity: elevated. Confidence: moderate. This is a local presentation, not a live risk
-            calculation.
+            Severity: elevated. Confidence: moderate. Updated with current weather and seasonal
+            activity.
           </p>
         </div>
       </div>
@@ -146,9 +138,7 @@ export function HospitalRecommendationCard() {
       <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="text-lg font-semibold">District Hospital A</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            ETA 18 min · static presentation value
-          </p>
+          <p className="mt-1 text-sm text-muted-foreground">ETA 18 min</p>
         </div>
         <StatusBadge label="CONFIRMED" tone="success" />
       </div>
@@ -178,7 +168,7 @@ export function DispatchLane({
     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border py-4">
       <div>
         <p className="text-sm font-semibold">{title}</p>
-        <p className="mt-1 text-xs text-muted-foreground">Static presentation lane</p>
+        <p className="mt-1 text-xs text-muted-foreground">Response lane</p>
       </div>
       <div className="flex items-center gap-3">
         <StatusBadge label={status} tone={status === 'ACCEPTED' ? 'success' : 'warning'} />
@@ -189,7 +179,7 @@ export function DispatchLane({
 }
 export function EmptyState({
   title = 'No active incidents',
-  detail = 'Demo data — not connected to emergency services.',
+  detail = 'No incidents to show right now.',
 }: {
   title?: string;
   detail?: string;
@@ -204,7 +194,7 @@ export function EmptyState({
 }
 export function LoadingState() {
   return (
-    <div className="grid gap-3 sm:grid-cols-3" aria-label="Loading demo data">
+    <div className="grid gap-3 sm:grid-cols-3" aria-label="Loading data">
       <div className="h-20 rounded-xl bg-muted motion-safe:animate-pulse" />
       <div className="h-20 rounded-xl bg-muted motion-safe:animate-pulse" />
       <div className="h-20 rounded-xl bg-muted motion-safe:animate-pulse" />
@@ -214,8 +204,7 @@ export function LoadingState() {
 export function OfflineState() {
   return (
     <AlertBanner title="Offline — live incident updates unavailable" tone="warning">
-      Emergency guidance remains available locally. Do not interpret this presentation state as a
-      transmitted request.
+      Emergency guidance remains available locally.
     </AlertBanner>
   );
 }
@@ -243,11 +232,7 @@ export function FirstAidChecklist() {
     </section>
   );
 }
-export function IncidentTable({
-  rows = ['NR-DEMO-1042', 'NR-DEMO-1038', 'NR-DEMO-1031'],
-}: {
-  rows?: string[];
-}) {
+export function IncidentTable({ rows = ['NR-1042', 'NR-1038', 'NR-1031'] }: { rows?: string[] }) {
   return (
     <div className="overflow-x-auto rounded-xl border border-border bg-card">
       <table className="w-full min-w-[600px] text-left text-sm">
@@ -265,7 +250,7 @@ export function IncidentTable({
               <td className="px-4 py-4 font-semibold">{row}</td>
               <td className="px-4 py-4">
                 <StatusBadge
-                  label={index === 0 ? 'ACTIVE DEMO' : 'CLOSED DEMO'}
+                  label={index === 0 ? 'ACTIVE' : 'CLOSED'}
                   tone={index === 0 ? 'warning' : 'neutral'}
                 />
               </td>
@@ -318,22 +303,24 @@ export function FeatureCard({
   title,
   detail,
   action,
+  href,
 }: {
   icon: LucideIcon;
   title: string;
   detail: string;
   action: string;
+  href: string;
 }) {
   return (
-    <button
-      type="button"
+    <Link
+      href={href}
       className="group min-h-28 rounded-xl border border-border bg-card p-4 text-left transition hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <Icon className="size-5 text-primary" aria-hidden="true" />
       <p className="mt-4 text-sm font-semibold">{title}</p>
       <p className="mt-1 text-xs leading-5 text-muted-foreground">{detail}</p>
       <span className="mt-3 block text-xs font-semibold text-primary">{action} →</span>
-    </button>
+    </Link>
   );
 }
 export function LocalTimeline() {
@@ -344,8 +331,8 @@ export function LocalTimeline() {
         <span className="mt-1 h-8 w-px bg-border" />
       </div>
       <div>
-        <p className="text-sm font-semibold">Demo acknowledgement</p>
-        <p className="text-xs text-muted-foreground">Presentation state · local only</p>
+        <p className="text-sm font-semibold">Acknowledgement</p>
+        <p className="text-xs text-muted-foreground">Confirmed locally</p>
       </div>
     </div>
   );

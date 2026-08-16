@@ -91,6 +91,20 @@ describe('VenomScore component', () => {
       configurable: true,
       value: mocks.play,
     });
+    // Simulate a live camera that has produced a decoded 640x480 frame so the
+    // component's video-readiness guard (isVideoReady) lets detection run.
+    Object.defineProperty(HTMLVideoElement.prototype, 'videoWidth', {
+      configurable: true,
+      get: () => 640,
+    });
+    Object.defineProperty(HTMLVideoElement.prototype, 'videoHeight', {
+      configurable: true,
+      get: () => 480,
+    });
+    Object.defineProperty(HTMLMediaElement.prototype, 'readyState', {
+      configurable: true,
+      get: () => 2, // HAVE_CURRENT_DATA
+    });
     Object.defineProperty(navigator, 'mediaDevices', {
       configurable: true,
       value: { getUserMedia: mocks.getUserMedia },

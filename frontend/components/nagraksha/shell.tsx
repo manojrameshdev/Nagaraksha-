@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
-import { ConnectivityIndicator, DemoModeBadge } from './shared';
+import { ConnectivityIndicator } from './shared';
 import { HealthIndicator } from '@/components/health-indicator';
 
 export type Role =
@@ -116,10 +116,7 @@ export function WorkspaceSidebar({
         ))}
       </nav>
       <div className="border-t border-white/10 p-4">
-        <DemoModeBadge />
-        <div className="mt-4">
-          <ConnectivityIndicator />
-        </div>
+        <ConnectivityIndicator />
       </div>
     </aside>
   );
@@ -171,15 +168,12 @@ export function AppShell({
               <div>
                 <p className="text-sm font-semibold">{labels[role]}</p>
                 <p className="hidden text-xs text-muted-foreground sm:block">
-                  Operational presentation surface
+                  Emergency coordination network
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <HealthIndicator />
-              <span className="hidden sm:inline-flex">
-                <DemoModeBadge />
-              </span>
               <button
                 type="button"
                 aria-label="Open workspace menu"

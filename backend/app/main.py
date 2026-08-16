@@ -28,7 +28,7 @@ from .models import TokenRequest
 from .auth import create_token, ROLE_SECRETS
 from .routes import (
     sos, incidents, hospitals, risk, snake_id,
-    myth_buster, stats, architecture, ops, transcribe,
+    myth_buster, stats, architecture, ops, transcribe, chat,
 )
 from .routes import ws, wound, audit, stakeholders, twilio_webhook, venom_score, referrals
 
@@ -113,6 +113,7 @@ app.include_router(stats.router)
 app.include_router(architecture.router)
 app.include_router(ops.router)
 app.include_router(transcribe.router)
+app.include_router(chat.router)
 
 # New in v2
 app.include_router(ws.router)
