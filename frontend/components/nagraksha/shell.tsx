@@ -11,7 +11,9 @@ import {
   ShieldAlert,
   Stethoscope,
   Users,
+  X,
 } from 'lucide-react';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { ConnectivityIndicator } from './shared';
@@ -155,12 +157,13 @@ export function AppShell({
   onRoleChange: (_role: Role) => void;
   children: ReactNode;
 }) {
+  const [menuOpen, setMenuOpen] = useState(false);
   return (
     <div className="min-h-screen bg-background text-foreground">
       <div className="flex min-h-screen">
         <WorkspaceSidebar role={role} onRoleChange={onRoleChange} />
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-border bg-background px-4 sm:px-6 lg:px-8">
+          <header className="sticky top-0 z-30 flex min-h-16 items-center justify-between border-b border-border bg-background px-4 sm:px-6 lg:px-8">
             <div className="flex items-center gap-3">
               <div className="flex size-9 items-center justify-center rounded-xl bg-destructive font-black text-primary-foreground lg:hidden">
                 N
@@ -176,13 +179,57 @@ export function AppShell({
               <HealthIndicator />
               <button
                 type="button"
-                aria-label="Open workspace menu"
+                aria-label={menuOpen ? 'Close workspace menu' : 'Open workspace menu'}
+                aria-expanded={menuOpen}
+                aria-controls="mobile-workspace-menu"
+                onClick={() => setMenuOpen((v) => !v)}
                 className="flex size-11 items-center justify-center rounded-lg border border-border bg-card text-primary lg:hidden"
               >
-                <Menu className="size-5" aria-hidden="true" />
+                {menuOpen ? (
+                  <X className="size-5" aria-hidden="true" />
+                ) : (
+                  <Menu className="size-5" aria-hidden="true" />
+                )}
               </button>
             </div>
           </header>
+          {menuOpen && (
+            <div
+              id="mobile-workspace-menu"
+              className="border-b border-border bg-card px-4 py-4 lg:hidden"
+            >
+              <p className="px-2 pb-2 text-[10px] font-bold tracking-[0.16em] text-muted-foreground">
+                SWITCH WORKSPACE
+              </p>
+              <div className="grid gap-1">
+                {groups
+                  .flatMap((g) => g.roles)
+                  .map((itemRole) => (
+                    <button
+                      key={itemRole}
+                      type="button"
+                      onClick={() => {
+                        onRoleChange(itemRole);
+                        setMenuOpen(false);
+                      }}
+                      aria-current={role === itemRole ? 'page' : undefined}
+                      className={cn(
+                        'flex min-h-11 items-center gap-3 rounded-lg px-3 text-left text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                        role === itemRole
+                          ? 'bg-secondary text-primary'
+                          : 'text-foreground hover:bg-muted',
+                      )}
+                    >
+                      {(() => {
+                        const Icon = roleIcons[itemRole];
+                        return <Icon className="size-4" aria-hidden="true" />;
+                      })()}
+                      {labels[itemRole]}
+                    </button>
+                  ))}
+              </div>
+            </div>
+          )}
           <main className="min-w-0 flex-1 px-4 py-6 pb-24 sm:px-6 lg:px-8 lg:py-8">{children}</main>
         </div>
       </div>

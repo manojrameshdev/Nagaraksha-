@@ -430,4 +430,113 @@ export const handlers = [
       declinedReason: 'ICU occupied',
     }),
   ),
+
+  // Stakeholder registry
+  http.get(`${BASE}/api/stakeholders`, () =>
+    HttpResponse.json({
+      stakeholders: [
+        {
+          id: 'stk-1',
+          name: 'Kasaragod District Hospital',
+          organization: 'Kasaragod District Hospital',
+          role: 'Hospital',
+          supportType: 'HOSPITAL',
+          district: 'Kasaragod',
+          addedAt: new Date().toISOString(),
+        },
+        {
+          id: 'stk-2',
+          name: 'Forest Rescue Unit',
+          organization: 'Forest Rescue Unit',
+          role: 'Rescue',
+          supportType: 'RESCUE',
+          district: 'Kasaragod',
+          addedAt: new Date().toISOString(),
+        },
+      ],
+      count: 2,
+    }),
+  ),
+
+  http.post(`${BASE}/api/stakeholders`, async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    return HttpResponse.json(
+      {
+        id: 'stk-new',
+        name: body.name,
+        organization: body.organization,
+      },
+      { status: 201 },
+    );
+  }),
+
+  // System audit + outbox (admin workspace)
+  http.get(`${BASE}/api/audit`, () =>
+    HttpResponse.json({
+      count: 3,
+      byAction: { SOS_TRIGGERED: 1, STOCK_UPDATED: 2 },
+      events: [
+        {
+          id: 'aud-1',
+          incidentId: 'mock-incident-id-123',
+          actor: 'victim',
+          action: 'SOS_TRIGGERED',
+          entity: 'Incident',
+          metadata: null,
+          timestamp: new Date().toISOString(),
+        },
+      ],
+    }),
+  ),
+
+  http.get(`${BASE}/api/outbox`, () =>
+    HttpResponse.json({
+      summary: { pending: 2, processed: 8, failed: 0, total: 10 },
+      recent: [],
+    }),
+  ),
+
+  // ASHA village audit
+  http.get(`${BASE}/api/audit/districts`, () =>
+    HttpResponse.json({
+      districts: [
+        { district: 'Kasaragod', gpCount: 3 },
+        { district: 'Kannur', gpCount: 2 },
+      ],
+    }),
+  ),
+
+  http.get(`${BASE}/api/audit/district/:district`, ({ params }) =>
+    HttpResponse.json({
+      district: params.district,
+      gramPanchayats: [
+        {
+          id: 'gp-1',
+          gramPanchayat: 'Pallikere',
+          district: params.district,
+          householdsVisited: 69,
+          aggregateRiskScore: 72.4,
+          auditDate: new Date().toISOString(),
+          riskLabel: 'HIGH',
+        },
+      ],
+    }),
+  ),
+
+  http.get(`${BASE}/api/audit/village/:villageAuditId`, ({ params }) =>
+    HttpResponse.json({
+      villageAudit: {
+        id: params.villageAuditId,
+        gramPanchayat: 'Pallikere',
+        district: 'Kasaragod',
+        householdsVisited: 69,
+        aggregateRiskScore: 72.4,
+        auditDate: new Date().toISOString(),
+        lat: 12.5,
+        lng: 75.0,
+        createdAt: new Date().toISOString(),
+      },
+      households: [],
+    }),
+  ),
 ];

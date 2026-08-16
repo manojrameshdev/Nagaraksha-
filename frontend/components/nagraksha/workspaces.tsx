@@ -6,12 +6,17 @@ import {
   FileCheck2,
   Hospital,
   LayoutDashboard,
+  Loader2,
   MapPin,
+  Plus,
   Search,
+  X,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { GrokChat } from './chat';
+import { DispatchActions } from '@/components/dispatch-actions';
 import { cn } from '@/lib/utils';
 import {
   DispatchLane,
@@ -26,7 +31,18 @@ import {
   StatusBadge,
   StockFreshnessBadge,
 } from './shared';
-import type { ReactNode } from 'react';
+import {
+  addStakeholder,
+  getOutbox,
+  getStats,
+  getSystemAudit,
+  listStakeholders,
+  type AuditEvent,
+  type Stakeholder,
+  type StatsResponse,
+} from '@/lib/nagraksha';
+import { useLatestIncident } from '@/hooks/use-latest-incident';
+import type { FormEvent, ReactNode } from 'react';
 import type { Role } from './shell';
 
 const QUICK_LINKS: Array<{
@@ -182,6 +198,7 @@ function WorkspaceFrame({
   );
 }
 function ResponderWorkspace() {
+  const { incident, loading, error } = useLatestIncident();
   return (
     <WorkspaceFrame
       eyebrow="Operations / responder"
@@ -195,18 +212,28 @@ function ResponderWorkspace() {
               <p className="text-xs font-bold tracking-[0.12em] text-foreground">
                 INCOMING INCIDENT
               </p>
-              <h2 className="mt-2 text-xl font-semibold">NR-1042</h2>
-              <p className="mt-1 text-sm text-muted-foreground">Kasaragod · location shared</p>
+              <h2 className="mt-2 text-xl font-semibold">
+                {loading ? 'Loading…' : incident ? incident.id : 'No active incident'}
+              </h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {incident
+                  ? (incident.address ?? `${incident.lat.toFixed(4)}, ${incident.lng.toFixed(4)}`)
+                  : (error ?? 'Trigger an SOS from the emergency home to open a lane.')}
+              </p>
             </div>
-            <StatusBadge label="INCOMING" tone="warning" />
+            <StatusBadge
+              label={incident ? incident.state.replaceAll('_', ' ') : 'IDLE'}
+              tone={incident ? 'warning' : 'neutral'}
+            />
           </div>
           <div className="mt-5 flex flex-wrap gap-3">
-            <Button variant="outline" className="min-h-11">
-              Accept
-            </Button>
-            <Button variant="outline" className="min-h-11">
-              Decline
-            </Button>
+            {incident ? (
+              <DispatchActions incidentId={incident.id} />
+            ) : (
+              <Link href="/" className={cn(buttonVariants({ variant: 'outline' }), 'min-h-11')}>
+                Go to emergency home
+              </Link>
+            )}
           </div>
         </section>
         <FirstAidChecklist />
@@ -216,16 +243,22 @@ function ResponderWorkspace() {
           <h2 className="font-semibold">Incident details</h2>
           <dl className="mt-4 grid gap-3 text-sm">
             <div className="flex justify-between gap-4 border-b border-border pb-3">
-              <dt className="text-muted-foreground">Response ETA</dt>
-              <dd className="font-semibold">7 min</dd>
+              <dt className="text-muted-foreground">State</dt>
+              <dd className="font-semibold">
+                {incident ? incident.state.replaceAll('_', ' ') : '—'}
+              </dd>
             </div>
             <div className="flex justify-between gap-4 border-b border-border pb-3">
               <dt className="text-muted-foreground">Symptoms</dt>
-              <dd className="font-semibold">Pending log</dd>
+              <dd className="font-semibold">
+                {incident && incident.symptomObservations.length > 0
+                  ? `${incident.symptomObservations.length} logged`
+                  : 'Pending log'}
+              </dd>
             </div>
             <div className="flex justify-between gap-4">
-              <dt className="text-muted-foreground">Transmission</dt>
-              <dd className="font-semibold text-destructive">In progress</dd>
+              <dt className="text-muted-foreground">Live tracking</dt>
+              <dd className="font-semibold text-primary">WebSocket</dd>
             </div>
           </dl>
         </section>
@@ -234,12 +267,24 @@ function ResponderWorkspace() {
           <div className="mt-4">
             <LocalTimeline />
           </div>
+          {incident && (
+            <Link
+              href={`/incidents/${incident.id}`}
+              className={cn(buttonVariants({ variant: 'outline' }), 'mt-4 min-h-11 w-full')}
+            >
+              Open incident page
+            </Link>
+          )}
         </section>
       </div>
     </WorkspaceFrame>
   );
 }
 function RescueWorkspace() {
+  const { incident, loading, error } = useLatestIncident();
+  const mapsHref = incident
+    ? `https://www.google.com/maps/dir/?api=1&destination=${incident.lat},${incident.lng}`
+    : null;
   return (
     <WorkspaceFrame
       eyebrow="Operations / rescue"
@@ -253,14 +298,21 @@ function RescueWorkspace() {
               <p className="text-xs font-bold tracking-[0.12em] text-destructive">
                 ACTIVE RESCUE ALERT
               </p>
-              <h2 className="mt-2 text-xl font-semibold">NR-1042</h2>
+              <h2 className="mt-2 text-xl font-semibold">
+                {loading ? 'Loading…' : incident ? incident.id : 'No active alert'}
+              </h2>
             </div>
-            <StatusBadge label="ACTIVE" tone="warning" />
+            <StatusBadge
+              label={incident ? 'ACTIVE' : 'IDLE'}
+              tone={incident ? 'warning' : 'neutral'}
+            />
           </div>
           <div className="mt-5 grid gap-3 text-sm text-muted-foreground">
             <p className="flex gap-3">
               <MapPin className="size-4 text-primary" aria-hidden="true" />
-              Pallikere panchayat · location shared
+              {incident
+                ? (incident.address ?? `${incident.lat.toFixed(4)}, ${incident.lng.toFixed(4)}`)
+                : (error ?? 'Location pending — no active incident yet.')}
             </p>
             <p className="flex gap-3">
               <Camera className="size-4 text-primary" aria-hidden="true" />
@@ -271,9 +323,21 @@ function RescueWorkspace() {
               Capture and release logs available locally
             </p>
           </div>
-          <Button variant="outline" className="mt-5 min-h-11">
-            Open navigation
-          </Button>
+          {mapsHref ? (
+            <a
+              href={mapsHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(buttonVariants({ variant: 'outline' }), 'mt-5 min-h-11')}
+            >
+              <MapPin aria-hidden="true" />
+              Open navigation
+            </a>
+          ) : (
+            <Link href="/" className={cn(buttonVariants({ variant: 'outline' }), 'mt-5 min-h-11')}>
+              Go to emergency home
+            </Link>
+          )}
         </section>
         <div className="grid gap-4">
           <RoleEmpty role="rescue" />
@@ -354,6 +418,7 @@ function HospitalWorkspace() {
   );
 }
 function AshaWorkspace() {
+  const { incident } = useLatestIncident();
   return (
     <WorkspaceFrame
       eyebrow="Community / ASHA"
@@ -368,9 +433,12 @@ function AshaWorkspace() {
           </div>
           <p className="mt-2 text-3xl font-semibold">69 households</p>
           <p className="mt-1 text-sm text-muted-foreground">179 of 248 visits complete</p>
-          <Button variant="outline" className="mt-5 min-h-11">
+          <Link
+            href="/asha-audit"
+            className={cn(buttonVariants({ variant: 'outline' }), 'mt-5 min-h-11')}
+          >
             Review follow-up areas
-          </Button>
+          </Link>
         </section>
         <section className="rounded-xl border border-border bg-card p-5">
           <h2 className="font-semibold">Household assessment</h2>
@@ -396,12 +464,110 @@ function AshaWorkspace() {
               Live GIS and risk updates arrive with field data
             </p>
           </div>
+          {incident && (
+            <Link
+              href={`/incidents/${incident.id}`}
+              className={cn(buttonVariants({ variant: 'outline' }), 'mt-3 min-h-9 text-xs')}
+            >
+              View latest incident
+            </Link>
+          )}
         </div>
       </section>
     </WorkspaceFrame>
   );
 }
-function StakeholderWorkspace() {
+const STAKEHOLDER_COLUMNS: Array<{ key: keyof Stakeholder; label: string }> = [
+  { key: 'name', label: 'ORGANIZATION' },
+  { key: 'supportType', label: 'TYPE' },
+  { key: 'role', label: 'ROLE' },
+  { key: 'district', label: 'DISTRICT' },
+];
+
+export function StakeholderWorkspace() {
+  const [stakeholders, setStakeholders] = useState<Stakeholder[]>([]);
+  const [query, setQuery] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({
+    name: '',
+    organization: '',
+    role: '',
+    support_type: '',
+    district: '',
+    contact: '',
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [formMessage, setFormMessage] = useState<string | null>(null);
+
+  function loadStakeholders() {
+    setLoading(true);
+    setError(null);
+    listStakeholders()
+      .then(({ stakeholders: s }) => setStakeholders(s))
+      .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load stakeholders'))
+      .finally(() => setLoading(false));
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+    listStakeholders()
+      .then(({ stakeholders: s }) => {
+        if (cancelled) return;
+        setStakeholders(s);
+      })
+      .catch((e) => {
+        if (cancelled) return;
+        setError(e instanceof Error ? e.message : 'Failed to load stakeholders');
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const filtered = query.trim()
+    ? stakeholders.filter((s) =>
+        [s.name, s.organization, s.role, s.supportType, s.district]
+          .filter(Boolean)
+          .some((v) => String(v).toLowerCase().includes(query.trim().toLowerCase())),
+      )
+    : stakeholders;
+
+  async function handleAdd(e: FormEvent) {
+    e.preventDefault();
+    setSubmitting(true);
+    setFormMessage(null);
+    try {
+      await addStakeholder({
+        name: form.name || form.organization,
+        organization: form.organization,
+        role: form.role || 'partner',
+        support_type: form.support_type || 'COMMUNITY',
+        district: form.district,
+        contact: form.contact || undefined,
+      });
+      setShowForm(false);
+      setForm({
+        name: '',
+        organization: '',
+        role: '',
+        support_type: '',
+        district: '',
+        contact: '',
+      });
+      setFormMessage('Stakeholder added.');
+      loadStakeholders();
+    } catch (e2) {
+      setFormMessage(e2 instanceof Error ? e2.message : 'Add failed');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   return (
     <WorkspaceFrame
       eyebrow="Community / registry"
@@ -415,48 +581,160 @@ function StakeholderWorkspace() {
           <input
             aria-label="Search stakeholders"
             placeholder="Search stakeholders"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
             className="min-w-0 flex-1 bg-transparent outline-none"
           />
         </label>
-        <Button className="min-h-11">Add stakeholder</Button>
+        <Button className="min-h-11" onClick={() => setShowForm((v) => !v)}>
+          {showForm ? <X aria-hidden="true" /> : <Plus aria-hidden="true" />}
+          {showForm ? 'Cancel' : 'Add stakeholder'}
+        </Button>
       </div>
+
+      {formMessage && <p className="mt-3 text-sm text-muted-foreground">{formMessage}</p>}
+
+      {showForm && (
+        <form
+          onSubmit={handleAdd}
+          className="mt-4 grid gap-3 rounded-xl border border-border bg-card p-5 sm:grid-cols-2"
+        >
+          <input
+            required
+            aria-label="Organization"
+            placeholder="Organization *"
+            value={form.organization}
+            onChange={(e) => setForm({ ...form, organization: e.target.value })}
+            className="min-h-11 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-primary/60"
+          />
+          <input
+            aria-label="Name"
+            placeholder="Contact name"
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            className="min-h-11 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-primary/60"
+          />
+          <select
+            aria-label="Support type"
+            value={form.support_type}
+            onChange={(e) => setForm({ ...form, support_type: e.target.value })}
+            className="min-h-11 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-primary/60"
+          >
+            {['COMMUNITY', 'HOSPITAL', 'RESCUE', 'GOVERNMENT'].map((t) => (
+              <option key={t}>{t}</option>
+            ))}
+          </select>
+          <input
+            required
+            aria-label="District"
+            placeholder="District *"
+            value={form.district}
+            onChange={(e) => setForm({ ...form, district: e.target.value })}
+            className="min-h-11 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-primary/60"
+          />
+          <input
+            aria-label="Contact"
+            placeholder="Contact (phone / email)"
+            value={form.contact}
+            onChange={(e) => setForm({ ...form, contact: e.target.value })}
+            className="min-h-11 rounded-lg border border-border bg-background px-3 text-sm outline-none focus:border-primary/60"
+          />
+          <Button type="submit" disabled={submitting} className="min-h-11">
+            {submitting && <Loader2 className="animate-spin" aria-hidden="true" />}
+            {submitting ? 'Adding…' : 'Add to registry'}
+          </Button>
+        </form>
+      )}
+
       <div className="mt-5 overflow-x-auto rounded-xl border border-border bg-card">
         <table className="w-full min-w-[620px] text-left text-sm">
           <thead className="bg-muted text-xs tracking-wide text-muted-foreground">
             <tr>
-              <th className="px-4 py-3">ORGANIZATION</th>
-              <th className="px-4 py-3">TYPE</th>
-              <th className="px-4 py-3">STATUS</th>
-              <th className="px-4 py-3">DISTRICT</th>
+              {STAKEHOLDER_COLUMNS.map((c) => (
+                <th key={c.key} className="px-4 py-3">
+                  {c.label}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
-            {[
-              ['Kasaragod District Hospital', 'Hospital', 'Active', 'Kasaragod'],
-              ['Forest Rescue Unit', 'Rescue', 'Review', 'Kasaragod'],
-              ['Community Health Network', 'Community', 'Active', 'Kannur'],
-            ].map((row) => (
-              <tr key={row[0]} className="border-t border-border">
-                {row.map((cell, index) => (
-                  <td
-                    key={cell}
-                    className={cn(
-                      'px-4 py-4',
-                      index === 0 ? 'font-semibold' : 'text-muted-foreground',
-                    )}
-                  >
-                    {cell}
-                  </td>
-                ))}
+            {loading ? (
+              <tr>
+                <td colSpan={STAKEHOLDER_COLUMNS.length} className="px-4 py-8 text-center">
+                  Loading stakeholders…
+                </td>
               </tr>
-            ))}
+            ) : error ? (
+              <tr>
+                <td
+                  colSpan={STAKEHOLDER_COLUMNS.length}
+                  className="px-4 py-8 text-center text-destructive"
+                >
+                  {error}
+                </td>
+              </tr>
+            ) : filtered.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={STAKEHOLDER_COLUMNS.length}
+                  className="px-4 py-8 text-center text-muted-foreground"
+                >
+                  No stakeholders match.
+                </td>
+              </tr>
+            ) : (
+              filtered.map((s) => (
+                <tr key={s.id} className="border-t border-border">
+                  {STAKEHOLDER_COLUMNS.map((c, index) => (
+                    <td
+                      key={c.key}
+                      className={cn(
+                        'px-4 py-4',
+                        index === 0 ? 'font-semibold' : 'text-muted-foreground',
+                      )}
+                    >
+                      {String(s[c.key] ?? '—')}
+                    </td>
+                  ))}
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
     </WorkspaceFrame>
   );
 }
-function AdminWorkspace() {
+export function AdminWorkspace() {
+  const [stats, setStats] = useState<StatsResponse | null>(null);
+  const [audit, setAudit] = useState<AuditEvent[]>([]);
+  const [outbox, setOutbox] = useState<{
+    pending: number;
+    processed: number;
+    failed: number;
+  } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.allSettled([getStats(), getSystemAudit(), getOutbox()]).then(([s, a, o]) => {
+      if (cancelled) return;
+      if (s.status === 'fulfilled') setStats(s.value);
+      if (a.status === 'fulfilled') setAudit(a.value.events);
+      if (o.status === 'fulfilled') setOutbox(o.value.summary);
+      const failed = [s, a, o].filter((r) => r.status === 'rejected');
+      if (failed.length > 0) {
+        const reason = failed[0].status === 'rejected' ? failed[0].reason : null;
+        setError(reason instanceof Error ? reason.message : 'Some system data could not be loaded');
+      }
+      setLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <WorkspaceFrame
       eyebrow="System / admin"
@@ -466,20 +744,33 @@ function AdminWorkspace() {
       <div className="grid gap-6 lg:grid-cols-2">
         <section className="rounded-xl border border-border bg-card p-5">
           <h2 className="font-semibold">System overview</h2>
-          <div className="mt-4 grid gap-3 text-sm">
-            <p className="flex justify-between border-b border-border pb-3">
-              <span className="text-muted-foreground">Incident activity</span>
-              <strong>128 records</strong>
-            </p>
-            <p className="flex justify-between border-b border-border pb-3">
-              <span className="text-muted-foreground">Audit trail</span>
-              <strong>642 events</strong>
-            </p>
-            <p className="flex justify-between">
-              <span className="text-muted-foreground">Event outbox</span>
-              <strong>14 rows</strong>
-            </p>
-          </div>
+          {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
+          {loading ? (
+            <div className="mt-4 grid gap-3 text-sm text-muted-foreground">Loading…</div>
+          ) : (
+            <div className="mt-4 grid gap-3 text-sm">
+              <p className="flex justify-between border-b border-border pb-3">
+                <span className="text-muted-foreground">Incident activity</span>
+                <strong>{stats?.totals.incidents ?? '—'} records</strong>
+              </p>
+              <p className="flex justify-between border-b border-border pb-3">
+                <span className="text-muted-foreground">Hospitals</span>
+                <strong>{stats?.totals.hospitals ?? '—'}</strong>
+              </p>
+              <p className="flex justify-between border-b border-border pb-3">
+                <span className="text-muted-foreground">Audit trail</span>
+                <strong>{audit.length} recent events</strong>
+              </p>
+              <p className="flex justify-between">
+                <span className="text-muted-foreground">Event outbox</span>
+                <strong>
+                  {outbox
+                    ? `${outbox.pending} pending · ${outbox.processed} processed · ${outbox.failed} failed`
+                    : '—'}
+                </strong>
+              </p>
+            </div>
+          )}
         </section>
         <section className="rounded-xl border border-border bg-foreground p-5 text-primary-foreground">
           <p className="text-xs font-bold tracking-[0.12em] text-accent">ARCHITECTURE</p>
@@ -495,7 +786,34 @@ function AdminWorkspace() {
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <section>
           <h2 className="mb-3 text-lg font-semibold">Audit trail</h2>
-          <IncidentTable />
+          {audit.length > 0 ? (
+            <div className="overflow-x-auto rounded-xl border border-border bg-card">
+              <table className="w-full min-w-[600px] text-left text-sm">
+                <thead className="bg-muted text-xs tracking-wide text-muted-foreground">
+                  <tr>
+                    <th className="px-4 py-3">Actor</th>
+                    <th className="px-4 py-3">Action</th>
+                    <th className="px-4 py-3">Entity</th>
+                    <th className="px-4 py-3">Timestamp</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {audit.slice(0, 10).map((e) => (
+                    <tr key={e.id} className="border-t border-border">
+                      <td className="px-4 py-4 font-semibold">{e.actor}</td>
+                      <td className="px-4 py-4">{e.action}</td>
+                      <td className="px-4 py-4 text-muted-foreground">{e.entity}</td>
+                      <td className="px-4 py-4 text-muted-foreground">
+                        {new Date(e.timestamp).toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <IncidentTable />
+          )}
         </section>
         <section className="rounded-xl border border-border bg-card p-5">
           <h2 className="font-semibold">Knowledge base and outbox</h2>

@@ -238,6 +238,11 @@ export const getRisk = (lat: number, lng: number) =>
 export const getStats = () => apiFetch<StatsResponse>('/api/stats');
 export const getSystemAudit = () =>
   apiFetch<{ count: number; byAction: Record<string, number>; events: AuditEvent[] }>('/api/audit');
+export const getOutbox = () =>
+  apiFetch<{
+    summary: { pending: number; processed: number; failed: number; total: number };
+    recent: { id: string; type: string; aggregateId: string; state: string; createdAt: string }[];
+  }>('/api/outbox');
 export const getKnowledgeBase = (q: string, k = 4) =>
   apiFetch<{ query: string; results: KnowledgeResult[] }>(
     `/api/knowledge-base?q=${encodeURIComponent(q)}&k=${k}`,
@@ -462,3 +467,64 @@ export const confirmArrival = (referralId: string) =>
 
 export const getCorridorTimeline = (incidentId: string) =>
   apiFetch<CareCorridorTimeline>(`/api/incidents/${incidentId}/corridor`);
+
+// ── Stakeholder Registry ───────────────────────────────────────────────
+
+export interface Stakeholder {
+  id: string;
+  name: string;
+  organization: string;
+  role: string;
+  supportType: string;
+  district: string;
+  addedAt: string;
+}
+
+export const listStakeholders = () =>
+  apiFetch<{ stakeholders: Stakeholder[]; count: number }>('/api/stakeholders');
+
+export const addStakeholder = (body: {
+  name: string;
+  organization: string;
+  role: string;
+  support_type: string;
+  district: string;
+  contact?: string;
+}) =>
+  apiFetch<{ id: string; name: string; organization: string }>('/api/stakeholders', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+
+// ── ASHA Village Audit ─────────────────────────────────────────────────
+
+export interface VillageAuditSummary {
+  id: string;
+  gramPanchayat: string;
+  district: string;
+  householdsVisited: number;
+  aggregateRiskScore: number | null;
+  auditDate: string;
+  riskLabel?: string;
+}
+
+export interface VillageAuditDetail {
+  villageAudit: VillageAuditSummary & { lat: number; lng: number; createdAt: string };
+  households: {
+    id: string;
+    riskScore: number;
+    notes: string | null;
+    createdAt: string;
+  }[];
+}
+
+export const listAuditDistricts = () =>
+  apiFetch<{ districts: { district: string; gpCount: number }[] }>('/api/audit/districts');
+
+export const getDistrictAudit = (district: string) =>
+  apiFetch<{ district: string; gramPanchayats: VillageAuditSummary[] }>(
+    `/api/audit/district/${encodeURIComponent(district)}`,
+  );
+
+export const getVillageAudit = (villageAuditId: string) =>
+  apiFetch<VillageAuditDetail>(`/api/audit/village/${villageAuditId}`);
