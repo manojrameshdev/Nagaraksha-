@@ -19,8 +19,11 @@ NagRaksha is a brownfield hackathon project with fully functional frontend and b
 - [x] **Phase 6: Developer Experience** — Pre-commit hooks catch issues before committing
 - [x] **Phase 7: Connect Frontend & Backend** — Wire backend routes to frontend pages, real-time SOS, and integration tests
 - [x] **Phase 8: VenomScore & August 15 Demo Execution** — MediaPipe ptosis tracking, venom classification, antivenom dose estimation, bug fixes, and Karnataka demo data (completed 2026-08-16)
+- [ ] **Phase 9: Care Corridor & Capability-Aware Referral Upgrade** — Clinical capability-gap detection, capable receiving facility recommendation, hospital acceptance, transport handoff, and closed-loop care timeline.
 
 ## Phase Details
+<!-- ... Phase 1-8 details ... -->
+
 
 ### Phase 1: Foundation
 
@@ -125,6 +128,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 6. Developer Experience | — | Complete | ✅ |
 | 7. Connect Frontend & Backend | 4/4 | Complete | ✅ |
 | 8. VenomScore & August 15 Demo Execution | 4/4 | Complete    | 2026-08-16 |
+| 9. Care Corridor & Capability-Aware Referral Upgrade | 0/5 | Not started | ⏳ |
 
 ### Phase 7: Connect all the features of the frontend with the backend
 
@@ -176,3 +180,41 @@ Plans:
 **Wave 3** *(blocked on Wave 2 completion)*
 
 - [x] 08-04-PLAN.md — Demo Seed Data & Integration Rehearsal (Reference: [docs/AUGUST_15_EXECUTION_PLAN.md](file:///c:/Users/OM%20Prakash/Documents/Nagaraksha-/docs/AUGUST_15_EXECUTION_PLAN.md#hour-5--demo-seed-data-person-b-while-person-a-polishes-ui))
+
+### Phase 9: Care Corridor & Capability-Aware Referral Upgrade
+
+**Goal:** Upgrade NagRaksha into a closed-loop Care Corridor system that detects facility capability gaps (e.g. progressive neurotoxic envenomation lacking mechanical ventilation), routes patients to capable receiving facilities (e.g. District Hospitals), coordinates one-tap hospital acceptance and ambulance handoff, and streams a unified end-to-end timeline.
+**Depends on:** Phase 8
+**Reference:** [docs/CARE_CORRIDOR_PLAN.md](file:///c:/Users/OM%20Prakash/Documents/Nagaraksha-/docs/CARE_CORRIDOR_PLAN.md)
+**Success Criteria** (what must be TRUE):
+
+  1. Hospital schema stores capability tiers (PHC/CHC/SDH/DH/TERTIARY), capability tags (ASV, VENTILATION, ICU, BLOOD_BANK, DIALYSIS, EMERGENCY_CARE), ventilator counts, and Referral lifecycle entity.
+  2. Pure domain function `evaluate_capability_gap` identifies clinical deficiencies against WHO 2016 and NCDC NAPSE guidelines, and `rank_capable_hospitals` filters facilities by mandatory capabilities.
+  3. REST API (`/api/incidents/{id}/evaluate-referral`, `/api/referrals`, `/api/referrals/{id}/accept|decline|transport|arrive`, `/api/incidents/{id}/corridor`) and WebSocket broadcasts (`REFERRAL_CREATED`, `REFERRAL_ACCEPTED`, `TRANSPORT_STARTED`, `PATIENT_ARRIVED`) manage the complete referral lifecycle.
+  4. Frontend displays the 8-stage vertical `CareCorridorTimeline` component and provides one-tap hospital coordinator acceptance in the hospital console (`?role=hospital`).
+  5. Karnataka demonstration seed data (`backend/seed_demo.py`) populates realistic PHC/CHC/DH capability tiers (Malavalli PHC -> Mandya DH) and incident NR-1042 for reproducible demo rehearsal.
+  6. All backend Pytest test suites (including capability gap, referral lifecycle, and seed tests) pass, all frontend Vitest tests pass, and Next.js build passes with 0 errors.
+
+**Plans:** 0/5 plans complete
+
+Plans:
+**Wave 1**
+
+- [ ] 09-01-PLAN.md — Facility Capability Model & SQLite Schema Migration (Reference: [docs/CARE_CORRIDOR_PLAN.md](file:///c:/Users/OM%20Prakash/Documents/Nagaraksha-/docs/CARE_CORRIDOR_PLAN.md#7-database-schema-extensions-backendappdatabasepy))
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 09-02-PLAN.md — Clinical Capability-Gap Evaluator & Recommendation Filter (Reference: [docs/CARE_CORRIDOR_PLAN.md](file:///c:/Users/OM%20Prakash/Documents/Nagaraksha-/docs/CARE_CORRIDOR_PLAN.md#5-capability-model--clinical-decision-rules))
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 09-03-PLAN.md — Referral Lifecycle, Hospital Acceptance & Realtime Outbox Events (Reference: [docs/CARE_CORRIDOR_PLAN.md](file:///c:/Users/OM%20Prakash/Documents/Nagaraksha-/docs/CARE_CORRIDOR_PLAN.md#8-api--real-time-specifications))
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 09-04-PLAN.md — Care Corridor Frontend UI & Closed-Loop Timeline Component (Reference: [docs/CARE_CORRIDOR_PLAN.md](file:///c:/Users/OM%20Prakash/Documents/Nagaraksha-/docs/CARE_CORRIDOR_PLAN.md#9-care-corridor-ui-design-frontend))
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
+- [ ] 09-05-PLAN.md — Demo Corridor Seed, NAPSE RAG Grounding & E2E Verification (Reference: [docs/CARE_CORRIDOR_PLAN.md](file:///c:/Users/OM%20Prakash/Documents/Nagaraksha-/docs/CARE_CORRIDOR_PLAN.md#10-karnataka-deterministic-demo-corridor-scenario-nr-1042))
+

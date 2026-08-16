@@ -2,20 +2,20 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 08
-current_plan: Not started
-status: completed
-stopped_at: Completed 08-04-PLAN.md (demo seed data & integration rehearsal)
-last_updated: "2026-08-15T20:22:07.666Z"
+current_phase: 09
+current_plan: 09-01-PLAN.md
+status: ready_to_execute
+stopped_at: Initialized Phase 09 plans (Care Corridor & Capability-Aware Referral Upgrade)
+last_updated: "2026-08-16T02:05:00.000Z"
 last_activity: 2026-08-16
-last_activity_desc: Created Phase 08 (VenomScore & Demo Execution) roadmap and plans from docs/AUGUST_15_EXECUTION_PLAN.md
+last_activity_desc: Created Phase 09 (Care Corridor & Capability-Aware Referral Upgrade) roadmap and plans from docs/CARE_CORRIDOR_PLAN.md
 progress:
-  total_phases: 8
-  completed_phases: 3
-  total_plans: 11
+  total_phases: 9
+  completed_phases: 8
+  total_plans: 16
   completed_plans: 11
-  percent: 38
-current_phase_name: venomscore-and-august-15-demo-execution
+  percent: 69
+current_phase_name: care-corridor-capability-aware-referral
 ---
 
 # Project State
@@ -24,16 +24,17 @@ current_phase_name: venomscore-and-august-15-demo-execution
 
 See: .planning/PROJECT.md (updated 2026-07-26)
 
-**Core value:** A victim or bystander can trigger a one-tap SOS that instantly dispatches three parallel responder lanes and routes to the nearest hospital with confirmed antivenom stock.
-**Current focus:** Phase 08 — venomscore-and-august-15-demo-execution
+**Core value:** A victim or bystander can trigger a one-tap SOS that instantly dispatches three parallel responder lanes, tracks on-device VenomScore neurotoxic progression, and activates capability-aware closed-loop Care Corridor referral to capable receiving hospitals.
+**Current focus:** Phase 09 — care-corridor-capability-aware-referral
 
 ## Current Position
 
-Phase: 08
-Status: All phases complete
-Last activity: 2026-08-16 — Phase 08 complete
-Current Plan: Not started
-Progress: [██████████] 100%
+Phase: 09
+Status: Ready to execute Wave 1
+Last activity: 2026-08-16 — Phase 09 planned
+Current Plan: 09-01-PLAN.md
+Progress: [███████░░░] 69%
+
 
 ## Performance Metrics
 
