@@ -1,11 +1,11 @@
 # Technology Stack
 
-**Analysis Date:** 2026-08-15
+**Analysis Date:** 2026-08-16
 
 ## Languages
 
 **Primary:**
-- Python 3.11 - Backend API, domain logic, RAG, SMS dispatch (`backend/app/`)
+- Python 3.11 - Backend API, domain logic, RAG, SMS dispatch, Care Corridor referral engine (`backend/app/`)
 - TypeScript 5.7.3 - All frontend application code (`frontend/`)
 - SQL - SQLite schema in `backend/app/database.py`
 
@@ -18,13 +18,12 @@
 **Environment:**
 - Python 3.10+ (3.11 used in CI and Docker) - backend via uvicorn
 - Node.js 20+ - frontend (CI pins 20, Docker `node:20-alpine`)
-- Browser - Next.js client components (React 19)
+- Browser - Next.js client components (React 19), MediaPipe WASM for VenomScore landmarking
 
 **Package Manager:**
 - pip - backend (`backend/requirements.txt`, pinned core deps)
-- pnpm - frontend (lockfile `frontend/pnpm-lock.yaml`, Docker + CI use corepack pnpm)
+- pnpm - frontend (lockfile `frontend/pnpm-lock.yaml`; `frontend/pnpm-workspace.yaml` pins the catalog; Docker + CI use corepack pnpm)
 - npm - repo root (root `package-lock.json`, `package.json` for dev tooling)
-- Lockfile: `frontend/pnpm-lock.yaml` present
 
 ## Frameworks
 
@@ -35,7 +34,7 @@
 - uvicorn 0.44.0 - ASGI server
 
 **Testing:**
-- Pytest + pytest-asyncio + httpx (ASGITransport) - backend tests (`backend/tests/`)
+- Pytest + pytest-asyncio + httpx (ASGITransport) - backend tests (`backend/tests/`, 103 collected)
 - Vitest 4.1.10 - frontend unit tests (`frontend/vitest.config.ts`)
 - MSW 2.15.0 - API mocking in frontend tests (`frontend/test/handlers.ts`)
 
@@ -56,7 +55,8 @@
 - `chromadb` - Vector store for RAG knowledge base (`backend/app/rag.py`)
 - `slowapi` - Rate limiting (default 200/min, 10/min on token endpoint)
 - `sentry-sdk[fastapi]` - Error monitoring (enabled when `SENTRY_DSN` set)
-- `zustand` 5.0.3 - Client state for SOS/incident tracking (`frontend/store/sos-store.ts`)
+- `zustand` 5.0.3 - Client state for SOS/incident/referral tracking (`frontend/store/sos-store.ts`)
+- `@mediapipe/tasks-vision` - Face Landmarker WASM model for VenomScore ptosis tracking (`frontend/components/venom-score.tsx`, dynamically imported)
 
 **Infrastructure:**
 - SQLite (stdlib `sqlite3`, WAL mode) - primary data store (`backend/db/nagraksha.db`)
@@ -95,5 +95,5 @@
 
 ---
 
-*Stack analysis: 2026-08-15*
+*Stack analysis: 2026-08-16*
 *Update after major dependency changes*

@@ -1,6 +1,6 @@
 # External Integrations
 
-**Analysis Date:** 2026-08-15
+**Analysis Date:** 2026-08-16
 
 ## APIs & External Services
 
@@ -25,6 +25,9 @@
   - Verification: `X-Twilio-Signature` validated via `RequestValidator` when `TWILIO_AUTH_TOKEN` is set
   - Fallback: if no Twilio credentials, dispatch falls back to `simulate_dispatch()` in `backend/app/domain.py` (demo mode)
 
+**Clinical Reference Grounding (not an API):**
+- WHO Snakebite Guidelines (2016) & NCDC National Action Plan for Prevention and Control of Snakebite Envenoming (NAPSE 2024) encode the Care Corridor capability-gap rules in `backend/app/domain.py` (`evaluate_capability_gap`) and the RAG KB (`knowledge_base_data.py` `referral-criteria-napse` chunk)
+
 **Error Monitoring:**
 - Sentry - Backend errors
   - DSN: `SENTRY_DSN` env var; `sentry_sdk.init` with FastAPI/Starlette integrations, `traces_sample_rate=0.2` (`backend/app/main.py`)
@@ -41,7 +44,7 @@
   - Connection: `NAGRAKSHA_DB` env var, default `backend/db/nagraksha.db` (`backend/app/database.py`)
   - Client: stdlib `sqlite3` with raw SQL; `PRAGMA journal_mode = WAL`, `foreign_keys = ON`
   - Migrations: idempotent `CREATE TABLE IF NOT EXISTS` schema + `migrate_db()` ALTER-TABLE additions
-  - Tables: Incident, DispatchAttempt, Hospital, AntivenomStock, SymptomObservation, SnakeObservation, RiskReport, MythThread, KnowledgeChunk, OutboxEvent, AuditEvent, WoundReading, Responder, VillageAudit, HouseholdAudit, Stakeholder
+  - Tables: Incident, DispatchAttempt, Hospital, AntivenomStock, SymptomObservation, SnakeObservation, RiskReport, MythThread, KnowledgeChunk, OutboxEvent, AuditEvent, WoundReading, PtosisReading, Referral, Responder, VillageAudit, HouseholdAudit, Stakeholder
 
 **Vector Storage:**
 - ChromaDB (local persistent) - RAG knowledge base embeddings
@@ -106,9 +109,9 @@
 
 **Outgoing:**
 - Twilio SMS - triggered by the outbox dispatch worker (`backend/app/eventbus.py` → `backend/app/dispatch.py`) fanning out 3 lanes per incident
-- WebSocket push - `ws.broadcast` from the outbox worker thread onto the app event loop (`backend/app/routes/ws.py`)
+- WebSocket push - `ws.broadcast` from the outbox worker thread onto the app event loop (`backend/app/routes/ws.py`); referral/venom events broadcast as uppercase event names
 
 ---
 
-*Integration audit: 2026-08-15*
+*Integration audit: 2026-08-16*
 *Update when adding/removing external services*
