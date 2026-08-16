@@ -98,7 +98,8 @@ export const handlers = [
     }),
   ),
 
-  // Incidents
+  // Incidents — list endpoint mirrors the real backend's slim shape
+  // (id, state, lat, lng, address, timestamps only; no nested arrays).
   http.get(`${BASE}/api/incidents`, () =>
     HttpResponse.json({
       incidents: [
@@ -110,9 +111,6 @@ export const handlers = [
           address: 'Bengaluru',
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-          dispatchAttempts: [],
-          symptomObservations: [],
-          snakeObservations: [],
         },
       ],
     }),

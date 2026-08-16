@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
-import { StakeholderWorkspace, AdminWorkspace } from '../nagraksha/workspaces';
+import { StakeholderWorkspace, AdminWorkspace, ResponderWorkspace } from '../nagraksha/workspaces';
 import { AppShell } from '../nagraksha/shell';
 import type { Role } from '../nagraksha/shell';
 
@@ -48,6 +48,19 @@ describe('StakeholderWorkspace — live registry', () => {
     await waitFor(() => {
       expect(screen.getByText('Stakeholder added.')).toBeTruthy();
     });
+  });
+});
+
+describe('ResponderWorkspace — full incident load', () => {
+  it('renders without crashing and shows pending symptoms when the list endpoint returns a slim row', async () => {
+    // The /api/incidents list handler returns a slim row (no symptomObservations);
+    // useLatestIncident must upgrade it via GET /api/incidents/:id before render.
+    render(<ResponderWorkspace />);
+
+    await waitFor(() => {
+      expect(screen.getByText('mock-incident-id-123')).toBeTruthy();
+    });
+    expect(screen.getByText('Pending log')).toBeTruthy();
   });
 });
 

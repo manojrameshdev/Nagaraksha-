@@ -197,7 +197,7 @@ function WorkspaceFrame({
     </div>
   );
 }
-function ResponderWorkspace() {
+export function ResponderWorkspace() {
   const { incident, loading, error } = useLatestIncident();
   return (
     <WorkspaceFrame
