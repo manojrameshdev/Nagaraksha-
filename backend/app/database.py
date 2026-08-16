@@ -35,9 +35,9 @@ CREATE TABLE IF NOT EXISTS Incident (
 );
 CREATE INDEX IF NOT EXISTS idx_incident_state ON Incident(state);
 CREATE INDEX IF NOT EXISTS idx_incident_created ON Incident(createdAt);
-CREATE INDEX IF NOT EXISTS idx_incident_presenting ON Incident(presentingHospitalId);
 
 CREATE TABLE IF NOT EXISTS DispatchAttempt (
+
     id TEXT PRIMARY KEY,
     incidentId TEXT,
     category TEXT,
@@ -309,7 +309,9 @@ def migrate_db():
         # Incident presenting facility column
         if not _column_exists(conn, "Incident", "presentingHospitalId"):
             conn.execute("ALTER TABLE Incident ADD COLUMN presentingHospitalId TEXT")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_incident_presenting ON Incident(presentingHospitalId)")
         # DispatchAttempt real-SMS columns (added when Twilio dispatch was wired in)
+
         for col, defn in [
             ("responderId", "TEXT"),
             ("smsSid", "TEXT"),

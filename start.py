@@ -98,8 +98,16 @@ def _start_backend():
 
 def _start_frontend():
     log = open(FRONTEND_LOG, "w", encoding="utf-8")
+    pnpm_path = shutil.which("pnpm")
+    if pnpm_path:
+        cmd = ["pnpm", "dev", "-p", FRONTEND_PORT]
+    elif shutil.which("npx"):
+        cmd = ["npx", "next", "dev", "-p", FRONTEND_PORT]
+    else:
+        cmd = ["npm", "run", "dev", "--", "-p", FRONTEND_PORT]
+
     p = subprocess.Popen(
-        ["npx", "next", "dev", "-p", FRONTEND_PORT],
+        cmd,
         cwd=FRONTEND_DIR, stdout=log, stderr=subprocess.STDOUT,
         shell=(sys.platform == "win32")
     )
@@ -116,14 +124,20 @@ def _wait_for_health():
     backend_ready = False
     frontend_ready = False
 
-    for _ in range(15):
+    for _ in range(25):
         if not backend_ready:
             backend_ready = _is_port_responsive(backend_url)
         if not frontend_ready:
             frontend_ready = _is_port_responsive(frontend_url)
 
         if backend_ready and frontend_ready:
-            print("  [OK] Backend & Frontend are fully operational!")
+            print("  [OK] Backend & Frontend are fully operational!\n")
+            print("  Direct Navigation Links:")
+            print(f"    * Victim / Bystander SOS:    http://localhost:{FRONTEND_PORT}")
+            print(f"    * Hospital Care Corridor:   http://localhost:{FRONTEND_PORT}/incidents/inc-nr-1042?role=hospital")
+            print(f"    * State / ASHA Dashboard:   http://localhost:{FRONTEND_PORT}/dashboard")
+            print(f"    * Myth-Buster RAG Engine:   http://localhost:{FRONTEND_PORT}/myth-buster")
+            print(f"    * FastAPI Swagger Docs:     http://{BACKEND_HOST}:{BACKEND_PORT}/docs")
             return True
         time.sleep(1.0)
 
@@ -138,6 +152,7 @@ def _wait_for_health():
         print("  [!] Frontend taking longer than expected to start (check dev.log)")
 
     return backend_ready or frontend_ready
+
 
 
 def _stop():

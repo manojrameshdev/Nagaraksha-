@@ -31,14 +31,21 @@ def check_prerequisites():
     else:
         print(f"  [OK] Python {major}.{minor}")
 
-    # Node / pnpm
+    # Node / package manager
     node_path = shutil.which("node")
-    pnpm_path = shutil.which("pnpm")
-    if not node_path or not pnpm_path:
-        print("  [!] Error: Node.js 20+ and pnpm are required. Please install Node.js 20+ and pnpm.")
+    if not node_path:
+        print("  [!] Error: Node.js 20+ is required. Please install Node.js.")
         sys.exit(1)
-    else:
+
+    pnpm_path = shutil.which("pnpm")
+    npm_path = shutil.which("npm")
+    if pnpm_path:
         print("  [OK] Node.js & pnpm detected")
+    elif npm_path:
+        print("  [OK] Node.js & npm detected (pnpm fallback enabled)")
+    else:
+        print("  [!] Error: Node.js package manager (npm or pnpm) not found on PATH.")
+        sys.exit(1)
 
 
 def setup_env():
@@ -80,29 +87,50 @@ def install_backend_deps():
 
 
 def install_frontend_deps():
-    print_step(4, "Installing Frontend Dependencies (pnpm)")
+    print_step(4, "Installing Frontend Dependencies")
     if not os.path.exists(os.path.join(FRONTEND_DIR, "package.json")):
         print("  [!] Warning: frontend/package.json not found")
         return
 
-    cmd = ["pnpm", "install"]
-    print("  Running: pnpm install in frontend/")
-    res = subprocess.run(cmd, cwd=FRONTEND_DIR, shell=(sys.platform == "win32"))
+    pnpm_path = shutil.which("pnpm")
+    npx_path = shutil.which("npx")
+
+    if pnpm_path:
+        cmd = ["pnpm", "install"]
+        print("  Running: pnpm install in frontend/")
+        res = subprocess.run(cmd, cwd=FRONTEND_DIR, shell=(sys.platform == "win32"))
+    elif npx_path:
+        cmd = ["npx", "-y", "pnpm", "install"]
+        print("  Running: npx -y pnpm install in frontend/")
+        res = subprocess.run(cmd, cwd=FRONTEND_DIR, shell=(sys.platform == "win32"))
+    else:
+        cmd = ["npm", "install", "--legacy-peer-deps"]
+        print("  Running: npm install --legacy-peer-deps in frontend/")
+        res = subprocess.run(cmd, cwd=FRONTEND_DIR, shell=(sys.platform == "win32"))
+
     if res.returncode == 0:
         print("  [OK] Frontend dependencies installed successfully")
     else:
         print("  [!] Warning: Failed to install frontend dependencies")
 
 
+
 def init_database():
-    print_step(5, "Initializing Database & Knowledge Base")
+    print_step(5, "Initializing Database & Demo Seed Data")
     sys.path.insert(0, BACKEND_DIR)
     try:
         from app import seed
         seed.run()
-        print("  [OK] SQLite schema, hospitals, risk reports & RAG knowledge base initialized")
+        print("  [OK] Base SQLite schema, hospitals, risk reports & RAG knowledge base initialized")
     except Exception as e:
-        print(f"  [!] Database initialization notice: {e}")
+        print(f"  [!] Base database initialization notice: {e}")
+
+    try:
+        import seed_demo
+        seed_demo.run()
+        print("  [OK] Karnataka Care Corridor facilities & demo incident NR-1042 seeded")
+    except Exception as e:
+        print(f"  [!] Demo scenario seed notice: {e}")
 
 
 def main():
@@ -130,3 +158,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

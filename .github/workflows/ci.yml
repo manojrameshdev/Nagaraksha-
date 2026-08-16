@@ -28,7 +28,7 @@ jobs:
         run: ruff check backend/app
 
       - name: Run Backend Syntax Check
-        run: python -m py_compile backend/app/*.py backend/app/routes/*.py
+        run: python -m compileall backend/app
 
       - name: Run Pytest
         run: |
@@ -40,15 +40,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
       - name: Set up Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
           cache-dependency-path: frontend/pnpm-lock.yaml
-
-      - name: Enable pnpm via corepack
-        run: corepack enable
 
       - name: Install Dependencies
         run: |
