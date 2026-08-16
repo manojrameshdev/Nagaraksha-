@@ -33,9 +33,10 @@ def mins_ago(iso, now_ms=None):
     now = now_ms or time.time() * 1000
     try:
         t = datetime.fromisoformat(iso.replace("Z", "+00:00")).timestamp() * 1000
-    except Exception:
+    except (ValueError, TypeError, AttributeError):
         return 0
     return max(0, round((now - t) / 60000))
+
 
 
 def stock_freshness_score(status: str, verified_at: str) -> float:
@@ -395,9 +396,10 @@ def rank_capable_hospitals(
         if isinstance(raw_caps, str):
             try:
                 h_caps = set(c.upper() for c in json.loads(raw_caps))
-            except Exception:
+            except (json.JSONDecodeError, TypeError, AttributeError):
                 h_caps = set(c.strip().upper() for c in raw_caps.split(",") if c.strip())
         elif isinstance(raw_caps, list):
+
             h_caps = set(c.upper() for c in raw_caps)
         else:
             h_caps = set()

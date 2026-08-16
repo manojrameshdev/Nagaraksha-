@@ -12,8 +12,10 @@ Formula:
 from __future__ import annotations
 
 import math
+import sqlite3
 
 from . import database as db
+
 
 
 def compute_compliance_score(hospital_id: str) -> float:
@@ -50,6 +52,7 @@ def compliance_badge(score: float) -> dict:
 
 
 def run_compliance_job() -> None:
+
     """Called by APScheduler every 15 minutes. Updates complianceScore for all hospitals."""
     try:
         with db.get_conn() as conn:
@@ -69,5 +72,6 @@ def run_compliance_job() -> None:
                     (score, db.now_iso(), rank, hid),
                 )
         print(f"[Compliance] Updated {len(hospital_ids)} hospitals")
-    except Exception as e:
+    except (sqlite3.Error, ValueError, KeyError, TypeError) as e:
         print(f"[Compliance] Job failed: {e}")
+

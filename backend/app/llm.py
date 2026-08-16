@@ -73,7 +73,7 @@ def _generate_gguf(prompt: str, max_tokens: int, temperature: float) -> str | No
             )
             text = result.get("choices", [{}])[0].get("text", "").strip()
             return text if text else None
-        except Exception:
+        except (RuntimeError, ValueError, KeyError, IndexError):
             return None
 
 
@@ -104,11 +104,11 @@ def _generate_groq(system: str, user: str, max_tokens: int, temperature: float) 
         data = resp.json()
         text = data.get("choices", [{}])[0].get("message", {}).get("content", "")
         return _trim(text) if text else None
-    except Exception:
+    except (httpx.HTTPError, ValueError, KeyError, IndexError):
         return None
 
 
-# ── Grok (xAI) ───────────────────────────────────────────────────────
+# ── Grok (xAI) ────────────────────────────────────────────────────────
 
 def _generate_grok(system: str, user: str, max_tokens: int, temperature: float) -> str | None:
     key = _env("GROK_API_KEY")
@@ -134,7 +134,7 @@ def _generate_grok(system: str, user: str, max_tokens: int, temperature: float) 
         data = resp.json()
         text = data.get("choices", [{}])[0].get("message", {}).get("content", "")
         return _trim(text) if text else None
-    except Exception:
+    except (httpx.HTTPError, ValueError, KeyError, IndexError):
         return None
 
 
@@ -170,8 +170,9 @@ def _generate_gemini(system: str, user: str, max_tokens: int, temperature: float
             return None
         text = candidates[0].get("content", {}).get("parts", [{}])[0].get("text", "")
         return _trim(text) if text else None
-    except Exception:
+    except (httpx.HTTPError, ValueError, KeyError, IndexError):
         return None
+
 
 
 # ── public API ───────────────────────────────────────────────────────
@@ -289,6 +290,7 @@ async def analyze_wound_image(img_b64: str, swelling_area_px: int) -> dict:
         # strip possible markdown fences
         raw = raw.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
         return _json.loads(raw)
-    except Exception:
+    except (httpx.HTTPError, ValueError, KeyError, IndexError, _json.JSONDecodeError):
         return fallback
+
 

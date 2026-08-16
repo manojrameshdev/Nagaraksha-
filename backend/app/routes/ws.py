@@ -33,7 +33,7 @@ def broadcast_sync(incident_id: str, event: str, payload: dict) -> None:
         return
     try:
         asyncio.run_coroutine_threadsafe(broadcast(incident_id, event, payload), loop)
-    except Exception:  # noqa: BLE001, S110 - best-effort push from a worker thread
+    except (RuntimeError, ValueError):
         pass
 
 
@@ -49,7 +49,7 @@ async def incident_ws(websocket: WebSocket, incident_id: str):
             await websocket.receive_text()
     except WebSocketDisconnect:
         _remove(incident_id, websocket)
-    except Exception:
+    except (RuntimeError, OSError):
         _remove(incident_id, websocket)
 
 
@@ -66,10 +66,11 @@ async def broadcast(incident_id: str, event: str, payload: dict) -> None:
     for ws in list(_connections.get(incident_id, [])):
         try:
             await ws.send_text(message)
-        except Exception:
+        except (WebSocketDisconnect, RuntimeError, OSError):
             dead.append(ws)
     for ws in dead:
         _remove(incident_id, ws)
+
 
 
 def connection_count(incident_id: str) -> int:

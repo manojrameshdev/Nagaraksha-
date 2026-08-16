@@ -68,9 +68,10 @@ def dispatch_sms(to_phone: str, message: str) -> Optional[str]:
     try:
         msg = client.messages.create(body=message, from_=TWILIO_FROM, to=to_phone)
         return msg.sid
-    except Exception as e:
+    except (RuntimeError, ValueError, OSError, KeyError) as e:
         print(f"[Dispatch] Twilio SMS failed to {to_phone}: {e}")
         return None
+
 
 
 def get_nearest_responders(lat: float, lng: float, role: str, limit: int = 2) -> list[dict]:

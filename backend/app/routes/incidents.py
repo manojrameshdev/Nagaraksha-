@@ -42,7 +42,7 @@ def _load_incident(inc_id):
             rd = dict(r)
             try:
                 rd["missingCapabilities"] = json.loads(rd["missingCapabilities"])
-            except Exception:
+            except (json.JSONDecodeError, TypeError, AttributeError):
                 rd["missingCapabilities"] = [c.strip() for c in rd["missingCapabilities"].split(",") if c.strip()]
             referrals.append(rd)
         inc["referrals"] = referrals
@@ -64,10 +64,10 @@ def list_incidents(limit: int = Query(5, ge=1, le=50)):
 
 @router.get("/api/incidents/{inc_id}")
 def get_incident(inc_id: str):
-    incident = _load_incident(inc_id)
-    if not incident:
+    inc = _load_incident(inc_id)
+    if not inc:
         raise HTTPException(status_code=404, detail="Incident not found")
-    return {"incident": incident}
+    return {"incident": inc}
 
 
 @router.get("/api/incidents/{inc_id}/audit")
@@ -191,9 +191,10 @@ async def stream_incident(inc_id: str, request: Request):
         def cb(iid, payload):
             try:
                 queue.put_nowait((event_name, payload))
-            except Exception:
+            except asyncio.QueueFull:
                 pass
         return cb
+
 
     cb_attempted = make_cb("dispatch_attempted")
     cb_accepted = make_cb("dispatch_accepted")

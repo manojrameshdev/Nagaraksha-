@@ -1,8 +1,9 @@
-allowBuilds:
-  msw: set this to true or false
-  unrs-resolver: set this to true or false
-# pnpm 11 settings home (package.json#pnpm field is no longer read).
+packages:
+  - '.'
+
+# pnpm settings home (package.json#pnpm field is no longer read).
 # Migrated from the deprecated pnpm.overrides field to keep the
 # hono pin in sync with pnpm-lock.yaml.
 overrides:
   hono: 4.12.25
+

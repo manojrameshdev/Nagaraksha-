@@ -54,9 +54,10 @@ def get_capabilities(hid: str):
         hd = dict(h)
         try:
             hd["capabilities"] = json.loads(hd["capabilities"])
-        except Exception:
+        except (json.JSONDecodeError, TypeError, AttributeError):
             hd["capabilities"] = [c.strip() for c in hd["capabilities"].split(",") if c.strip()]
         return hd
+
 
 
 @router.patch("/api/hospitals/{hid}/capabilities")

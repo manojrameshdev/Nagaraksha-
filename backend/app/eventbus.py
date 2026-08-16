@@ -8,10 +8,12 @@ Faithful to the System Design document:
 from __future__ import annotations
 
 import json
+import sqlite3
 import threading
 import time
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
+
 
 from . import database as db
 from .dispatch import do_dispatch
@@ -47,7 +49,7 @@ def _emit(event_type: str, incident_id: str, payload: dict):
     for cb in subs:
         try:
             cb(incident_id, payload)
-        except Exception:
+        except (RuntimeError, ValueError, TypeError, KeyError):
             pass  # never let a subscriber crash the worker
 
 
@@ -76,8 +78,9 @@ def audit(incident_id=None, actor="system", action="", entity=None, metadata=Non
                 (db.new_id(), incident_id, actor, action, entity,
                  json.dumps(metadata) if metadata else None, db.now_iso()),
             )
-    except Exception:
+    except (sqlite3.Error, ValueError, TypeError):
         pass  # audit is best-effort
+
 
 
 def _handle_incident_created(incident_id, payload):
@@ -242,9 +245,9 @@ def _worker_tick():
                 else:
                     _emit(etype, ev["aggregateId"], payload)
                     _mark_processed(ev["id"])
-            except Exception:
+            except (sqlite3.Error, ValueError, KeyError, json.JSONDecodeError, TypeError):
                 _mark_failed_or_retry(ev["id"])
-    except Exception:
+    except (sqlite3.Error, OSError, ValueError):
         pass
 
 
@@ -313,10 +316,11 @@ def get_ranked_hospitals(lat, lng):
             if isinstance(caps, str):
                 try:
                     caps = json.loads(caps)
-                except Exception:
+                except (json.JSONDecodeError, TypeError, AttributeError):
                     caps = [c.strip() for c in caps.split(",") if c.strip()]
             elif caps is None:
                 caps = ["ASV", "EMERGENCY_CARE"]
+
 
             result.append({
                 "id": r["id"], "name": r["name"], "lat": r["lat"], "lng": r["lng"],

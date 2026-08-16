@@ -35,7 +35,7 @@ def _load_referral(conn, ref_id: str) -> dict | None:
     r = dict(row)
     try:
         r["missingCapabilities"] = json.loads(r["missingCapabilities"])
-    except Exception:
+    except (json.JSONDecodeError, TypeError, AttributeError):
         r["missingCapabilities"] = [c.strip() for c in r["missingCapabilities"].split(",") if c.strip()]
     return r
 
@@ -87,7 +87,7 @@ def evaluate_incident_referral(inc_id: str):
     if isinstance(current_caps_raw, str):
         try:
             current_caps = json.loads(current_caps_raw)
-        except Exception:
+        except (json.JSONDecodeError, TypeError, AttributeError):
             current_caps = [c.strip() for c in current_caps_raw.split(",") if c.strip()]
     else:
         current_caps = list(current_caps_raw)
@@ -215,10 +215,11 @@ def list_incident_referrals(inc_id: str):
             rd = dict(r)
             try:
                 rd["missingCapabilities"] = json.loads(rd["missingCapabilities"])
-            except Exception:
+            except (json.JSONDecodeError, TypeError, AttributeError):
                 rd["missingCapabilities"] = [c.strip() for c in rd["missingCapabilities"].split(",") if c.strip()]
             referrals.append(rd)
     return {"referrals": referrals}
+
 
 
 @router.patch("/api/referrals/{ref_id}/accept")
@@ -433,9 +434,10 @@ def get_corridor_timeline(inc_id: str):
             ref_dict = dict(latest_referral)
             try:
                 ref_dict["missingCapabilities"] = json.loads(ref_dict["missingCapabilities"])
-            except Exception:
+            except (json.JSONDecodeError, TypeError, AttributeError):
                 ref_dict["missingCapabilities"] = [c.strip() for c in ref_dict["missingCapabilities"].split(",") if c.strip()]
             to_hosp = _load_hospital(conn, ref_dict["toHospitalId"])
+
 
         latest_ptosis = conn.execute(
             "SELECT * FROM PtosisReading WHERE incidentId=? ORDER BY timestamp DESC LIMIT 1", (inc_id,)

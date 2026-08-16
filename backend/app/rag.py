@@ -39,10 +39,11 @@ def _get_collection():
                 embedding_function=DefaultEmbeddingFunction(),
                 metadata={"hnsw:space": "cosine"},
             )
-        except Exception as e:
+        except (ImportError, RuntimeError, ValueError, KeyError, OSError, TypeError) as e:
             print(f"[RAG] ChromaDB unavailable ({e}), using fallback retrieval")
             _collection = None
     return _collection
+
 
 
 # ── fallback TF-IDF (used if ChromaDB is not installed) ──────────────
@@ -126,7 +127,7 @@ def retrieve(query: str, k: int = 5) -> list[dict]:
                 }
                 for rid, doc, dist, meta in zip(ids, docs, dists, metas)
             ]
-        except Exception as e:
+        except (RuntimeError, ValueError, KeyError, IndexError, TypeError, OSError) as e:
             print(f"[RAG] ChromaDB query failed ({e}), using TF-IDF fallback")
     return _retrieve_tfidf(query, k)
 
@@ -152,8 +153,9 @@ def seed_kb(chunks: list[dict]):
             } for c in new_chunks],
         )
         print(f"[RAG] Seeded {len(new_chunks)} chunks into ChromaDB")
-    except Exception as e:
+    except (RuntimeError, ValueError, KeyError, IndexError, TypeError, OSError) as e:
         print(f"[RAG] ChromaDB seed failed ({e})")
+
 
 
 # ── RAG pipeline ──────────────────────────────────────────────────────

@@ -79,7 +79,7 @@ async def transcribe_audio(
                 "source": "groq-error",
                 "error": f"Groq Whisper returned HTTP {resp.status_code}: {resp.text}",
             }
-    except Exception as exc:
+    except (httpx.HTTPError, OSError, ValueError, KeyError) as exc:
         return {"text": None, "source": "exception", "error": str(exc)}
     finally:
         if os.path.exists(tmp_path):
@@ -141,5 +141,6 @@ async def transcribe_b64(body: AudioBase64Request):
         finally:
             if os.path.exists(tmp_path):
                 os.remove(tmp_path)
-    except Exception as exc:
+    except (httpx.HTTPError, OSError, ValueError, KeyError) as exc:
         return {"text": None, "source": "exception", "error": str(exc)}
+

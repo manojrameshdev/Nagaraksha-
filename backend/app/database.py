@@ -357,8 +357,9 @@ def days_since(iso_ts: str) -> float:
         t = datetime.fromisoformat(iso_ts.replace("Z", "+00:00"))
         delta = datetime.now(timezone.utc) - t
         return delta.total_seconds() / 86400
-    except Exception:
+    except (ValueError, TypeError, AttributeError):
         return 9999.0
+
 
 
 def new_id() -> str:

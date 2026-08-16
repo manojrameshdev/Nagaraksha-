@@ -223,8 +223,8 @@ def _identify_via_groq_vision(image_b64: str) -> dict | None:
             data = json.loads(content)
             data["source"] = "groq-vision (llama-3.2-vision)"
             return data
-    except Exception:
-        pass
+    except (httpx.HTTPError, json.JSONDecodeError, KeyError, IndexError, ValueError):
+        return None
     return None
 
 
@@ -264,8 +264,8 @@ def _identify_via_grok_vision(image_b64: str) -> dict | None:
                 data = json.loads(match.group(0))
                 data["source"] = "grok-vision (grok-2-vision)"
                 return data
-    except Exception:
-        pass
+    except (httpx.HTTPError, json.JSONDecodeError, KeyError, IndexError, ValueError):
+        return None
     return None
 
 
@@ -299,9 +299,10 @@ def _identify_via_gemini_vision(image_b64: str) -> dict | None:
                 data = json.loads(match.group(0))
                 data["source"] = "gemini-vision (gemini-2.5-flash)"
                 return data
-    except Exception:
-        pass
+    except (httpx.HTTPError, json.JSONDecodeError, KeyError, IndexError, ValueError):
+        return None
     return None
+
 
 
 def _identify_via_text(text: str) -> dict | None:
