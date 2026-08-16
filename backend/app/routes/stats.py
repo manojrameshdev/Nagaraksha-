@@ -13,10 +13,10 @@ def stats():
     with db.get_conn() as conn:
         incidents = conn.execute("SELECT id, state, createdAt FROM Incident").fetchall()
         hospitals = conn.execute("SELECT id FROM Hospital").fetchall()
-        stocks = conn.execute("SELECT status FROM AntivenomStock").fetchall()
         risks = conn.execute("SELECT id FROM RiskReport").fetchall()
         myths = conn.execute("SELECT id, mythFlagged FROM MythThread").fetchall()
         kb = conn.execute("SELECT COUNT(*) as c FROM KnowledgeChunk").fetchone()["c"]
+
 
     by_state: dict = {}
     for i in incidents:

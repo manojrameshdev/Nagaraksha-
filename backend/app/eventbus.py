@@ -53,11 +53,18 @@ def _emit(event_type: str, incident_id: str, payload: dict):
 
 def append_outbox(event_type: str, aggregate_id: str, payload: dict):
     with db.get_conn() as conn:
-        conn.execute(
-            "INSERT INTO OutboxEvent (id, type, aggregateId, payload, state, attempts, createdAt) "
-            "VALUES (?, ?, ?, ?, 'PENDING', 0, ?)",
-            (db.new_id(), event_type, aggregate_id, json.dumps(payload), db.now_iso()),
-        )
+        append_outbox_tx(conn, event_type, aggregate_id, payload)
+
+
+def append_outbox_tx(conn, event_type: str, aggregate_id: str, payload: dict) -> str:
+    """Insert OutboxEvent within the caller's active database transaction."""
+    eid = db.new_id()
+    conn.execute(
+        "INSERT INTO OutboxEvent (id, type, aggregateId, payload, state, attempts, createdAt) "
+        "VALUES (?, ?, ?, ?, 'PENDING', 0, ?)",
+        (eid, event_type, aggregate_id, json.dumps(payload), db.now_iso()),
+    )
+    return eid
 
 
 def audit(incident_id=None, actor="system", action="", entity=None, metadata=None):
@@ -215,6 +222,23 @@ def _worker_tick():
                     # so incidents process in parallel (bounded pool).
                     _inflight.add(ev["id"])
                     _executor.submit(_run_incident_job, ev["id"], ev["aggregateId"], payload)
+                elif etype in (
+                    "ReferralCreated",
+                    "ReferralAccepted",
+                    "ReferralDeclined",
+                    "TransportStarted",
+                    "PatientArrived",
+                ):
+                    ws_event_name = {
+                        "ReferralCreated": "REFERRAL_CREATED",
+                        "ReferralAccepted": "REFERRAL_ACCEPTED",
+                        "ReferralDeclined": "REFERRAL_DECLINED",
+                        "TransportStarted": "TRANSPORT_STARTED",
+                        "PatientArrived": "PATIENT_ARRIVED",
+                    }.get(etype, etype)
+                    broadcast_sync(ev["aggregateId"], ws_event_name, payload)
+                    _emit(etype, ev["aggregateId"], payload)
+                    _mark_processed(ev["id"])
                 else:
                     _emit(etype, ev["aggregateId"], payload)
                     _mark_processed(ev["id"])
@@ -269,6 +293,7 @@ def get_ranked_hospitals(lat, lng):
         rows = conn.execute(
             """
             SELECT h.id, h.name, h.lat, h.lng, h.address, h.contact, h.complianceScore,
+                   h.facilityLevel, h.capabilities, h.ventilatorCount, h.icuBedsAvailable,
                    s.product AS stock_product, s.status AS stock_status,
                    s.quantityBand AS stock_quantityBand, s.verifiedAt AS stock_verifiedAt,
                    s.verifiedBy AS stock_verifiedBy
@@ -284,10 +309,23 @@ def get_ranked_hospitals(lat, lng):
         ).fetchall()
         result = []
         for r in rows:
+            caps = r["capabilities"]
+            if isinstance(caps, str):
+                try:
+                    caps = json.loads(caps)
+                except Exception:
+                    caps = [c.strip() for c in caps.split(",") if c.strip()]
+            elif caps is None:
+                caps = ["ASV", "EMERGENCY_CARE"]
+
             result.append({
                 "id": r["id"], "name": r["name"], "lat": r["lat"], "lng": r["lng"],
                 "address": r["address"], "contact": r["contact"],
                 "complianceScore": r["complianceScore"] if r["complianceScore"] is not None else 50.0,
+                "facilityLevel": r["facilityLevel"] or "PHC",
+                "capabilities": caps,
+                "ventilatorCount": r["ventilatorCount"] or 0,
+                "icuBedsAvailable": r["icuBedsAvailable"] or 0,
                 "stock": {
                     "product": r["stock_product"] or "Polyvalent ASV",
                     "status": r["stock_status"] or "UNKNOWN",
@@ -298,3 +336,4 @@ def get_ranked_hospitals(lat, lng):
             })
     from .domain import rank_hospitals
     return rank_hospitals({"lat": lat, "lng": lng}, result)
+

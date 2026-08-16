@@ -7,7 +7,7 @@ from fastapi import APIRouter, Request
 from ..limiter import limiter
 from ..models import SosRequest
 from .. import database as db
-from ..eventbus import append_outbox, audit, start_worker, get_ranked_hospitals
+from ..eventbus import audit, start_worker, get_ranked_hospitals
 from ..domain import gen_incident_ref
 
 router = APIRouter()

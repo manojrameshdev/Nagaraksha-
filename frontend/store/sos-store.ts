@@ -5,8 +5,10 @@ import type {
   SosResponse,
   PtosisReading,
   VenomScoreResult,
+  Referral,
+  CareCorridorTimeline,
 } from '@/lib/nagraksha';
-import { triggerSos as apiTriggerSos, getIncident } from '@/lib/nagraksha';
+import { triggerSos as apiTriggerSos, getIncident, getCorridorTimeline } from '@/lib/nagraksha';
 import type { IncidentSocketEvent } from '@/lib/realtime';
 
 interface SosState {
@@ -18,6 +20,8 @@ interface SosState {
   sosError: string | null;
   ptosisReadings: PtosisReading[];
   venomScore: VenomScoreResult | null;
+  activeReferral: Referral | null;
+  corridorTimeline: CareCorridorTimeline | null;
 }
 
 interface SosActions {
@@ -27,6 +31,9 @@ interface SosActions {
   setWsConnected: (_connected: boolean) => void;
   addPtosisReading: (_r: PtosisReading) => void;
   setVenomScore: (_s: VenomScoreResult | null) => void;
+  setReferral: (_r: Referral | null) => void;
+  setCorridorTimeline: (_t: CareCorridorTimeline | null) => void;
+  fetchCorridorTimeline: (_incidentId: string) => Promise<void>;
   reset: () => void;
 }
 
@@ -39,6 +46,8 @@ const initialState: SosState = {
   sosError: null,
   ptosisReadings: [],
   venomScore: null,
+  activeReferral: null,
+  corridorTimeline: null,
 };
 
 export const useSosStore = create<SosState & SosActions>((set, get) => ({
@@ -93,12 +102,43 @@ export const useSosStore = create<SosState & SosActions>((set, get) => ({
       );
     } else if (event === 'VENOM_SCORE_UPDATE') {
       set({ venomScore: (data as { venomScore: VenomScoreResult }).venomScore });
+    } else if (
+      event === 'REFERRAL_CREATED' ||
+      event === 'REFERRAL_ACCEPTED' ||
+      event === 'REFERRAL_DECLINED' ||
+      event === 'TRANSPORT_STARTED' ||
+      event === 'PATIENT_ARRIVED'
+    ) {
+      const { incidentId } = get();
+      if (incidentId) {
+        getCorridorTimeline(incidentId)
+          .then((timeline) =>
+            set({ corridorTimeline: timeline, activeReferral: timeline.activeReferral ?? null }),
+          )
+          .catch(() => {
+            /* silent */
+          });
+      }
     }
-    // Refresh full incident after any event for consistency
+    // Refresh full incident and corridor timeline after any event for consistency
     const { incidentId } = get();
     if (incidentId) {
       getIncident(incidentId)
-        .then(({ incident }) => set({ incident, dispatchLanes: incident.dispatchAttempts }))
+        .then(({ incident }) =>
+          set({
+            incident,
+            dispatchLanes: incident.dispatchAttempts,
+            activeReferral:
+              (incident as unknown as { activeReferral?: Referral }).activeReferral ?? null,
+          }),
+        )
+        .catch(() => {
+          /* silent */
+        });
+      getCorridorTimeline(incidentId)
+        .then((timeline) =>
+          set({ corridorTimeline: timeline, activeReferral: timeline.activeReferral ?? null }),
+        )
         .catch(() => {
           /* silent */
         });
@@ -109,5 +149,15 @@ export const useSosStore = create<SosState & SosActions>((set, get) => ({
   addPtosisReading: (reading) =>
     set((state) => ({ ptosisReadings: [...state.ptosisReadings, reading] })),
   setVenomScore: (score) => set({ venomScore: score }),
+  setReferral: (referral) => set({ activeReferral: referral }),
+  setCorridorTimeline: (timeline) => set({ corridorTimeline: timeline }),
+  fetchCorridorTimeline: async (incidentId) => {
+    try {
+      const timeline = await getCorridorTimeline(incidentId);
+      set({ corridorTimeline: timeline, activeReferral: timeline.activeReferral ?? null });
+    } catch {
+      /* silent */
+    }
+  },
   reset: () => set(initialState),
 }));

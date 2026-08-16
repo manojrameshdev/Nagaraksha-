@@ -1,8 +1,9 @@
 """Pydantic models for the NagRaksha API."""
 from __future__ import annotations
 
+from typing import Literal, Optional
 from pydantic import BaseModel, Field
-from typing import Optional
+
 
 
 class SosRequest(BaseModel):
@@ -96,3 +97,60 @@ class PtosisReadingRequest(BaseModel):
     severity: str = Field("none", pattern="^(none|mild|moderate|severe)$")
     asymmetric: bool = False
     minutes_since_bite: Optional[int] = Field(None, ge=0)
+
+
+FacilityCapability = Literal[
+    "ASV",
+    "OXYGEN",
+    "VENTILATION",
+    "ICU",
+    "BLOOD_BANK",
+    "DIALYSIS",
+    "EMERGENCY_CARE",
+]
+FacilityLevel = Literal["PHC", "CHC", "SDH", "DH", "TERTIARY"]
+
+
+class HospitalCapabilityUpdate(BaseModel):
+    facilityLevel: FacilityLevel = "PHC"
+    capabilities: list[FacilityCapability] = Field(default_factory=lambda: ["ASV", "EMERGENCY_CARE"])
+    ventilatorCount: int = Field(0, ge=0)
+    icuBedsAvailable: int = Field(0, ge=0)
+
+
+class ReferralCreateRequest(BaseModel):
+    fromHospitalId: str
+    toHospitalId: str
+    missingCapabilities: list[FacilityCapability]
+    clinicalReason: str
+    urgency: Literal["CRITICAL_IMMEDIATE", "HIGH_PRIORITY", "ROUTINE"] = "HIGH_PRIORITY"
+
+
+class ReferralAcceptRequest(BaseModel):
+    acceptedBy: str = "Hospital Coordinator"
+    notes: Optional[str] = None
+
+
+class ReferralDeclineRequest(BaseModel):
+    declinedBy: str = "Hospital Coordinator"
+    reason: str = "No critical care beds available"
+
+
+class ReferralResponse(BaseModel):
+    id: str
+    incidentId: str
+    fromHospitalId: str
+    toHospitalId: str
+    status: str
+    urgency: str
+    missingCapabilities: list[str]
+    clinicalReason: str
+    acceptedAt: Optional[str] = None
+    acceptedBy: Optional[str] = None
+    declinedAt: Optional[str] = None
+    declinedReason: Optional[str] = None
+    transportStartedAt: Optional[str] = None
+    arrivedAt: Optional[str] = None
+    createdAt: str
+    updatedAt: str
+

@@ -220,4 +220,133 @@ export const handlers = [
       ],
     }),
   ),
+
+  // Care Corridor / Referrals
+  http.get(`${BASE}/api/incidents/:incidentId/corridor`, ({ params }) =>
+    HttpResponse.json({
+      incidentId: params.incidentId,
+      presentingHospital: {
+        id: 'hosp-malavalli-phc',
+        name: 'Malavalli Taluk PHC',
+        facilityLevel: 'PHC',
+        capabilities: ['ASV', 'EMERGENCY_CARE'],
+      },
+      activeReferral: {
+        id: 'ref-mock-001',
+        incidentId: params.incidentId,
+        fromHospitalId: 'hosp-malavalli-phc',
+        toHospitalId: 'hosp-mandya-dh',
+        status: 'PENDING',
+        urgency: 'CRITICAL_IMMEDIATE',
+        missingCapabilities: ['VENTILATION', 'ICU'],
+        clinicalReason: 'Impending respiratory paralysis from progressive neurotoxic envenomation.',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      destinationHospital: {
+        id: 'hosp-mandya-dh',
+        name: 'Mandya District Hospital',
+        facilityLevel: 'DH',
+        capabilities: ['ASV', 'EMERGENCY_CARE', 'OXYGEN', 'VENTILATION', 'ICU', 'BLOOD_BANK'],
+        ventilatorCount: 4,
+      },
+      stages: [
+        {
+          index: 1,
+          stageKey: 'SOS_REPORTED',
+          title: 'Incident & SOS Activated',
+          status: 'COMPLETED',
+          timestamp: new Date().toISOString(),
+        },
+        {
+          index: 2,
+          stageKey: 'PRESENTING_FACILITY',
+          title: 'Presenting Facility Triage',
+          status: 'COMPLETED',
+          facilityName: 'Malavalli Taluk PHC',
+          facilityLevel: 'PHC',
+        },
+        {
+          index: 3,
+          stageKey: 'CLINICAL_TELEMETRY',
+          title: 'Clinical Observation & VenomScore',
+          status: 'COMPLETED',
+          percentChange: 50,
+          ptosisSeverity: 'moderate',
+        },
+        {
+          index: 4,
+          stageKey: 'CAPABILITY_GAP',
+          title: 'Facility Capability Gap',
+          status: 'COMPLETED',
+          missingCapabilities: ['VENTILATION', 'ICU'],
+          urgency: 'CRITICAL_IMMEDIATE',
+        },
+        {
+          index: 5,
+          stageKey: 'REFERRAL_TARGET',
+          title: 'Capable Receiving Facility',
+          status: 'COMPLETED',
+          destinationHospitalName: 'Mandya District Hospital',
+          destinationLevel: 'DH',
+          ventilatorCount: 4,
+        },
+        {
+          index: 6,
+          stageKey: 'HOSPITAL_ACCEPTANCE',
+          title: 'Receiving Hospital Acceptance',
+          status: 'IN_PROGRESS',
+        },
+        {
+          index: 7,
+          stageKey: 'AMBULANCE_TRANSIT',
+          title: 'Inter-Facility 108 Ambulance Transit',
+          status: 'PENDING',
+        },
+        {
+          index: 8,
+          stageKey: 'PATIENT_ARRIVED',
+          title: 'Arrival & Closed-Loop Handoff',
+          status: 'PENDING',
+        },
+      ],
+    }),
+  ),
+
+  http.post(`${BASE}/api/incidents/:incidentId/evaluate-referral`, ({ params }) =>
+    HttpResponse.json({
+      incidentId: params.incidentId,
+      capabilityGap: {
+        referral_required: true,
+        required_capabilities: ['ASV', 'EMERGENCY_CARE', 'ICU', 'VENTILATION'],
+        missing_capabilities: ['ICU', 'VENTILATION'],
+        clinical_reasons: ['Progressive neurotoxic envenomation mandates mechanical ventilation.'],
+        urgency: 'CRITICAL_IMMEDIATE',
+      },
+      recommendedHospital: {
+        id: 'hosp-mandya-dh',
+        name: 'Mandya District Hospital',
+        facilityLevel: 'DH',
+        complianceScore: 91.5,
+      },
+    }),
+  ),
+
+  http.patch(`${BASE}/api/referrals/:referralId/accept`, ({ params }) =>
+    HttpResponse.json({
+      referralId: params.referralId,
+      status: 'ACCEPTED',
+      acceptedAt: new Date().toISOString(),
+      acceptedBy: 'Dr. Ramesh (Mandya DH)',
+    }),
+  ),
+
+  http.patch(`${BASE}/api/referrals/:referralId/decline`, ({ params }) =>
+    HttpResponse.json({
+      referralId: params.referralId,
+      status: 'DECLINED',
+      declinedAt: new Date().toISOString(),
+      declinedReason: 'ICU occupied',
+    }),
+  ),
 ];

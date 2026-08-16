@@ -4,7 +4,7 @@ from __future__ import annotations
 import math
 import random
 import time
-from datetime import datetime, timezone
+from datetime import datetime
 
 
 def haversine_km(lat1, lng1, lat2, lng2):
@@ -303,3 +303,130 @@ def compute_venom_score(ptosis_readings, wound_readings, minutes_since_bite) -> 
         "woundReadingCount": len(wounds),
         "minutesSinceBite": minutes_since_bite,
     }
+
+
+# ── Care Corridor Clinical Capability Evaluator & Hard-Filter Ranking ─────────
+
+
+def evaluate_capability_gap(
+    current_facility_level: str = "PHC",
+    current_capabilities: list[str] | None = None,
+    venom_type: str = "UNKNOWN",
+    ptosis_severity: str = "none",
+    ptosis_percent_change: float | None = None,
+    swelling_progression: str = "NONE",
+    systemic_signs: list[str] | None = None,
+) -> dict:
+    """
+    Pure domain evaluator for clinical facility capability gaps.
+    Grounded in WHO Snakebite Guidelines (2016) & NCDC NAPSE (2024).
+    """
+    current_caps = set(c.upper() for c in (current_capabilities or ["ASV", "EMERGENCY_CARE"]))
+    systemic = [s.upper() for s in (systemic_signs or [])]
+    required = {"EMERGENCY_CARE", "ASV"}
+    reasons = []
+
+    # Rule 1: Impending Respiratory Paralysis (NAPSE STG Sec 4.2 / WHO Sec 7.2)
+    # Trigger: neurotoxic envenomation with >=40% ptosis aperture drop or moderate/severe severity
+    ptosis_severe = (
+        (ptosis_percent_change is not None and ptosis_percent_change >= 40.0)
+        or (ptosis_severity and ptosis_severity.lower() in ("moderate", "severe"))
+    )
+    if venom_type.upper() == "NEUROTOXIC" and ptosis_severe:
+        required.update(["VENTILATION", "ICU"])
+        reasons.append(
+            "Progressive neurotoxic envenomation (eyelid ptosis >=40%) threatens respiratory arrest; "
+            "invasive mechanical ventilation is required (NAPSE STG Sec 4.2)."
+        )
+
+    # Rule 2: Severe Hemotoxic Coagulopathy & Blood Products (WHO Guidelines Sec 7.4)
+    if "BLEEDING" in systemic or (swelling_progression and swelling_progression.upper() == "RAPID_PROXIMAL"):
+        required.update(["BLOOD_BANK", "ICU"])
+        reasons.append(
+            "Rapidly progressing hemotoxic swelling / spontaneous systemic bleeding requires "
+            "blood bank standby (WHO Guidelines Sec 7.4)."
+        )
+
+    # Rule 3: Acute Kidney Injury (NAPSE STG Sec 5.1)
+    if "OLIGURIA" in systemic:
+        required.update(["DIALYSIS", "ICU"])
+        reasons.append(
+            "Suspected Acute Kidney Injury (AKI) requires hemodialysis capability (NAPSE STG Sec 5.1)."
+        )
+
+    req_sorted = sorted(list(required))
+    missing = sorted([c for c in req_sorted if c not in current_caps])
+    referral_required = len(missing) > 0
+
+    urgency = "ROUTINE"
+    if "VENTILATION" in missing:
+        urgency = "CRITICAL_IMMEDIATE"
+    elif referral_required:
+        urgency = "HIGH_PRIORITY"
+
+    return {
+        "referral_required": referral_required,
+        "required_capabilities": req_sorted,
+        "missing_capabilities": missing,
+        "clinical_reasons": reasons,
+        "urgency": urgency,
+        "current_facility_level": current_facility_level,
+        "guideline_ref": "WHO Snakebite Guidelines (2016) / NCDC NAPSE (2024)",
+    }
+
+
+def rank_capable_hospitals(
+    origin: dict,
+    hospitals: list[dict],
+    required_capabilities: list[str] | None = None,
+    compliance_weight: float = 0.30,
+) -> list[dict]:
+    """
+    Rank hospitals with a hard capability filter:
+    - Hospitals missing ANY required capability or having OUT antivenom stock are disqualified (eligible=False)
+    - Eligible hospitals are ranked by distance, stock freshness, and compliance score
+    """
+    import json
+    req_caps = set(c.upper() for c in (required_capabilities or ["ASV", "EMERGENCY_CARE"]))
+    ranked = rank_hospitals(origin, hospitals, compliance_weight=compliance_weight)
+
+    for h in ranked:
+        raw_caps = h.get("capabilities", [])
+        if isinstance(raw_caps, str):
+            try:
+                h_caps = set(c.upper() for c in json.loads(raw_caps))
+            except Exception:
+                h_caps = set(c.strip().upper() for c in raw_caps.split(",") if c.strip())
+        elif isinstance(raw_caps, list):
+            h_caps = set(c.upper() for c in raw_caps)
+        else:
+            h_caps = set()
+
+        missing = sorted([c for c in req_caps if c not in h_caps])
+        stock = h.get("stock", {})
+        is_out = stock.get("status") == "OUT"
+
+        eligible = (len(missing) == 0) and not is_out
+        h["eligible"] = eligible
+        h["missingCapabilities"] = missing
+        if not eligible:
+            h["ineligibleReason"] = "Out of ASV stock" if is_out else f"Lacks required: {', '.join(missing)}"
+
+    eligible_hospitals = [h for h in ranked if h["eligible"]]
+    ineligible_hospitals = [h for h in ranked if not h["eligible"]]
+
+    eligible_hospitals.sort(key=lambda x: -x["compositeScore"])
+    ineligible_hospitals.sort(key=lambda x: -x["compositeScore"])
+
+    all_sorted = eligible_hospitals + ineligible_hospitals
+    for i, h in enumerate(all_sorted):
+        h["rank"] = i + 1
+        h["recommended"] = (i == 0 and h["eligible"])
+        if h["recommended"]:
+            h["whyRecommended"] = (
+                f"Meets all clinical capability requirements ({', '.join(sorted(req_caps))}) "
+                f"with {h['complianceScore']}% compliance and {h.get('freshness', {}).get('label', 'verified stock')}."
+            )
+
+    return all_sorted
+

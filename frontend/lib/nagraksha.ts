@@ -249,3 +249,150 @@ export const getAuthToken = (role: string, secret: string) =>
     method: 'POST',
     body: JSON.stringify({ role, secret }),
   });
+
+// ── Care Corridor / Capability-Aware Referral ───────────────────────────
+
+export type FacilityCapability =
+  'ASV' | 'OXYGEN' | 'VENTILATION' | 'ICU' | 'BLOOD_BANK' | 'DIALYSIS' | 'EMERGENCY_CARE';
+
+export type FacilityLevel = 'PHC' | 'CHC' | 'SDH' | 'DH' | 'TERTIARY';
+
+export interface CapabilityGapResult {
+  referral_required: boolean;
+  required_capabilities: FacilityCapability[];
+  missing_capabilities: FacilityCapability[];
+  clinical_reasons: string[];
+  urgency: 'CRITICAL_IMMEDIATE' | 'HIGH_PRIORITY' | 'ROUTINE';
+  current_facility_level: string;
+  guideline_ref: string;
+}
+
+export interface Referral {
+  id: string;
+  incidentId: string;
+  fromHospitalId: string;
+  toHospitalId: string;
+  toHospitalName?: string;
+  status: 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'IN_TRANSIT' | 'ARRIVED' | 'COMPLETED';
+  urgency: 'CRITICAL_IMMEDIATE' | 'HIGH_PRIORITY' | 'ROUTINE';
+  missingCapabilities: FacilityCapability[];
+  clinicalReason: string;
+  acceptedAt?: string | null;
+  acceptedBy?: string | null;
+  declinedAt?: string | null;
+  declinedReason?: string | null;
+  transportStartedAt?: string | null;
+  arrivedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CorridorStage {
+  index: number;
+  stageKey: string;
+  title: string;
+  status: 'COMPLETED' | 'IN_PROGRESS' | 'PENDING' | 'DECLINED';
+  timestamp?: string;
+  details?: string;
+  facilityName?: string;
+  facilityLevel?: string;
+  capabilities?: string[];
+  ptosisSeverity?: string;
+  percentChange?: number | null;
+  woundProgression?: string;
+  missingCapabilities?: string[];
+  urgency?: string;
+  clinicalReason?: string | null;
+  destinationHospitalName?: string | null;
+  destinationLevel?: string | null;
+  ventilatorCount?: number;
+  acceptedAt?: string | null;
+  acceptedBy?: string | null;
+  declinedReason?: string | null;
+  transportStartedAt?: string | null;
+  arrivedAt?: string | null;
+}
+
+export interface CareCorridorTimeline {
+  incidentId: string;
+  presentingHospital?: Hospital | null;
+  activeReferral?: Referral | null;
+  destinationHospital?: Hospital | null;
+  stages: CorridorStage[];
+}
+
+export const evaluateReferral = (incidentId: string) =>
+  apiFetch<{
+    incidentId: string;
+    presentingHospital: Hospital | null;
+    capabilityGap: CapabilityGapResult;
+    recommendedHospital: Hospital | null;
+    eligibleHospitals: Hospital[];
+    allHospitals: Hospital[];
+  }>(`/api/incidents/${incidentId}/evaluate-referral`, {
+    method: 'POST',
+    body: '{}',
+  });
+
+export const createReferral = (
+  incidentId: string,
+  body: {
+    fromHospitalId: string;
+    toHospitalId: string;
+    missingCapabilities: FacilityCapability[];
+    clinicalReason: string;
+    urgency?: 'CRITICAL_IMMEDIATE' | 'HIGH_PRIORITY' | 'ROUTINE';
+  },
+) =>
+  apiFetch<Referral>(`/api/incidents/${incidentId}/referrals`, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+
+export const listIncidentReferrals = (incidentId: string) =>
+  apiFetch<{ referrals: Referral[] }>(`/api/incidents/${incidentId}/referrals`);
+
+export const acceptReferral = (
+  referralId: string,
+  body: { acceptedBy?: string; notes?: string } = {},
+) =>
+  apiFetch<{ referralId: string; status: string; acceptedAt: string; acceptedBy?: string }>(
+    `/api/referrals/${referralId}/accept`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    },
+  );
+
+export const declineReferral = (
+  referralId: string,
+  body: { declinedBy?: string; reason: string },
+) =>
+  apiFetch<{ referralId: string; status: string; declinedAt: string; declinedReason: string }>(
+    `/api/referrals/${referralId}/decline`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    },
+  );
+
+export const startTransport = (referralId: string) =>
+  apiFetch<{ referralId: string; status: string; transportStartedAt: string }>(
+    `/api/referrals/${referralId}/transport`,
+    {
+      method: 'PATCH',
+      body: '{}',
+    },
+  );
+
+export const confirmArrival = (referralId: string) =>
+  apiFetch<{ referralId: string; status: string; arrivedAt: string }>(
+    `/api/referrals/${referralId}/arrive`,
+    {
+      method: 'PATCH',
+      body: '{}',
+    },
+  );
+
+export const getCorridorTimeline = (incidentId: string) =>
+  apiFetch<CareCorridorTimeline>(`/api/incidents/${incidentId}/corridor`);

@@ -68,12 +68,33 @@ describe('NagRaksha API Integration', () => {
     expect(result.venomScore.estimatedAntivenomVials).toBe(10);
   });
 
-  it('getVenomScore resolves to a VenomScoreResult', async () => {
-    const result = await getVenomScore('mock-incident-id-123');
-    expect(result.venomType).toBe('UNKNOWN');
-    expect(result.overallSeverity).toBe(0);
-    expect(result.confidenceLevel).toBe('low');
-    expect(result.dryBiteProbability).toBe(0);
-    expect(result.disclaimer).toBe('Confirm with 20WBCT');
+  it('getVenomScore returns a typed score shape', async () => {
+    const score = await getVenomScore('mock-incident-id-123');
+    expect(score.venomType).toBe('UNKNOWN');
+    expect(score.estimatedAntivenomVials).toBe(10);
+    expect(score.clinicalBasis).toBe('WHO 2016 Table 3');
+  });
+
+  it('getCorridorTimeline returns 8 stages with capability gap', async () => {
+    const { getCorridorTimeline } = await import('../nagraksha');
+    const timeline = await getCorridorTimeline('mock-incident-id-123');
+    expect(timeline.stages).toHaveLength(8);
+    expect(timeline.presentingHospital?.name).toBe('Malavalli Taluk PHC');
+    expect(timeline.activeReferral?.status).toBe('PENDING');
+  });
+
+  it('evaluateReferral returns required capabilities and recommended hospital', async () => {
+    const { evaluateReferral } = await import('../nagraksha');
+    const res = await evaluateReferral('mock-incident-id-123');
+    expect(res.capabilityGap.referral_required).toBe(true);
+    expect(res.capabilityGap.missing_capabilities).toContain('VENTILATION');
+    expect(res.recommendedHospital?.name).toBe('Mandya District Hospital');
+  });
+
+  it('acceptReferral returns accepted status', async () => {
+    const { acceptReferral } = await import('../nagraksha');
+    const res = await acceptReferral('ref-mock-001');
+    expect(res.status).toBe('ACCEPTED');
+    expect(res.acceptedBy).toBe('Dr. Ramesh (Mandya DH)');
   });
 });

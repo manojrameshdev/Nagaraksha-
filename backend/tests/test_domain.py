@@ -13,7 +13,10 @@ from app.domain import (
     compute_dry_bite_probability,
     estimate_antivenom_vials,
     compute_venom_score,
+    evaluate_capability_gap,
+    rank_capable_hospitals,
 )
+
 
 
 class TestHaversine:
@@ -267,3 +270,115 @@ class TestVenomScore:
         assert score["venomType"] == "NEUROTOXIC"  # diagnosis persists
         assert score["ventilatorRequired"] is False
         assert score["criticalAlert"] is None
+
+
+class TestCapabilityGapEvaluation:
+    def test_phc_neurotoxic_severe_ptosis_requires_ventilation(self):
+        """PHC with ASV only must refer when ptosis >=40% due to impending respiratory arrest."""
+        res = evaluate_capability_gap(
+            current_facility_level="PHC",
+            current_capabilities=["ASV", "EMERGENCY_CARE"],
+            venom_type="NEUROTOXIC",
+            ptosis_severity="moderate",
+            ptosis_percent_change=50.0,
+        )
+        assert res["referral_required"] is True
+        assert "VENTILATION" in res["missing_capabilities"]
+        assert "ICU" in res["missing_capabilities"]
+        assert res["urgency"] == "CRITICAL_IMMEDIATE"
+        assert len(res["clinical_reasons"]) >= 1
+
+    def test_district_hospital_with_ventilation_needs_no_referral(self):
+        """District hospital with ventilation & ICU needs no secondary referral for neurotoxic case."""
+        res = evaluate_capability_gap(
+            current_facility_level="DH",
+            current_capabilities=["ASV", "EMERGENCY_CARE", "OXYGEN", "VENTILATION", "ICU", "BLOOD_BANK"],
+            venom_type="NEUROTOXIC",
+            ptosis_severity="severe",
+            ptosis_percent_change=65.0,
+        )
+        assert res["referral_required"] is False
+        assert len(res["missing_capabilities"]) == 0
+        assert res["urgency"] == "ROUTINE"
+
+    def test_hemotoxic_bleeding_requires_blood_bank(self):
+        """Spontaneous bleeding or rapid proximal swelling requires blood bank standby."""
+        res = evaluate_capability_gap(
+            current_facility_level="PHC",
+            current_capabilities=["ASV", "EMERGENCY_CARE"],
+            venom_type="HEMOTOXIC",
+            swelling_progression="RAPID_PROXIMAL",
+            systemic_signs=["BLEEDING"],
+        )
+        assert res["referral_required"] is True
+        assert "BLOOD_BANK" in res["missing_capabilities"]
+        assert "ICU" in res["missing_capabilities"]
+
+    def test_oliguria_requires_dialysis(self):
+        """Suspected acute kidney injury mandates hemodialysis capability."""
+        res = evaluate_capability_gap(
+            current_facility_level="CHC",
+            current_capabilities=["ASV", "EMERGENCY_CARE", "OXYGEN", "VENTILATION", "ICU"],
+            systemic_signs=["OLIGURIA"],
+        )
+        assert res["referral_required"] is True
+        assert "DIALYSIS" in res["missing_capabilities"]
+
+
+class TestCapableHospitalRanking:
+    def test_hard_capability_filter_disqualifies_incapable_hospitals(self):
+        """A closer hospital lacking required capabilities is marked ineligible."""
+        origin = {"lat": 12.3860, "lng": 77.0545}
+        hospitals = [
+            {
+                "id": "hosp-phc-close",
+                "name": "Nearby PHC",
+                "lat": 12.3900,
+                "lng": 77.0600,
+                "capabilities": ["ASV", "EMERGENCY_CARE"],
+                "complianceScore": 95.0,
+                "stock": {"status": "CONFIRMED", "verifiedAt": "2026-08-16T10:00:00Z"},
+            },
+            {
+                "id": "hosp-dh-far",
+                "name": "Mandya District Hospital",
+                "lat": 12.5213,
+                "lng": 76.8948,
+                "capabilities": ["ASV", "EMERGENCY_CARE", "OXYGEN", "VENTILATION", "ICU", "BLOOD_BANK"],
+                "complianceScore": 91.5,
+                "stock": {"status": "CONFIRMED", "verifiedAt": "2026-08-16T10:00:00Z"},
+            },
+        ]
+        ranked = rank_capable_hospitals(origin, hospitals, required_capabilities=["VENTILATION", "ICU"])
+        assert len(ranked) == 2
+
+        # Mandya DH is eligible and recommended despite being further away
+        assert ranked[0]["name"] == "Mandya District Hospital"
+        assert ranked[0]["eligible"] is True
+        assert ranked[0]["recommended"] is True
+
+        # Nearby PHC is ineligible
+        assert ranked[1]["name"] == "Nearby PHC"
+        assert ranked[1]["eligible"] is False
+        assert ranked[1]["recommended"] is False
+        assert "VENTILATION" in ranked[1]["missingCapabilities"]
+
+    def test_out_of_stock_hospital_disqualified(self):
+        """Hospital with OUT antivenom stock is disqualified even if it has ventilators."""
+        origin = {"lat": 12.8000, "lng": 77.5000}
+        hospitals = [
+            {
+                "id": "hosp-empty-dh",
+                "name": "Empty District Hospital",
+                "lat": 12.8100,
+                "lng": 77.5100,
+                "capabilities": ["ASV", "EMERGENCY_CARE", "VENTILATION", "ICU"],
+                "complianceScore": 85.0,
+                "stock": {"status": "OUT", "verifiedAt": "2026-08-16T10:00:00Z"},
+            }
+        ]
+        ranked = rank_capable_hospitals(origin, hospitals, required_capabilities=["VENTILATION"])
+        assert ranked[0]["eligible"] is False
+        assert ranked[0]["recommended"] is False
+        assert "Out of ASV stock" in ranked[0]["ineligibleReason"]
+

@@ -28,13 +28,17 @@ os.environ.setdefault(
 from app import database as db  # noqa: E402
 from app.database import get_conn, init_db, new_id, now_iso  # noqa: E402
 
+import json
+
 _HOSPITALS = [
-    # (name, lat, lng, address, contact, complianceScore)
-    ("Mandya District Hospital", 12.5213, 76.8948, "Mandya, Karnataka", "+918232220001", 91.5),
-    ("Tumkur District Hospital", 13.3379, 77.1173, "Tumkur, Karnataka", "+918162202002", 78.0),
-    ("Hassan District Hospital", 13.0057, 76.1005, "Hassan, Karnataka", "+918172268003", 56.0),
-    ("K.R. Hospital Mysore", 12.2958, 76.6394, "Mysore, Karnataka", "+918212520004", 88.0),
-    ("Rajarajeshwari Medical Nagara", 12.9141, 77.4986, "Bangalore, KA", "+918028605005", 45.0),
+    # (name, lat, lng, address, contact, complianceScore, facilityLevel, capabilities, ventilatorCount, icuBedsAvailable)
+    ("Malavalli Taluk PHC", 12.3860, 77.0545, "Malavalli, Mandya, Karnataka", "+918231242222", 82.0, "PHC", ["ASV", "EMERGENCY_CARE"], 0, 0),
+    ("Srirangapatna CHC", 12.4218, 76.6932, "Srirangapatna, Mandya, Karnataka", "+918236252111", 75.0, "CHC", ["ASV", "EMERGENCY_CARE", "OXYGEN"], 1, 2),
+    ("Mandya District Hospital", 12.5213, 76.8948, "Mandya, Karnataka", "+918232220001", 91.5, "DH", ["ASV", "EMERGENCY_CARE", "OXYGEN", "VENTILATION", "ICU", "BLOOD_BANK"], 4, 8),
+    ("K.R. Hospital Mysore", 12.2958, 76.6394, "Mysore, Karnataka", "+918212520004", 88.0, "TERTIARY", ["ASV", "EMERGENCY_CARE", "OXYGEN", "VENTILATION", "ICU", "BLOOD_BANK", "DIALYSIS"], 12, 24),
+    ("Tumkur District Hospital", 13.3379, 77.1173, "Tumkur, Karnataka", "+918162202002", 78.0, "DH", ["ASV", "EMERGENCY_CARE", "OXYGEN", "VENTILATION", "ICU"], 3, 6),
+    ("Hassan District Hospital", 13.0057, 76.1005, "Hassan, Karnataka", "+918172268003", 56.0, "DH", ["ASV", "EMERGENCY_CARE", "OXYGEN", "VENTILATION", "ICU"], 2, 4),
+    ("Rajarajeshwari Medical Nagara", 12.9141, 77.4986, "Bangalore, KA", "+918028605005", 45.0, "TERTIARY", ["ASV", "EMERGENCY_CARE", "OXYGEN", "VENTILATION", "ICU"], 5, 10),
 ]
 
 _STAKEHOLDERS = [
@@ -63,24 +67,27 @@ def _stock_status(compliance: float) -> str:
 
 def _seed_hospitals(conn) -> int:
     now = now_iso()
-    for name, lat, lng, address, contact, compliance in _HOSPITALS:
+    for name, lat, lng, address, contact, compliance, level, caps, vents, icu in _HOSPITALS:
         existing = conn.execute(
             "SELECT id FROM Hospital WHERE name=?", (name,)
         ).fetchone()
+        caps_json = json.dumps(caps)
         if existing:
             hid = existing["id"]
             conn.execute(
                 "UPDATE Hospital SET lat=?, lng=?, address=?, contact=?, active=1, "
-                "complianceScore=?, complianceUpdatedAt=?, updatedAt=? WHERE id=?",
-                (lat, lng, address, contact, compliance, now, now, hid),
+                "complianceScore=?, complianceUpdatedAt=?, facilityLevel=?, capabilities=?, "
+                "ventilatorCount=?, icuBedsAvailable=?, updatedAt=? WHERE id=?",
+                (lat, lng, address, contact, compliance, now, level, caps_json, vents, icu, now, hid),
             )
         else:
             hid = db.new_id()
             conn.execute(
                 "INSERT INTO Hospital (id, name, lat, lng, address, contact, active, "
-                "createdAt, updatedAt, complianceScore, complianceUpdatedAt) "
-                "VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?)",
-                (hid, name, lat, lng, address, contact, now, now, compliance, now),
+                "createdAt, updatedAt, complianceScore, complianceUpdatedAt, facilityLevel, "
+                "capabilities, ventilatorCount, icuBedsAvailable) "
+                "VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (hid, name, lat, lng, address, contact, now, now, compliance, now, level, caps_json, vents, icu),
             )
         # Delete-then-insert stock per demo hospital so re-runs never accumulate.
         conn.execute("DELETE FROM AntivenomStock WHERE hospitalId=?", (hid,))
@@ -97,8 +104,47 @@ def _seed_hospitals(conn) -> int:
                 "Dr. Pharmacy",
             ),
         )
-        print(f"  Seeded hospital {name} (compliance {compliance} -> {_stock_status(compliance)})")
+        print(f"  Seeded hospital {name} ({level}, {vents} vents, compliance {compliance} -> {_stock_status(compliance)})")
     return len(_HOSPITALS)
+
+
+def _seed_demo_incident(conn) -> str:
+    """Seed deterministic incident NR-1042 for Care Corridor rehearsal."""
+    now = now_iso()
+    malavalli = conn.execute("SELECT id FROM Hospital WHERE name='Malavalli Taluk PHC'").fetchone()
+    malavalli_id = malavalli["id"] if malavalli else "hosp-malavalli-phc"
+
+    inc_id = "inc-nr-1042"
+    existing = conn.execute("SELECT id FROM Incident WHERE id=?", (inc_id,)).fetchone()
+    if existing:
+        conn.execute(
+            "UPDATE Incident SET state='DISPATCHED', presentingHospitalId=?, updatedAt=? WHERE id=?",
+            (malavalli_id, now, inc_id),
+        )
+    else:
+        conn.execute(
+            "INSERT INTO Incident (id, token, lat, lng, address, biteTime, bodyPart, snakeType, state, presentingHospitalId, createdAt, updatedAt) "
+            "VALUES (?, 'NR-1042', 12.3860, 77.0545, 'Malavalli Rural, Mandya', ?, 'Right foot', 'Common Krait', 'DISPATCHED', ?, ?, ?)",
+            (inc_id, now, malavalli_id, now, now),
+        )
+
+    # Seed PtosisReading with 50% aperture reduction
+    conn.execute("DELETE FROM PtosisReading WHERE incidentId=?", (inc_id,))
+    conn.execute(
+        "INSERT INTO PtosisReading (id, incidentId, timestamp, rightAperture, leftAperture, avgAperture, baselineAperture, percentChange, ptosisDetected, severity, asymmetric, minutesSinceBite, createdAt) "
+        "VALUES (?, ?, ?, 6.0, 6.0, 6.0, 12.0, 50.0, 1, 'moderate', 0, 25, ?)",
+        (db.new_id(), inc_id, now, now),
+    )
+
+    # Seed initial symptom observation
+    conn.execute("DELETE FROM SymptomObservation WHERE incidentId=?", (inc_id,))
+    conn.execute(
+        "INSERT INTO SymptomObservation (id, incidentId, code, label, severity, value, observedAt, author) "
+        "VALUES (?, ?, 'PTOSIS', 'Bilateral eyelid ptosis', 'MODERATE', '50% reduction', ?, 'ASHA Worker')",
+        (db.new_id(), inc_id, now),
+    )
+    print("  Seeded deterministic demo incident NR-1042 (Malavalli PHC -> 50% Ptosis).")
+    return inc_id
 
 
 def _seed_stakeholders(conn) -> int:
@@ -148,22 +194,25 @@ def _seed_village_audits(conn) -> int:
 
 def run():
     """Seed the Karnataka demo dataset. Idempotent — safe to call repeatedly."""
-    init_db()  # migrate_db() ALTERs complianceScore/complianceUpdatedAt onto Hospital first
-    print("Seeding Karnataka demo data (IISc presentation)...")
+    init_db()
+    print("Seeding Karnataka demo data (IISc presentation & Care Corridor)...")
 
     with get_conn() as conn:
         hospitals = _seed_hospitals(conn)
         stakeholders = _seed_stakeholders(conn)
         villages = _seed_village_audits(conn)
+        demo_inc = _seed_demo_incident(conn)
 
         summary = {
             "hospitals": hospitals,
             "stakeholders": stakeholders,
             "villageAudits": villages,
+            "demoIncidentId": demo_inc,
         }
-        print(f"Seeded {hospitals} hospitals, {stakeholders} stakeholders, {villages} village audits.")
+        print(f"Seeded {hospitals} hospitals, {stakeholders} stakeholders, {villages} village audits, demo incident {demo_inc}.")
         return summary
 
 
 if __name__ == "__main__":
     run()
+

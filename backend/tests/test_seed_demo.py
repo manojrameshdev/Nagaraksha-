@@ -13,6 +13,8 @@ from app import database as db
 import seed_demo
 
 _EXPECTED_HOSPITALS = {
+    "Malavalli Taluk PHC": 82.0,
+    "Srirangapatna CHC": 75.0,
     "Mandya District Hospital": 91.5,
     "Tumkur District Hospital": 78.0,
     "Hassan District Hospital": 56.0,
@@ -46,7 +48,8 @@ def _counts():
         stock = conn.execute("SELECT COUNT(*) AS c FROM AntivenomStock").fetchone()["c"]
         stakeholders = conn.execute("SELECT COUNT(*) AS c FROM Stakeholder").fetchone()["c"]
         villages = conn.execute("SELECT COUNT(*) AS c FROM VillageAudit").fetchone()["c"]
-        return hospitals, stock, stakeholders, villages
+        incidents = conn.execute("SELECT COUNT(*) AS c FROM Incident").fetchone()["c"]
+        return hospitals, stock, stakeholders, villages, incidents
 
 
 class TestSeedDemo:
@@ -54,12 +57,32 @@ class TestSeedDemo:
         seed_demo.run()
         with db.get_conn() as conn:
             rows = conn.execute(
-                "SELECT name, complianceScore FROM Hospital"
+                "SELECT name, complianceScore, facilityLevel, ventilatorCount FROM Hospital"
             ).fetchall()
         actual = {r["name"]: r["complianceScore"] for r in rows}
         assert set(actual) == set(_EXPECTED_HOSPITALS)
         for name, compliance in _EXPECTED_HOSPITALS.items():
             assert actual[name] == compliance
+
+        mandya = next(r for r in rows if r["name"] == "Mandya District Hospital")
+        assert mandya["facilityLevel"] == "DH"
+        assert mandya["ventilatorCount"] == 4
+
+        malavalli = next(r for r in rows if r["name"] == "Malavalli Taluk PHC")
+        assert malavalli["facilityLevel"] == "PHC"
+        assert malavalli["ventilatorCount"] == 0
+
+    def test_demo_incident_seeded(self, isolated_seed_db):
+        seed_demo.run()
+        with db.get_conn() as conn:
+            inc = conn.execute("SELECT * FROM Incident WHERE id='inc-nr-1042'").fetchone()
+            assert inc is not None
+            assert inc["token"] == "NR-1042"
+            assert inc["presentingHospitalId"] is not None
+
+            ptosis = conn.execute("SELECT * FROM PtosisReading WHERE incidentId='inc-nr-1042'").fetchone()
+            assert ptosis is not None
+            assert ptosis["percentChange"] == 50.0
 
     def test_stock_status_mapping(self, isolated_seed_db):
         seed_demo.run()
@@ -115,4 +138,5 @@ class TestSeedDemo:
         after_first = _counts()
         seed_demo.run()
         after_second = _counts()
-        assert after_first == after_second == (5, 5, 3, 3)
+        assert after_first == after_second == (7, 7, 3, 3, 1)
+

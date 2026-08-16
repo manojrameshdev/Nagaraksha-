@@ -19,15 +19,23 @@ def compute_household_risk(data: dict) -> float:
     Validated by NagRaksha B.Pharm team members.
     """
     risk = 0.0
-    if data.get("sleeps_on_floor"):    risk += 25   # highest risk factor
-    if data.get("has_wall_gaps"):      risk += 20   # snake entry point
-    if not data.get("adequate_lighting"):  risk += 15   # can't see snake at night
-    if not data.get("wears_footwear_night"): risk += 15  # most bites on feet
-    if data.get("near_agri_field"):    risk += 10   # snake habitat proximity
-    if data.get("prior_snakebite"):    risk += 10   # high-risk household history
-    if not data.get("knows_myths_facts"):   risk += 5    # dangerous myth adherence
+    if data.get("sleeps_on_floor"):
+        risk += 25  # highest risk factor
+    if data.get("has_wall_gaps"):
+        risk += 20  # snake entry point
+    if not data.get("adequate_lighting"):
+        risk += 15  # can't see snake at night
+    if not data.get("wears_footwear_night"):
+        risk += 15  # most bites on feet
+    if data.get("near_agri_field"):
+        risk += 10  # snake habitat proximity
+    if data.get("prior_snakebite"):
+        risk += 10  # high-risk household history
+    if not data.get("knows_myths_facts"):
+        risk += 5   # dangerous myth adherence
     # knowsNearestHospital is protective but doesn't increase risk
     return min(100.0, round(risk, 1))
+
 
 
 @router.post("/api/audit/village")

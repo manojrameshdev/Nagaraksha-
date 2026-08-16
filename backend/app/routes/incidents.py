@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-import time
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 from ..models import SymptomRequest
@@ -35,6 +34,19 @@ def _load_incident(inc_id):
                 "SELECT * FROM SnakeObservation WHERE incidentId=? ORDER BY createdAt ASC", (inc_id,)
             ).fetchall()
         ]
+        refs = conn.execute(
+            "SELECT * FROM Referral WHERE incidentId=? ORDER BY createdAt DESC", (inc_id,)
+        ).fetchall()
+        referrals = []
+        for r in refs:
+            rd = dict(r)
+            try:
+                rd["missingCapabilities"] = json.loads(rd["missingCapabilities"])
+            except Exception:
+                rd["missingCapabilities"] = [c.strip() for c in rd["missingCapabilities"].split(",") if c.strip()]
+            referrals.append(rd)
+        inc["referrals"] = referrals
+        inc["activeReferral"] = referrals[0] if referrals else None
     return inc
 
 

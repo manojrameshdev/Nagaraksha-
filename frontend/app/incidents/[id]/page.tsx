@@ -7,6 +7,7 @@ import { useSosStore } from '@/store/sos-store';
 import { getIncident } from '@/lib/nagraksha';
 import { DispatchActions } from '@/components/dispatch-actions';
 import { SymptomLogger } from '@/components/symptom-logger';
+import { CareCorridorTimeline } from '@/components/care-corridor-timeline';
 
 // WASM model is browser-only — load the VenomScore camera component on the
 // client only (never SSR'd, never statically bundled).
@@ -20,14 +21,13 @@ export default function IncidentPage() {
   const dispatchLanes = useSosStore((s) => s.dispatchLanes);
   const wsConnected = useSosStore((s) => s.wsConnected);
   const venomScore = useSosStore((s) => s.venomScore);
+  const corridorTimeline = useSosStore((s) => s.corridorTimeline);
   const setIncident = useSosStore((s) => s.setIncident);
+  const fetchCorridorTimeline = useSosStore((s) => s.fetchCorridorTimeline);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Demo role switch via ?role=hospital. SSR-safe lazy initializer (window
-  // only accessed on the client; server and first client render both show the
-  // loading branch, so no hydration mismatch) — the react-hooks
-  // set-state-in-effect gate forbids a synchronous setState in a mount effect.
+  // Demo role switch via ?role=hospital. SSR-safe lazy initializer
   const [role] = useState<'victim' | 'hospital'>(() =>
     typeof window !== 'undefined' &&
     new URLSearchParams(window.location.search).get('role') === 'hospital'
@@ -51,10 +51,11 @@ export default function IncidentPage() {
         setError(e instanceof Error ? e.message : 'Failed to load incident');
         setLoading(false);
       });
+    fetchCorridorTimeline(id).catch(() => {});
     return () => {
       cancelled = true;
     };
-  }, [id, setIncident]);
+  }, [id, setIncident, fetchCorridorTimeline]);
 
   function refreshIncident() {
     if (!id) return;
@@ -137,6 +138,13 @@ export default function IncidentPage() {
 
       <DispatchActions incidentId={id} onAction={refreshIncident} />
       <SymptomLogger incidentId={id} onLogged={refreshIncident} />
+
+      <CareCorridorTimeline
+        timeline={corridorTimeline}
+        incidentId={id}
+        role={role}
+        onAction={refreshIncident}
+      />
 
       {role === 'hospital' ? (
         <section className="space-y-3">

@@ -1,8 +1,17 @@
 import { BACKEND_URL } from './api';
 
 export interface IncidentSocketEvent {
-  // Backend broadcasts uppercase for venom score events; existing events are lowercase — keep them all.
-  event: 'dispatch_attempted' | 'dispatch_accepted' | 'incident_state' | 'VENOM_SCORE_UPDATE';
+  // Backend broadcasts uppercase for venom score & referral events; legacy dispatch events are lowercase — keep them all.
+  event:
+    | 'dispatch_attempted'
+    | 'dispatch_accepted'
+    | 'incident_state'
+    | 'VENOM_SCORE_UPDATE'
+    | 'REFERRAL_CREATED'
+    | 'REFERRAL_ACCEPTED'
+    | 'REFERRAL_DECLINED'
+    | 'TRANSPORT_STARTED'
+    | 'PATIENT_ARRIVED';
   data: Record<string, unknown>;
 }
 

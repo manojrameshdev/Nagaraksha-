@@ -8,9 +8,11 @@ from __future__ import annotations
 
 import sqlite3
 import os
+import uuid
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
+
 
 DB_DIR = Path(__file__).resolve().parent.parent / "db"
 DB_DIR.mkdir(parents=True, exist_ok=True)
@@ -27,11 +29,13 @@ CREATE TABLE IF NOT EXISTS Incident (
     bodyPart TEXT,
     snakeType TEXT,
     state TEXT DEFAULT 'PENDING',
+    presentingHospitalId TEXT,
     createdAt TEXT,
     updatedAt TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_incident_state ON Incident(state);
 CREATE INDEX IF NOT EXISTS idx_incident_created ON Incident(createdAt);
+CREATE INDEX IF NOT EXISTS idx_incident_presenting ON Incident(presentingHospitalId);
 
 CREATE TABLE IF NOT EXISTS DispatchAttempt (
     id TEXT PRIMARY KEY,
@@ -58,10 +62,38 @@ CREATE TABLE IF NOT EXISTS Hospital (
     lng REAL,
     address TEXT,
     contact TEXT,
+    facilityLevel TEXT DEFAULT 'PHC',
+    capabilities TEXT DEFAULT '["ASV","EMERGENCY_CARE"]',
+    ventilatorCount INTEGER DEFAULT 0,
+    icuBedsAvailable INTEGER DEFAULT 0,
     active INTEGER DEFAULT 1,
     createdAt TEXT,
     updatedAt TEXT
 );
+
+CREATE TABLE IF NOT EXISTS Referral (
+    id TEXT PRIMARY KEY,
+    incidentId TEXT NOT NULL,
+    fromHospitalId TEXT NOT NULL,
+    toHospitalId TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'ACCEPTED', 'DECLINED', 'IN_TRANSIT', 'ARRIVED', 'COMPLETED')),
+    urgency TEXT NOT NULL DEFAULT 'HIGH' CHECK (urgency IN ('CRITICAL_IMMEDIATE', 'HIGH_PRIORITY', 'ROUTINE')),
+    missingCapabilities TEXT NOT NULL,
+    clinicalReason TEXT NOT NULL,
+    acceptedAt TEXT,
+    acceptedBy TEXT,
+    declinedAt TEXT,
+    declinedReason TEXT,
+    transportStartedAt TEXT,
+    arrivedAt TEXT,
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL,
+    FOREIGN KEY (incidentId) REFERENCES Incident(id) ON DELETE CASCADE,
+    FOREIGN KEY (fromHospitalId) REFERENCES Hospital(id),
+    FOREIGN KEY (toHospitalId) REFERENCES Hospital(id)
+);
+CREATE INDEX IF NOT EXISTS idx_referral_incident ON Referral(incidentId);
+CREATE INDEX IF NOT EXISTS idx_referral_to_hosp ON Referral(toHospitalId, status);
 
 CREATE TABLE IF NOT EXISTS AntivenomStock (
     id TEXT PRIMARY KEY,
@@ -267,9 +299,16 @@ def migrate_db():
             ("complianceScore", "REAL DEFAULT 100.0"),
             ("complianceUpdatedAt", "TEXT"),
             ("complianceRank", "INTEGER"),
+            ("facilityLevel", "TEXT DEFAULT 'PHC'"),
+            ("capabilities", "TEXT DEFAULT '[\"ASV\",\"EMERGENCY_CARE\"]'"),
+            ("ventilatorCount", "INTEGER DEFAULT 0"),
+            ("icuBedsAvailable", "INTEGER DEFAULT 0"),
         ]:
             if not _column_exists(conn, "Hospital", col):
                 conn.execute(f"ALTER TABLE Hospital ADD COLUMN {col} {defn}")
+        # Incident presenting facility column
+        if not _column_exists(conn, "Incident", "presentingHospitalId"):
+            conn.execute("ALTER TABLE Incident ADD COLUMN presentingHospitalId TEXT")
         # DispatchAttempt real-SMS columns (added when Twilio dispatch was wired in)
         for col, defn in [
             ("responderId", "TEXT"),
@@ -320,9 +359,7 @@ def days_since(iso_ts: str) -> float:
         return 9999.0
 
 
-import uuid
-
-
 def new_id() -> str:
     return uuid.uuid4().hex[:24]
+
 

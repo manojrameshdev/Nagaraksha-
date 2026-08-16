@@ -8,16 +8,13 @@ from __future__ import annotations
 import asyncio
 import os
 from contextlib import asynccontextmanager
-
 from dotenv import load_dotenv
-
-load_dotenv()
 
 import sentry_sdk
 from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.starlette import StarletteIntegration
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -27,13 +24,18 @@ from . import database as db
 from .rag import ensure_kb_seeded
 from .eventbus import start_worker
 from .scheduler import start_scheduler, stop_scheduler
+from .models import TokenRequest
+from .auth import create_token, ROLE_SECRETS
 from .routes import (
     sos, incidents, hospitals, risk, snake_id,
     myth_buster, stats, architecture, ops, transcribe,
 )
-from .routes import ws, wound, audit, stakeholders, twilio_webhook, venom_score
+from .routes import ws, wound, audit, stakeholders, twilio_webhook, venom_score, referrals
+
+load_dotenv()
 
 # ── Sentry ──────────────────────────────────────────────────────────
+
 sentry_dsn = os.environ.get("SENTRY_DSN")
 if sentry_dsn:
     sentry_sdk.init(
@@ -88,20 +90,16 @@ def health():
 
 
 # ── Auth token endpoint ──────────────────────────────────────────────
-from .models import TokenRequest
-from .auth import create_token, ROLE_SECRETS
-
-
 @app.post("/api/auth/token")
 @limiter.limit("10/minute")
 def get_token(request: Request, body: TokenRequest):
     """Issue a JWT for a role. Takes {role, secret} — secrets set in .env."""
     expected = ROLE_SECRETS.get(body.role)
     if not expected or body.secret != expected:
-        from fastapi import HTTPException
         raise HTTPException(status_code=401, detail="Invalid role or secret")
     token = create_token(body.role)
     return {"token": token, "role": body.role}
+
 
 
 # ── Register all route modules ────────────────────────────────────────
@@ -123,3 +121,5 @@ app.include_router(venom_score.router)
 app.include_router(audit.router)
 app.include_router(stakeholders.router)
 app.include_router(twilio_webhook.router)
+app.include_router(referrals.router)
+
